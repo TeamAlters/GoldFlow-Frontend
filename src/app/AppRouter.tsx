@@ -3,6 +3,7 @@ import LoginUp from '../auth/LoginPage'
 import SignUp from '../auth/SignUp'
 import DashboardIndex from '../modules/dashboard/DashboardPage'
 import UsersPage from '../modules/admin/UsersPage'
+import UserFormPage from '../modules/admin/UserFormPage'
 import MainLayout from '../layout/MainLayout'
 
 export default function AppRouter() {
@@ -29,7 +30,8 @@ export default function AppRouter() {
           <Route path="/issues/*" element={<DashboardIndex />} />
           <Route path="/reports/*" element={<DashboardIndex />} />
           <Route path="/users" element={<UsersPage />} />
-          <Route path="/users/*" element={<UsersPage />} />
+          <Route path="/users/add" element={<UserFormPage />} />
+          <Route path="/users/edit/:id" element={<UserFormPage />} />
           <Route path="/settings" element={<DashboardIndex />} />
           <Route path="/profile" element={<DashboardIndex />} />
         </Routes>
