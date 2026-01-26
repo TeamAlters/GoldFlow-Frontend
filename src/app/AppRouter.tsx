@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginUp from '../auth/LoginPage'
 import SignUp from '../auth/SignUp'
 import DashboardIndex from '../modules/dashboard/DashboardPage'
+import UsersPage from '../modules/admin/UsersPage'
 import MainLayout from '../layout/MainLayout'
 
 export default function AppRouter() {
@@ -27,7 +28,8 @@ export default function AppRouter() {
           <Route path="/receipts/*" element={<DashboardIndex />} />
           <Route path="/issues/*" element={<DashboardIndex />} />
           <Route path="/reports/*" element={<DashboardIndex />} />
-          <Route path="/users/*" element={<DashboardIndex />} />
+          <Route path="/users" element={<UsersPage />} />
+          <Route path="/users/*" element={<UsersPage />} />
           <Route path="/settings" element={<DashboardIndex />} />
           <Route path="/profile" element={<DashboardIndex />} />
         </Routes>
