@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import DataTable from '../../shared/components/DataTable'
 import type { TableColumn, TableAction } from '../../shared/components/DataTable'
+import FilterComponent, { type FilterComponentConfig, type FilterValue } from '../../shared/components/FilterComponent'
 import { useUIStore } from '../../stores/ui.store'
 
 // User type definition
@@ -15,6 +16,7 @@ type User = {
 export default function UsersPage() {
   const isDarkMode = useUIStore((state) => state.isDarkMode)
   const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState<Record<string, FilterValue>>({})
   const [users, setUsers] = useState<User[]>([
     {
       id: 1,
@@ -212,20 +214,98 @@ export default function UsersPage() {
     },
   ]
 
-  // Filter users based on search query
-  const filteredUsers = useMemo(() => {
-    if (!searchQuery) return users
+  // Filter configuration
+  const filterConfig: FilterComponentConfig = {
+    default: {
+      email: {
+        key: 'email',
+        label: 'Email',
+        dataType: 'string',
+      },
+      'first name': {
+        key: 'first name',
+        label: 'First Name',
+        dataType: 'string',
+      },
+      role: {
+        key: 'role',
+        label: 'Role',
+        dataType: 'select',
+        options: [
+          { label: 'Admin', value: 'Admin' },
+          { label: 'Manager', value: 'Manager' },
+          { label: 'Supervisor', value: 'Supervisor' },
+          { label: 'Operator', value: 'Operator' },
+        ],
+      },
+    },
+    addable: {
+      'last name': {
+        key: 'last name',
+        label: 'Last Name',
+        dataType: 'string',
+      },
+      mobileNo: {
+        key: 'mobileNo',
+        label: 'Mobile No',
+        dataType: 'string',
+      },
+    },
+  }
 
-    return users.filter((user) => {
+  // Filter users based on search query and filters
+  const filteredUsers = useMemo(() => {
+    let result = users
+
+    // Apply search query
+    if (searchQuery) {
       const searchLower = searchQuery.toLowerCase()
-      return (
-        user.name.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower) ||
-        user.role.toLowerCase().includes(searchLower) ||
-        user.mobileNo.includes(searchQuery)
-      )
+      result = result.filter((user) => {
+        return (
+          user.name.toLowerCase().includes(searchLower) ||
+          user.email.toLowerCase().includes(searchLower) ||
+          user.role.toLowerCase().includes(searchLower) ||
+          user.mobileNo.includes(searchQuery)
+        )
+      })
+    }
+
+    // Apply filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+        return
+      }
+
+      result = result.filter((user) => {
+        switch (key) {
+          case 'email':
+            return typeof value === 'string' && user.email.toLowerCase().includes(value.toLowerCase())
+          
+          case 'first name': {
+            const firstName = user.name.split(' ')[0] || user.name
+            return typeof value === 'string' && firstName.toLowerCase().includes(value.toLowerCase())
+          }
+          
+          case 'last name': {
+            const nameParts = user.name.split(' ')
+            const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''
+            return typeof value === 'string' && lastName.toLowerCase().includes(value.toLowerCase())
+          }
+          
+          case 'role':
+            return typeof value === 'string' && user.role === value
+          
+          case 'mobileNo':
+            return typeof value === 'string' && user.mobileNo.includes(value)
+          
+          default:
+            return true
+        }
+      })
     })
-  }, [users, searchQuery])
+
+    return result
+  }, [users, searchQuery, filters])
 
   const handleRowClick = (row: User) => {
     console.log('Row clicked:', row)
@@ -250,34 +330,7 @@ export default function UsersPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           {/* Left Side - Search and Total */}
           <div className="flex-1 w-full sm:w-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            {/* Search Bar */}
-            <div className="relative flex-1 sm:flex-initial sm:w-80">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className={`w-4 h-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search users by name, email, or role..."
-                className={`w-full pl-10 pr-4 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
-                    : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
-                  }`}
-              />
-            </div>
+            
 
             {/* Total Users */}
             <div className={`text-sm flex items-center gap-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -309,6 +362,16 @@ export default function UsersPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Filter Component */}
+      <div className="mb-4">
+        <FilterComponent
+          columns={columns}
+          config={filterConfig}
+          onFilterChange={setFilters}
+          initialFilters={filters}
+        />
       </div>
 
       {/* Data Table */}
