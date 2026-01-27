@@ -18,13 +18,17 @@ export default function SecondNavbar({ onToggleSidebar, isSidebarOpen }: SecondN
     return null
   }
 
+  const inputBaseClass = isDarkMode
+    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-amber-400 focus:ring-amber-400/25'
+    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500 shadow-sm hover:border-gray-300 focus:border-amber-500 focus:ring-amber-500/20'
+
   return (
     <nav className={`fixed top-16 left-0 right-0 z-40 ${
       isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
     } border-b`}>
       <div className="px-4 sm:px-6">
-        <div className="flex items-center justify-between h-10">
-          {/* Right - Sidebar Toggle */}
+        <div className="flex items-center justify-between gap-3 h-11">
+          {/* Left - Sidebar Toggle */}
           <div className="flex items-center flex-shrink-0">
             <button
               onClick={onToggleSidebar}
@@ -46,16 +50,16 @@ export default function SecondNavbar({ onToggleSidebar, isSidebarOpen }: SecondN
           </div>
 
           {/* Center - Menu Items */}
-          <div className="hidden md:flex items-center gap-1 absolute left-1/2 transform -translate-x-1/2">
+          <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
             {navbarMenuItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   location.pathname === item.path
                     ? isDarkMode
                       ? 'bg-gray-700 text-white'
-                      : 'bg-white text-gray-900 shadow-sm'
+                      : 'bg-white text-gray-900 shadow-sm border border-gray-200'
                     : isDarkMode
                     ? 'text-gray-400 hover:text-white hover:bg-gray-700'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
@@ -66,12 +70,11 @@ export default function SecondNavbar({ onToggleSidebar, isSidebarOpen }: SecondN
             ))}
           </div>
 
-          
-          {/* Left - Calculator Input */}
-          <div className="flex items-center flex-shrink-0">
-            <div className="relative">
+          {/* Right - Calculator (matches menu-item height and style) */}
+          <div className="flex items-center flex-shrink-0 min-w-0">
+            <div className="relative group w-full max-w-[180px] sm:max-w-[200px]">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className={`w-4 h-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-4 h-4 shrink-0 transition-colors ${isDarkMode ? 'text-gray-400 group-focus-within:text-amber-400' : 'text-gray-500 group-focus-within:text-amber-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -80,11 +83,7 @@ export default function SecondNavbar({ onToggleSidebar, isSidebarOpen }: SecondN
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Calculator"
-                className={`w-50 sm:w-48 pl-9 pr-4 py-1.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${
-                  isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                className={`w-full h-8 pl-9 pr-3 text-sm rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0 ${inputBaseClass}`}
               />
             </div>
           </div>

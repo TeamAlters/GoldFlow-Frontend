@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUIStore } from '../../stores/ui.store'
 
 export type UserFormData = {
@@ -97,6 +97,8 @@ export default function UserForm({
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [openSelectKey, setOpenSelectKey] = useState<string | null>(null)
+  const selectDropdownRef = useRef<HTMLDivElement>(null)
 
   // Initialize form data
   useEffect(() => {
@@ -107,6 +109,18 @@ export default function UserForm({
       }))
     }
   }, [initialData])
+
+  // Close role/select dropdown when clicking outside
+  useEffect(() => {
+    if (!openSelectKey) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (selectDropdownRef.current && !selectDropdownRef.current.contains(e.target as Node)) {
+        setOpenSelectKey(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openSelectKey])
 
   const handleChange = (key: keyof UserFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }))
@@ -184,22 +198,71 @@ export default function UserForm({
     }`
 
     switch (field.type) {
-      case 'select':
+      case 'select': {
+        const isOpen = openSelectKey === field.key
+        const currentLabel = value
+          ? (field.options?.find((o) => o.value === value)?.label ?? value)
+          : `Select ${field.label}`
         return (
           <div className="space-y-1">
-            <select
-              value={value}
-              onChange={(e) => handleChange(field.key, e.target.value)}
-              onBlur={() => handleBlur(field.key, field)}
-              className={baseInputClasses}
+            <div
+              ref={isOpen ? selectDropdownRef : undefined}
+              className="relative w-full min-w-0"
             >
-              <option value="">Select {field.label}</option>
-              {field.options?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              <button
+                type="button"
+                onClick={() => setOpenSelectKey(isOpen ? null : field.key)}
+                onBlur={() => handleBlur(field.key, field)}
+                className={`${baseInputClasses} flex items-center justify-between text-left appearance-none cursor-pointer min-h-[42px] ${isOpen ? 'ring-2 ring-blue-500/30' : ''}`}
+              >
+                <span className={!value ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}>
+                  {currentLabel}
+                </span>
+                <svg
+                  className={`w-4 h-4 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {isOpen && (
+                <div
+                  className={`absolute left-0 right-0 top-full z-50 mt-2 py-1 rounded-lg border shadow-lg box-border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange(field.key, '')
+                      setOpenSelectKey(null)
+                    }}
+                    className={`w-full px-4 py-2.5 text-left text-sm ${isDarkMode
+                      ? 'text-gray-300 hover:bg-gray-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                    } ${!value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
+                  >
+                    Select {field.label}
+                  </button>
+                  {field.options?.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        handleChange(field.key, option.value)
+                        setOpenSelectKey(null)
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-sm ${isDarkMode
+                        ? 'text-gray-300 hover:bg-gray-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                      } ${value === option.value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {showError && (
               <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
                 {error}
@@ -207,6 +270,7 @@ export default function UserForm({
             )}
           </div>
         )
+      }
 
       case 'text':
       case 'email':

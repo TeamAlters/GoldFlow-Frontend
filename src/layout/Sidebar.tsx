@@ -221,11 +221,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Sidebar - Positioned below both navbars (4rem + 3rem = 7rem) */}
+      {/* Backdrop - click anywhere outside sidebar to close (all screen sizes) */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar - full height from below both navbars (h-16 + h-11 = 108px) */}
       <aside
-        className={`fixed top-28 left-0 z-40 h-[calc(100vh-7rem)] transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 z-40 w-64 transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r w-64`}
+        } top-[6.75rem] h-[calc(100vh-6.75rem)] ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r`}
       >
         {/* Scrollable Navigation */}
         <nav className="h-full overflow-y-auto px-3 py-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
@@ -259,14 +268,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         </nav>
       </aside>
-
-      {/* Mobile Backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={onClose}
-        />
-      )}
     </>
   )
 }
