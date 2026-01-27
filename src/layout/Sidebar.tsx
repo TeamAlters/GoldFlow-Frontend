@@ -221,20 +221,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Backdrop - click anywhere outside sidebar to close (all screen sizes) */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-30"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
+      {/* Backdrop - fades in/out, click outside to close */}
+      <div
+        className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-300 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-      {/* Sidebar - full height from below both navbars (h-16 + h-11 = 108px) */}
+      {/* Sidebar - smooth slide in/out */}
       <aside
-        className={`fixed left-0 z-40 w-64 transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 z-40 w-64 top-[6.75rem] h-[calc(100vh-6.75rem)] will-change-transform transition-[transform] duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } top-[6.75rem] h-[calc(100vh-6.75rem)] ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r`}
+        } ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r`}
       >
         {/* Scrollable Navigation */}
         <nav className="h-full overflow-y-auto px-3 py-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">

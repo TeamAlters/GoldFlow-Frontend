@@ -38,9 +38,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      {/* Main Content - Offset for both navbars (16 + 12 = 28, plus mobile menu) */}
+      {/* Main Content - smooth shift when sidebar opens/closes */}
       <main
-        className={`pt-28 md:pt-28 transition-all duration-300 ${
+        className={`pt-28 md:pt-28 transition-[margin] duration-300 ease-in-out ${
           isSidebarOpen ? 'lg:ml-64' : 'ml-0'
         }`}
       >
