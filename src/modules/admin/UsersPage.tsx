@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import DataTable from '../../shared/components/DataTable'
 import type { TableColumn, TableAction } from '../../shared/components/DataTable'
 import FilterComponent, { type FilterComponentConfig, type FilterValue } from '../../shared/components/FilterComponent'
@@ -14,75 +15,85 @@ type User = {
 }
 
 export default function UsersPage() {
+  const navigate = useNavigate()
   const isDarkMode = useUIStore((state) => state.isDarkMode)
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<Record<string, FilterValue>>({})
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@goldflow.com',
-      role: 'Admin',
-      mobileNo: '0987654321',
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane.smith@goldflow.com',
-      role: 'Manager',
-      mobileNo: '0987654321',
-    },
-    {
-      id: 3,
-      name: 'Bob Johnson',
-      email: 'bob.johnson@goldflow.com',
-      role: 'Operator',
-      mobileNo: '0987654321',
-    },
-    {
-      id: 4,
-      name: 'Alice Williams',
-      email: 'alice.williams@goldflow.com',
-      role: 'Supervisor',
-      mobileNo: '0987654321',
-    },
-    {
-      id: 5,
-      name: 'Charlie Brown',
-      email: 'charlie.brown@goldflow.com',
-      role: 'Operator',
-      mobileNo: '0987654321',
-    },
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@goldflow.com',
-      role: 'Admin',
-      mobileNo: '0987654321',
-    },
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@goldflow.com',
-      role: 'Admin',
-      mobileNo: '0987654321',
-    },
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@goldflow.com',
-      role: 'Admin',
-      mobileNo: '0987654321',
-    },
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@goldflow.com',
-      role: 'Admin',
-      mobileNo: '0987654321',
-    },
+  // Initialize users from localStorage or default data
+  const getInitialUsers = (): User[] => {
+    const stored = localStorage.getItem('users')
+    if (stored) {
+      return JSON.parse(stored)
+    }
+    // Default users
+    const defaultUsers: User[] = [
+      {
+        id: 1,
+        name: 'John Doe',
+        email: 'john.doe@goldflow.com',
+        role: 'Admin',
+        mobileNo: '0987654321',
+      },
+      {
+        id: 2,
+        name: 'Jane Smith',
+        email: 'jane.smith@goldflow.com',
+        role: 'Manager',
+        mobileNo: '0987654321',
+      },
+      {
+        id: 3,
+        name: 'Bob Johnson',
+        email: 'bob.johnson@goldflow.com',
+        role: 'Operator',
+        mobileNo: '0987654321',
+      },
+      {
+        id: 4,
+        name: 'Alice Williams',
+        email: 'alice.williams@goldflow.com',
+        role: 'Supervisor',
+        mobileNo: '0987654321',
+      },
+      {
+        id: 5,
+        name: 'Charlie Brown',
+        email: 'charlie.brown@goldflow.com',
+        role: 'Operator',
+        mobileNo: '0987654321',
+      },
+    ]
+    localStorage.setItem('users', JSON.stringify(defaultUsers))
+    return defaultUsers
+  }
 
-  ])
+  const [users, setUsers] = useState<User[]>(getInitialUsers())
+
+  // Sync users with localStorage when it changes
+  useEffect(() => {
+    const handleUsersUpdate = () => {
+      const stored = localStorage.getItem('users')
+      if (stored) {
+        setUsers(JSON.parse(stored))
+      }
+    }
+
+    // Listen for custom event (when UserFormPage updates localStorage)
+    window.addEventListener('usersUpdated', handleUsersUpdate)
+    
+    // Also listen for storage events (cross-tab updates)
+    window.addEventListener('storage', handleUsersUpdate)
+
+    return () => {
+      window.removeEventListener('usersUpdated', handleUsersUpdate)
+      window.removeEventListener('storage', handleUsersUpdate)
+    }
+  }, [])
+
+  // Save users to localStorage whenever users state changes
+  useEffect(() => {
+    localStorage.setItem('users', JSON.stringify(users))
+  }, [users])
 
   // Define table columns
   const columns: TableColumn<User>[] = [
@@ -173,13 +184,17 @@ export default function UsersPage() {
     },
   ]
 
+  // Handle add user - navigate to add page
+  const handleAddUser = () => {
+    navigate('/users/add')
+  }
+
   // Define table actions
   const actions: TableAction<User>[] = [
     {
       label: 'Edit',
       onClick: (row) => {
-        console.log('Edit user:', row)
-        // Add your edit logic here
+        navigate(`/users/edit/${row.id}`)
       },
       variant: 'primary',
       icon: (
@@ -325,8 +340,7 @@ export default function UsersPage() {
       </div>
 
       {/* Toolbar - Search, Total Users, and Add Button */}
-      <div className={`mb-4 p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        }`}>
+      <div className={`mb-4 p-4`}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           {/* Left Side - Search and Total */}
           <div className="flex-1 w-full sm:w-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -341,24 +355,19 @@ export default function UsersPage() {
             </div>
           </div>
 
-          {/* Right Side - Add User Button */}
+          {/* Right Side - Add User Button (matches Add Filter: height, padding, font) */}
           <div className="w-full sm:w-auto">
             <button
-              className={`w-full sm:w-auto px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 ${isDarkMode
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'
+              className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
-              onClick={() => {
-                console.log('Add new user')
-                // Add your add user logic here
-              }}
+              onClick={handleAddUser}
             >
-              <div className="flex items-center justify-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Add User</span>
-              </div>
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Add User</span>
             </button>
           </div>
         </div>

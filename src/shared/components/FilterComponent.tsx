@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useUIStore } from '../../stores/ui.store'
 import type { TableColumn } from './DataTable'
 
@@ -36,6 +36,8 @@ export default function FilterComponent<T extends Record<string, any>>({
   const [activeFilters, setActiveFilters] = useState<Record<string, FilterValue>>({})
   const [addableFilters, setAddableFilters] = useState<Record<string, FilterValue>>({})
   const [showAddFilter, setShowAddFilter] = useState(false)
+  const [openSelectKey, setOpenSelectKey] = useState<string | null>(null)
+  const selectDropdownRef = useRef<HTMLDivElement>(null)
   const [apiOptions, setApiOptions] = useState<Record<string, Array<{ label: string; value: string }>>>({})
 
   // Get available column keys from table headers
@@ -139,6 +141,18 @@ export default function FilterComponent<T extends Record<string, any>>({
     setAddableFilters(addableFiltersInit)
   }, [config.default, config.addable, initialFilters])
 
+  // Close select dropdown when clicking outside
+  useEffect(() => {
+    if (!openSelectKey) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (selectDropdownRef.current && !selectDropdownRef.current.contains(e.target as Node)) {
+        setOpenSelectKey(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openSelectKey])
+
   // Handle submit - apply filters
   const handleSubmit = () => {
     const allFilters = { ...activeFilters, ...addableFilters }
@@ -206,26 +220,78 @@ export default function FilterComponent<T extends Record<string, any>>({
       }
     }
 
+    const selectId = isAddable ? `addable-${key}` : key
+    const isSelectOpen = openSelectKey === selectId
+    const inputBaseClasses = `w-full px-3 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${isDarkMode
+      ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
+      : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
+    }`
+
     switch (filterConfig.dataType) {
-      case 'select':
+      case 'select': {
+        const currentLabel = (value as string)
+          ? options.find((o) => o.value === value)?.label ?? (value as string)
+          : `All ${filterConfig.label}`
         return (
-          <select
-            value={value as string || ''}
-            onChange={(e) => handleFilterChange(key, e.target.value || null, isAddable)}
-            onClick={handleInputClick}
-            className={`w-full px-3 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${isDarkMode
-                ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
-                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
-              }`}
+          <div
+            ref={isSelectOpen ? selectDropdownRef : undefined}
+            className="relative w-full min-w-0"
           >
-            <option value="">All {filterConfig.label}</option>
-            {options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            <button
+              type="button"
+              onClick={() => setOpenSelectKey(isSelectOpen ? null : selectId)}
+              className={`${inputBaseClasses} flex items-center justify-between text-left appearance-none cursor-pointer ${isSelectOpen ? 'ring-2 ring-blue-500/30' : ''}`}
+            >
+              <span className={!value ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}>
+                {currentLabel}
+              </span>
+              <svg
+                className={`w-4 h-4 shrink-0 transition-transform ${isSelectOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {isSelectOpen && (
+              <div
+                className={`absolute left-0 right-0 top-full z-50 mt-1 py-1 rounded-lg border shadow-lg box-border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFilterChange(key, null, isAddable)
+                    setOpenSelectKey(null)
+                  }}
+                  className={`w-full px-3 py-2 text-left text-sm ${isDarkMode
+                    ? 'text-gray-300 hover:bg-gray-700'
+                    : 'text-gray-700 hover:bg-gray-100'
+                  } ${!value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
+                >
+                  All {filterConfig.label}
+                </button>
+                {options.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      handleFilterChange(key, option.value, isAddable)
+                      setOpenSelectKey(null)
+                    }}
+                    className={`w-full px-3 py-2 text-left text-sm ${isDarkMode
+                      ? 'text-gray-300 hover:bg-gray-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                    } ${value === option.value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )
+      }
 
       case 'multi-select':
         const selectedValues = (value as string[]) || []
@@ -301,7 +367,7 @@ export default function FilterComponent<T extends Record<string, any>>({
                       : 'bg-blue-500 hover:bg-blue-600 text-white'
                     }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3g  " fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -402,11 +468,11 @@ export default function FilterComponent<T extends Record<string, any>>({
             })}
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons (same size as Add Filter: px-3 py-1.5 text-xs) */}
           <div className={`pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-end gap-2`}>
             <button
               onClick={handleClearAll}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${isDarkMode
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${isDarkMode
                   ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                   : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                 }`}
@@ -415,7 +481,7 @@ export default function FilterComponent<T extends Record<string, any>>({
             </button>
             <button
               onClick={handleSubmit}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${isDarkMode
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${isDarkMode
                   ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
