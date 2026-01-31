@@ -146,3 +146,46 @@ export async function register(payload: RegisterPayload): Promise<RegisterRespon
     },
   })
 }
+
+/** POST /api/v1/auth/logout – invalidate session on server (call with current token) */
+export async function logout(token: string): Promise<void> {
+  const url = `${getBaseUrl()}/api/v1/auth/logout`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({}),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    let data: Record<string, unknown> = {}
+    if (text.trim()) {
+      try {
+        data = JSON.parse(text) as Record<string, unknown>
+      } catch {
+        // ignore
+      }
+    }
+    const errorsArr = Array.isArray(data?.errors) ? data.errors : undefined
+    const errorsStr =
+      errorsArr && errorsArr.length > 0
+        ? errorsArr
+            .map((e) => (typeof e === 'string' ? e : (e as { message?: string; msg?: string })?.message ?? (e as { message?: string; msg?: string })?.msg ?? String(e)))
+            .join(', ')
+        : undefined
+    const detailArr = Array.isArray(data?.detail) ? data.detail as Array<{ msg?: string; loc?: unknown[] }> : undefined
+    const detailStr =
+      detailArr && detailArr.length > 0
+        ? detailArr.map((d) => d.msg ?? (Array.isArray(d.loc) ? d.loc.join('.') + ': required' : '')).join(', ')
+        : undefined
+    const message =
+      errorsStr ??
+      detailStr ??
+      (typeof data?.message === 'string' ? data.message : undefined) ??
+      (data?.error as string) ??
+      getFriendlyMessage(res.status)
+    throw new Error(message)
+  }
+}

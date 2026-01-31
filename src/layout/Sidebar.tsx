@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useUIStore } from '../stores/ui.store'
+import { useAuthStore } from '../auth/auth.store'
+import { logout as logoutApi } from '../auth/auth.api'
+import { toast } from '../stores/toast.store'
 import { sidebarNavConfig } from '../config/navigation.config'
 
 interface SidebarProps {
@@ -137,6 +140,43 @@ const NavIcon = ({ name, className }: { name: string; className?: string }) => {
   return icons[name] || icons['default']
 }
 
+// Logout button: calls API with token, clears auth store, redirects to login
+function LogoutButton({ isDarkMode }: { isDarkMode: boolean }) {
+  const navigate = useNavigate()
+  const token = useAuthStore((state) => state.token)
+  const logout = useAuthStore((state) => state.logout)
+
+  const handleLogout = async () => {
+    if (token) {
+      try {
+        await logoutApi(token)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Logout failed'
+        toast.error(msg)
+      }
+    }
+    logout()
+    navigate('/loginUp', { replace: true })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleLogout}
+      className={`flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
+        isDarkMode
+          ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
+          : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+      }`}
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+      <span className="ml-3">Logout</span>
+    </button>
+  )
+}
+
 // Menu Category Component
 const MenuCategory = ({ 
   category, 
@@ -247,22 +287,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Logout Button */}
           <div className={`mt-6 pt-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <button
-              onClick={() => {
-                // Handle logout
-                console.log('Logout clicked')
-              }}
-              className={`flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
-                isDarkMode 
-                  ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300' 
-                  : 'text-red-600 hover:bg-red-50 hover:text-red-700'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span className="ml-3">Logout</span>
-            </button>
+            <LogoutButton isDarkMode={isDarkMode} />
           </div>
         </nav>
       </aside>
