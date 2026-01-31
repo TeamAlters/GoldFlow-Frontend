@@ -1,0 +1,95 @@
+/**
+ * Auth API – register (POST /api/v1/auth/register)
+ * Base URL: set VITE_API_BASE_URL in .env (e.g. https://your-api.com)
+ */
+
+const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL ?? ''
+
+/** User-friendly messages when the API doesn't return a message */
+function getFriendlyMessage(status: number): string {
+  const messages: Record<number, string> = {
+    400: 'Something was wrong with your request. Please check and try again.',
+    401: 'Please sign in to continue.',
+    403: "You don't have permission to do this. Please contact an administrator.",
+    404: 'This page or service could not be found. Please try again later.',
+    422: 'Please check the information you entered and try again.',
+    429: 'Too many attempts. Please wait a moment and try again.',
+    500: 'Something went wrong on our end. Please try again later.',
+    502: 'The service is temporarily unavailable. Please try again in a few minutes.',
+    503: 'The service is busy right now. Please try again in a few minutes.',
+  }
+  return messages[status] ?? 'Something went wrong. Please try again.'
+}
+
+export type RegisterPayload = {
+  username: string
+  name: string
+  email: string
+  phoneNumber: string
+  password: string
+}
+
+export type RegisterResponse = {
+  message?: string
+  user?: { id: string; name?: string; email: string; phoneNumber?: string; [key: string]: unknown }
+  [key: string]: unknown
+}
+
+type AuthFetchOptions = Omit<RequestInit, 'body'> & { body?: object }
+
+async function authFetch<T>(path: string, options: AuthFetchOptions = {}): Promise<T> {
+  const { body, ...rest } = options
+  const url = `${getBaseUrl()}${path}`
+  const res = await fetch(url, {
+    ...rest,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    },
+    body: body != null ? JSON.stringify(body) : undefined,
+  })
+
+  const text = await res.text()
+  let data: Record<string, unknown> = {}
+  if (text.trim()) {
+    try {
+      data = JSON.parse(text) as Record<string, unknown>
+    } catch {
+      // non-JSON body, keep data as {}
+    }
+  }
+
+  if (!res.ok) {
+    // API can return: message (string/array), error, or detail (string or Pydantic array)
+    const detail = data?.detail
+    const detailStr = typeof detail === 'string' ? detail : undefined
+    const detailArr = Array.isArray(detail) ? (detail as Array<{ loc?: unknown[]; msg?: string }>) : undefined
+    const message =
+      typeof data?.message === 'string'
+        ? data.message
+        : Array.isArray(data?.message)
+          ? (data.message as string[]).join(', ')
+          : (data?.error as string) ??
+            detailStr ??
+            (detailArr && detailArr.length > 0
+              ? detailArr.map((d) => d.msg ?? (Array.isArray(d.loc) ? d.loc.join('.') + ': required' : 'Please check this field.')).join(', ')
+              : getFriendlyMessage(res.status))
+    throw new Error(message)
+  }
+
+  return data as T
+}
+
+/** POST /api/v1/auth/register – register a new user */
+export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
+  return authFetch<RegisterResponse>('/api/v1/auth/register', {
+    method: 'POST',
+    body: {
+      username: payload.username,
+      name: payload.name,
+      email: payload.email,
+      mobile_number: payload.phoneNumber,
+      password: payload.password,
+    },
+  })
+}

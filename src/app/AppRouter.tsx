@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import LoginUp from '../auth/LoginPage'
+import LoginPage from '../auth/LoginPage'
 import SignUp from '../auth/SignUp'
 import DashboardIndex from '../modules/dashboard/DashboardPage'
 import UsersPage from '../modules/admin/UsersPage'
@@ -11,7 +11,7 @@ export default function AppRouter() {
     <BrowserRouter>
       <MainLayout>
         <Routes>
-          <Route path="/loginUp" element={<LoginUp />} />
+          <Route path="/loginUp" element={<LoginPage />} />
           <Route path="/signUp" element={<SignUp />} />
           <Route path="/index" element={<DashboardIndex />} />
           <Route path="/" element={<Navigate to="/loginUp" replace />} />
