@@ -80,6 +80,29 @@ async function authFetch<T>(path: string, options: AuthFetchOptions = {}): Promi
   return data as T
 }
 
+/** GET /api/v1/auth/registration-status – check if registration is allowed */
+export type RegistrationStatusResponse = {
+  registration_allowed: boolean
+  reason?: string
+}
+
+export async function getRegistrationStatus(): Promise<RegistrationStatusResponse> {
+  const url = `${getBaseUrl()}/api/v1/auth/registration-status`
+  const res = await fetch(url, { method: 'GET' })
+  const text = await res.text()
+  let body: { success?: boolean; data?: { registration_allowed?: boolean; reason?: string }; [key: string]: unknown } = {}
+  if (text.trim()) {
+    try {
+      body = JSON.parse(text) as typeof body
+    } catch {
+      // ignore
+    }
+  }
+  if (!res.ok) return { registration_allowed: false }
+  const allowed = body?.data?.registration_allowed ?? false
+  return { registration_allowed: allowed, reason: body?.data?.reason }
+}
+
 /** POST /api/v1/auth/register – register a new user */
 export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
   return authFetch<RegisterResponse>('/api/v1/auth/register', {
