@@ -60,20 +60,28 @@ async function authFetch<T>(path: string, options: AuthFetchOptions = {}): Promi
   }
 
   if (!res.ok) {
-    // API can return: message (string/array), error, or detail (string or Pydantic array)
+    // API shape: { success, message, errors: string[], status_code } or message/error/detail (string or array)
     const detail = data?.detail
     const detailStr = typeof detail === 'string' ? detail : undefined
     const detailArr = Array.isArray(detail) ? (detail as Array<{ loc?: unknown[]; msg?: string }>) : undefined
+    const errorsArr = Array.isArray(data?.errors) ? data.errors : undefined
+    const errorsStr =
+      errorsArr && errorsArr.length > 0
+        ? errorsArr
+            .map((e) => (typeof e === 'string' ? e : (e as { message?: string; msg?: string })?.message ?? (e as { message?: string; msg?: string })?.msg ?? String(e)))
+            .join(', ')
+        : undefined
+    const messageStr = typeof data?.message === 'string' ? data.message : undefined
+    const messageArr = Array.isArray(data?.message) ? (data.message as string[]).join(', ') : undefined
     const message =
-      typeof data?.message === 'string'
-        ? data.message
-        : Array.isArray(data?.message)
-          ? (data.message as string[]).join(', ')
-          : (data?.error as string) ??
-            detailStr ??
-            (detailArr && detailArr.length > 0
-              ? detailArr.map((d) => d.msg ?? (Array.isArray(d.loc) ? d.loc.join('.') + ': required' : 'Please check this field.')).join(', ')
-              : getFriendlyMessage(res.status))
+      (errorsStr && errorsStr.length > 0 ? errorsStr : null) ??
+      messageStr ??
+      messageArr ??
+      (data?.error as string) ??
+      detailStr ??
+      (detailArr && detailArr.length > 0
+        ? detailArr.map((d) => d.msg ?? (Array.isArray(d.loc) ? d.loc.join('.') + ': required' : 'Please check this field.')).join(', ')
+        : getFriendlyMessage(res.status))
     throw new Error(message)
   }
 
@@ -101,6 +109,28 @@ export async function getRegistrationStatus(): Promise<RegistrationStatusRespons
   if (!res.ok) return { registration_allowed: false }
   const allowed = body?.data?.registration_allowed ?? false
   return { registration_allowed: allowed, reason: body?.data?.reason }
+}
+
+/** POST /api/v1/auth/login – login and get token */
+export type LoginPayload = {
+  email: string
+  password: string
+}
+
+export type LoginResponse = {
+  token?: string
+  access_token?: string
+  user?: { id: string; username?: string; email: string; [key: string]: unknown }
+  data?: { token?: string; access_token?: string; user?: unknown }
+  [key: string]: unknown
+}
+
+export async function login(payload: LoginPayload): Promise<LoginResponse> {
+  const data = await authFetch<LoginResponse>('/api/v1/auth/login', {
+    method: 'POST',
+    body: { username_or_email: payload.email, password: payload.password },
+  })
+  return data
 }
 
 /** POST /api/v1/auth/register – register a new user */

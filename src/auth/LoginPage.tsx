@@ -1,19 +1,49 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useUIStore } from '../stores/ui.store'
+import { useAuthStore } from './auth.store'
+import { login as loginApi } from './auth.api'
+import type { AuthUser } from './auth.store'
+import { toast } from '../stores/toast.store'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const isDarkMode = useUIStore((state) => state.isDarkMode)
+  const setAuth = useAuthStore((state) => state.setAuth)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Add your login logic here
-    navigate('/index')
+    setError('')
+    setLoading(true)
+    try {
+      const data = await loginApi({ email, password })
+      const token =
+        (data as { token?: string }).token ??
+        (data as { access_token?: string }).access_token ??
+        (data as { data?: { token?: string; access_token?: string } }).data?.token ??
+        (data as { data?: { token?: string; access_token?: string } }).data?.access_token
+      const user = (data as { user?: AuthUser }).user ?? (data as { data?: { user?: AuthUser } }).data?.user
+      if (!token) {
+        setError('Invalid login response. Please try again.')
+        toast.error('Invalid login response. Please try again.')
+        return
+      }
+      setAuth(token, user as AuthUser | undefined)
+      toast.success('Signed in successfully.')
+      navigate('/index')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Login failed'
+      setError(msg)
+      toast.error(msg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -132,6 +162,12 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Field */}
             <div className="space-y-2">
@@ -232,9 +268,10 @@ export default function LoginPage() {
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                className="flex-1 py-3 px-6 rounded-full font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+                disabled={loading}
+                className="flex-1 py-3 px-6 rounded-full font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Sign In
+                {loading ? 'Signing in…' : 'Sign In'}
               </button>
               <Link
                 to="/signUp"
