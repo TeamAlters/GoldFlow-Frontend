@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import AppRouter from './app/AppRouter'
 import { useUIStore } from './stores/ui.store'
+import Toaster from './shared/components/Toaster'
 
 function App() {
   const isDarkMode = useUIStore((state) => state.isDarkMode)
@@ -15,7 +16,12 @@ function App() {
     }
   }, [isDarkMode])
 
-  return <AppRouter />
+  return (
+    <>
+      <AppRouter />
+      <Toaster />
+    </>
+  )
 }
 
 export default App

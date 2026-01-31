@@ -1,27 +1,52 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useUIStore } from '../stores/ui.store'
+import { register as registerApi } from './auth.api'
+import { toast } from '../stores/toast.store'
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
+    username: '',
     name: '',
     email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const isDarkMode = useUIStore((state) => state.isDarkMode)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match')
+      const msg = 'Passwords do not match'
+      setError(msg)
+      toast.error(msg)
       return
     }
-    // Add your signup logic here
-    navigate('/loginUp')
+    setLoading(true)
+    try {
+      await registerApi({
+        username: formData.username,
+        name: formData.name,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        password: formData.password,
+      })
+      toast.success('User has been successfully created.')
+      navigate('/loginUp')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Registration failed'
+      setError(msg)
+      toast.error(msg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,9 +54,9 @@ export default function SignUp() {
   }
 
   return (
-    <div className={`min-h-screen flex ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+    <div className={`min-h-screen h-screen max-h-screen flex overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
       {/* Left Side - Brand Panel (Hidden on mobile) */}
-      <div className={`hidden lg:flex lg:w-1/2 items-center justify-center p-12 ${
+      <div className={`hidden lg:flex lg:w-1/2 lg:min-h-0 items-center justify-center p-8 lg:p-10 overflow-y-auto ${
         isDarkMode 
           ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800' 
           : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
@@ -106,12 +131,12 @@ export default function SignUp() {
       </div>
 
       {/* Right Side - Sign Up Form */}
-      <div className={`w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 lg:p-12 overflow-y-auto ${
+      <div className={`w-full lg:w-1/2 min-h-0 flex flex-col items-center justify-start py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto ${
         isDarkMode ? 'bg-slate-900' : 'bg-white'
       }`}>
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md flex-shrink-0">
           {/* Logo/Brand */}
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-3 mb-4">
             {/* Logo Icon */}
             {/* <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
               isDarkMode 
@@ -133,8 +158,8 @@ export default function SignUp() {
           </div>
 
           {/* Welcome Header */}
-          <div className="mb-8">
-            <h1 className={`text-3xl sm:text-4xl font-bold mb-2 ${
+          <div className="mb-5">
+            <h1 className={`text-2xl sm:text-3xl font-bold mb-1 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
               Create Account
@@ -144,7 +169,34 @@ export default function SignUp() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Username Field */}
+            <div className="space-y-2">
+              <label className={`flex items-center gap-2 text-sm font-medium ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                <svg className={`h-4 w-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Username
+              </label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="Choose a username"
+                className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
+                  isDarkMode
+                    ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
+                    : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+                }`}
+                required
+              />
+            </div>
+
             {/* Name Field */}
             <div className="space-y-2">
               <label className={`flex items-center gap-2 text-sm font-medium ${
@@ -186,6 +238,31 @@ export default function SignUp() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Enter your email"
+                className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
+                  isDarkMode
+                    ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
+                    : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+                }`}
+                required
+              />
+            </div>
+
+            {/* Phone Number Field */}
+            <div className="space-y-2">
+              <label className={`flex items-center gap-2 text-sm font-medium ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                <svg className={`h-4 w-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                placeholder="e.g. +1 234 567 8900"
                 className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
                   isDarkMode
                     ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
@@ -286,12 +363,13 @@ export default function SignUp() {
             </div>
 
             {/* Sign Up Button */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-3">
               <button
                 type="submit"
-                className="flex-1 py-3 px-6 rounded-full font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+                disabled={loading}
+                className="flex-1 py-3 px-6 rounded-full font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Create Account
+                {loading ? 'Creating account…' : 'Create Account'}
               </button>
               <Link
                 to="/loginUp"
