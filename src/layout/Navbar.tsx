@@ -1,13 +1,18 @@
-
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useUIStore } from '../stores/ui.store'
-import { useState, useRef, useEffect } from 'react'    
-
+import { useAuthStore } from '../auth/auth.store'
+import { logout as logoutApi } from '../auth/auth.api'
+import { toast } from '../stores/toast.store'
+import { useState, useRef, useEffect } from 'react'
 
 export default function Navbar() {
   const navigate = useNavigate()
+  const location = useLocation()
   const isDarkMode = useUIStore((state) => state.isDarkMode)
   const toggleTheme = useUIStore((state) => state.toggleTheme)
+  const token = useAuthStore((state) => state.token)
+  const user = useAuthStore((state) => state.user)
+  const logout = useAuthStore((state) => state.logout)
   const [searchQuery, setSearchQuery] = useState('')
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -23,11 +28,18 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleLogout = () => {
-    // Add your logout logic here (clear tokens, etc.)
-    console.log('Logout clicked')
+  const handleLogout = async () => {
     setIsUserDropdownOpen(false)
-    navigate('/loginUp')
+    if (token) {
+      try {
+        await logoutApi(token)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Logout failed'
+        toast.error(msg)
+      }
+    }
+    logout()
+    navigate('/loginUp', { replace: true })
   }
 
   const handleUserInfo = () => {
@@ -52,7 +64,7 @@ export default function Navbar() {
            
 
             {/* Logo */}
-            <Link to="/index" className="flex items-center gap-3">
+            <Link to="/dashboard" className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                 isDarkMode 
                   ? 'bg-gradient-to-br from-amber-500 to-yellow-600' 
@@ -149,13 +161,12 @@ export default function Navbar() {
                         : 'hover:bg-gray-50 border-b border-gray-100'
                     }`}
                   >
-                    
                     <div className="text-left">
                       <p className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        Admin
+                        {user?.name ?? user?.username ?? 'User'}
                       </p>
                       <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        admin@goldflow.com
+                        {user?.email ?? '—'}
                       </p>
                     </div>
                     {/* Arrow Icon */}

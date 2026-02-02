@@ -22,7 +22,7 @@ export type NavbarMenuItem = {
 
 // Top Navbar Menu Items
 export const navbarMenuItems: NavbarMenuItem[] = [
-  { name: 'Dashboard', path: '/index' },
+  { name: 'Dashboard', path: '/dashboard' },
   { name: 'Reports', path: '/reports' },
   { name: 'Settings', path: '/settings' },
 ]
@@ -35,7 +35,7 @@ export const sidebarNavConfig: NavCategory[] = [
     icon: 'dashboard',
     defaultOpen: true,
     items: [
-      { name: 'Dashboard', path: '/index', icon: 'home' },
+      { name: 'Dashboard', path: '/dashboard', icon: 'home' },
       { name: 'Work Orders', path: '/work-orders', icon: 'clipboard' },
       { name: 'Scheduling', path: '/scheduling', icon: 'calendar' },
       { name: 'Resources', path: '/resources', icon: 'users' },

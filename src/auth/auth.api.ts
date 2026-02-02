@@ -111,9 +111,9 @@ export async function getRegistrationStatus(): Promise<RegistrationStatusRespons
   return { registration_allowed: allowed, reason: body?.data?.reason }
 }
 
-/** POST /api/v1/auth/login – login and get token */
+/** POST /api/v1/auth/login – login and get token (username_or_email accepts email or username) */
 export type LoginPayload = {
-  email: string
+  usernameOrEmail: string
   password: string
 }
 
@@ -128,7 +128,7 @@ export type LoginResponse = {
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
   const data = await authFetch<LoginResponse>('/api/v1/auth/login', {
     method: 'POST',
-    body: { username_or_email: payload.email, password: payload.password },
+    body: { username_or_email: payload.usernameOrEmail, password: payload.password },
   })
   return data
 }

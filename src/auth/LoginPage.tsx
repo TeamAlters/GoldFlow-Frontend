@@ -7,7 +7,7 @@ import type { AuthUser } from './auth.store'
 import { toast } from '../stores/toast.store'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [usernameOrEmail, setUsernameOrEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
@@ -22,7 +22,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const data = await loginApi({ email, password })
+      const data = await loginApi({ usernameOrEmail, password })
       const token =
         (data as { token?: string }).token ??
         (data as { access_token?: string }).access_token ??
@@ -36,7 +36,7 @@ export default function LoginPage() {
       }
       setAuth(token, user as AuthUser | undefined)
       toast.success('Signed in successfully.')
-      navigate('/index')
+      navigate('/dashboard')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed'
       setError(msg)
@@ -169,21 +169,22 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
+            {/* Email or Username Field */}
             <div className="space-y-2">
               <label className={`flex items-center gap-2 text-sm font-medium ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 <svg className={`h-4 w-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                Email Address
+                Email or Username
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                type="text"
+                autoComplete="username"
+                value={usernameOrEmail}
+                onChange={(e) => setUsernameOrEmail(e.target.value)}
+                placeholder="Enter your email or username"
                 className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
                   isDarkMode
                     ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'

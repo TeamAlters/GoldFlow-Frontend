@@ -8,10 +8,10 @@ import UserFormPage from '../modules/admin/UserFormPage'
 import MainLayout from '../layout/MainLayout'
 import { useAuthStore } from '../auth/auth.store'
 
-/** Redirects / to /index when logged in, otherwise to /loginUp */
+/** Redirects / to /dashboard when logged in, otherwise to /loginUp */
 function RootRedirect() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated())
-  return <Navigate to={isAuthenticated ? '/index' : '/loginUp'} replace />
+  return <Navigate to={isAuthenticated ? '/dashboard' : '/loginUp'} replace />
 }
 
 /** Layout for all routes that require login: auth check + main app shell */
@@ -35,7 +35,8 @@ export default function AppRouter() {
 
         {/* All routes below require login */}
         <Route element={<ProtectedLayout />}>
-          <Route path="index" element={<DashboardIndex />} />
+          <Route path="dashboard" element={<DashboardIndex />} />
+          <Route path="index" element={<Navigate to="/dashboard" replace />} />
           <Route path="work-orders" element={<DashboardIndex />} />
           <Route path="scheduling" element={<DashboardIndex />} />
           <Route path="resources" element={<DashboardIndex />} />

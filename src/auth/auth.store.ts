@@ -22,7 +22,14 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       setAuth: (token, user) => set({ token, user: user ?? null }),
-      logout: () => set({ token: null, user: null }),
+      logout: () => {
+        set({ token: null, user: null })
+        try {
+          localStorage.removeItem('goldflow-auth')
+        } catch {
+          // ignore
+        }
+      },
       isAuthenticated: () => !!get().token,
     }),
     { name: 'goldflow-auth' }
