@@ -1,4 +1,4 @@
-qimport { useState } from 'react'
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useUIStore } from '../stores/ui.store'
 import { navbarMenuItems } from '../config/navigation.config'
