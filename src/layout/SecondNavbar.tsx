@@ -39,7 +39,7 @@ export default function SecondNavbar({ onToggleSidebar, isSidebarOpen }: SecondN
   const liveResult = calculatorInput.trim() ? evaluateCalculatorInput(calculatorInput) : null
 
   // Don't show navbar on login/signup pages
-  if (location.pathname === '/loginUp' || location.pathname === '/signUp') {
+  if (location.pathname === '/login' || location.pathname === '/signUp') {
     return null
   }
 

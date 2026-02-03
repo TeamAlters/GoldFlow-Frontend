@@ -29,7 +29,7 @@ export default function SignUp() {
           if (redirectHandledRef.current) return
           redirectHandledRef.current = true
           toast.error('Registration is currently disabled. Please contact an administrator to create an account.')
-          navigate('/loginUp', { replace: true })
+          navigate('/login', { replace: true })
         } else {
           setRegistrationCheck('allowed')
         }
@@ -38,7 +38,7 @@ export default function SignUp() {
         if (redirectHandledRef.current) return
         redirectHandledRef.current = true
         toast.error('Unable to check registration status. Please try again later.')
-        navigate('/loginUp', { replace: true })
+        navigate('/login', { replace: true })
       })
   }, [navigate])
 
@@ -61,7 +61,7 @@ export default function SignUp() {
         password: formData.password,
       })
       toast.success('User has been successfully created.')
-      navigate('/loginUp')
+      navigate('/login')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Registration failed'
       setError(msg)
@@ -75,6 +75,29 @@ export default function SignUp() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  // Show loading state while checking registration status
+  if (registrationCheck === 'checking') {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div
+            className={`w-12 h-12 rounded-full border-3 border-t-transparent animate-spin ${
+              isDarkMode ? 'border-slate-600 border-t-amber-400' : 'border-gray-300 border-t-amber-500'
+            }`}
+            style={{ borderWidth: '3px' }}
+          />
+          <p className={`mt-6 text-base font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Checking registration availability...
+          </p>
+          <p className={`mt-2 text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            Please wait a moment
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Only render the full signup page when registration is allowed
   return (
     <div className={`min-h-screen h-screen max-h-screen flex overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
       {/* Left Side - Brand Panel (Hidden on mobile) */}
@@ -170,36 +193,16 @@ export default function SignUp() {
             </span> */}
           </div>
 
-          {/* Registration status check: show form only when allowed */}
-          {registrationCheck === 'checking' && (
-            <div className="flex flex-col items-center justify-center py-16 px-4">
-              <div
-                className={`signup-checking-spinner w-10 h-10 rounded-full border-2 border-t-transparent ${
-                  isDarkMode ? 'border-slate-500 border-t-amber-400' : 'border-gray-300 border-t-amber-500'
-                }`}
-                aria-hidden
-              />
-              <p className={`mt-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Checking if registration is available…
-              </p>
-              <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                Please wait
-              </p>
-            </div>
-          )}
-
-          {registrationCheck === 'allowed' && (
-            <div className="signup-form-enter">
-              {/* Welcome Header */}
-              <div className="mb-5">
-                <h1 className={`text-2xl sm:text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                  Create Account
-                </h1>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Join GoldFlow and start your journey
-                </p>
-              </div>
+          {/* Welcome Header */}
+          <div className="mb-5">
+            <h1 className={`text-2xl sm:text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+              Create Account
+            </h1>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Join GoldFlow and start your journey
+            </p>
+          </div>
 
               {error && (
                 <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-sm">
@@ -394,7 +397,7 @@ export default function SignUp() {
                     {loading ? 'Creating account…' : 'Create Account'}
                   </button>
                   <Link
-                    to="/loginUp"
+                    to="/login"
                     className={`flex-1 py-3 px-6 rounded-full font-semibold text-center border-2 transition-all duration-200 ${isDarkMode
                         ? 'border-slate-600 text-gray-300 hover:bg-slate-800 hover:border-slate-500'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
@@ -410,15 +413,13 @@ export default function SignUp() {
             <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Already have an account?{' '}
               <Link
-                to="/loginUp"
+                to="/login"
                 className="font-semibold text-blue-500 hover:text-blue-600 transition-colors"
               >
                 Sign In
               </Link>
             </p>
           </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

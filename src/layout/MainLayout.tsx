@@ -15,7 +15,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const isDarkMode = useUIStore((state) => state.isDarkMode)
 
   // Don't show layout on login/signup pages
-  const isAuthPage = location.pathname === '/loginUp' || location.pathname === '/signUp'
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signUp'
 
   if (isAuthPage) {
     return <>{children}</>
