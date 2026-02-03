@@ -39,7 +39,7 @@ export default function Navbar() {
       }
     }
     logout()
-    navigate('/loginUp', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   const handleUserInfo = () => {
@@ -49,7 +49,7 @@ export default function Navbar() {
   
 
   // Don't show navbar on login/signup pages
-  if (location.pathname === '/loginUp' || location.pathname === '/signUp') {
+  if (location.pathname === '/login' || location.pathname === '/signUp') {
     return null
   }
 

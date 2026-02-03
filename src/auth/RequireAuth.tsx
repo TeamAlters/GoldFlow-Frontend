@@ -7,14 +7,14 @@ interface RequireAuthProps {
 
 /**
  * Wraps content that requires authentication.
- * Redirects to /loginUp if the user is not logged in, preserving the intended URL in state for redirect after login.
+ * Redirects to /login if the user is not logged in, preserving the intended URL in state for redirect after login.
  */
 export default function RequireAuth({ children }: RequireAuthProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated())
   const location = useLocation()
 
   if (!isAuthenticated) {
-    return <Navigate to="/loginUp" state={{ from: location }} replace />
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   return <>{children}</>

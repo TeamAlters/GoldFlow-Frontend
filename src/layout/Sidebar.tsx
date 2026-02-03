@@ -156,7 +156,7 @@ function LogoutButton({ isDarkMode }: { isDarkMode: boolean }) {
       }
     }
     logout()
-    navigate('/loginUp', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -255,7 +255,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const isDarkMode = useUIStore((state) => state.isDarkMode)
 
   // Don't show sidebar on login/signup pages
-  if (location.pathname === '/loginUp' || location.pathname === '/signUp') {
+  if (location.pathname === '/login' || location.pathname === '/signUp') {
     return null
   }
 
