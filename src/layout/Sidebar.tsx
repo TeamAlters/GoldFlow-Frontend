@@ -151,8 +151,9 @@ function LogoutButton({ isDarkMode }: { isDarkMode: boolean }) {
       try {
         await logoutApi(token)
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Logout failed'
-        toast.error(msg)
+        // 401 = token already invalid/expired; we're clearing state anyway, don't show error
+        const msg = err instanceof Error ? err.message : ''
+        if (msg && !/401|unauthorized/i.test(msg)) toast.error(msg)
       }
     }
     logout()
