@@ -1,30 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useUIStore } from '../stores/ui.store'
 import { navbarMenuItems } from '../config/navigation.config'
 
-/** Safely evaluate a simple "a op b" expression (add, subtract, multiply, divide). Returns null if invalid. */
-function evaluateCalculatorInput(input: string): number | null {
-  const trimmed = input.replace(/\s/g, '')
-  const match = trimmed.match(/^(-?[\d.]+)\s*([+\-*/])\s*(-?[\d.]+)$/)
-  if (!match) return null
-  const [, aStr, op, bStr] = match
-  const a = parseFloat(aStr)
-  const b = parseFloat(bStr)
-  if (Number.isNaN(a) || Number.isNaN(b)) return null
-  switch (op) {
-    case '+': return a + b
-    case '-': return a - b
-    case '*': return a * b
-    case '/': return b === 0 ? null : a / b
-    default: return null
+/** Safely evaluate mathematical expressions (numbers, + - * / parentheses). Returns result string or empty if invalid. */
+function evaluateExpression(expression: string): string {
+  try {
+    const sanitized = expression.replace(/[^0-9+\-*/().\s]/g, '')
+    const result = new Function('return ' + sanitized)()
+    if (typeof result === 'number' && !Number.isNaN(result) && Number.isFinite(result)) {
+      return result.toString()
+    }
+    return ''
+  } catch {
+    return ''
   }
-}
-
-function formatResult(n: number): string {
-  if (Number.isInteger(n)) return String(n)
-  const s = n.toFixed(6).replace(/\.?0+$/, '')
-  return s.length > 12 ? n.toExponential(4) : s
 }
 
 interface SecondNavbarProps {
@@ -36,7 +26,16 @@ export default function SecondNavbar({ onToggleSidebar, isSidebarOpen }: SecondN
   const location = useLocation()
   const isDarkMode = useUIStore((state) => state.isDarkMode)
   const [calculatorInput, setCalculatorInput] = useState('')
-  const liveResult = calculatorInput.trim() ? evaluateCalculatorInput(calculatorInput) : null
+  const [calculatorResult, setCalculatorResult] = useState('')
+
+  useEffect(() => {
+    if (calculatorInput.trim()) {
+      const result = evaluateExpression(calculatorInput)
+      setCalculatorResult(result)
+    } else {
+      setCalculatorResult('')
+    }
+  }, [calculatorInput])
 
   // Don't show navbar on login/signup pages
   if (location.pathname === '/loginUp' || location.pathname === '/signUp') {
@@ -95,53 +94,26 @@ export default function SecondNavbar({ onToggleSidebar, isSidebarOpen }: SecondN
             ))}
           </div>
 
-          {/* Right - Calculator: one input-style block with expression + result */}
-          <div
-            className={`group flex items-center h-8 w-full max-w-[200px] sm:max-w-[240px] rounded-lg border transition-all duration-200 focus-within:ring-2 focus-within:ring-offset-0 ${inputBaseClass} ${
-              isDarkMode ? 'focus-within:border-amber-400 focus-within:ring-amber-400/25' : 'focus-within:border-amber-500 focus-within:ring-amber-500/20'
-            }`}
-          >
-            <div className="pl-3 flex items-center shrink-0 pointer-events-none">
-              <svg className={`w-4 h-4 ${isDarkMode ? 'text-gray-400 group-focus-within:text-amber-400' : 'text-gray-500 group-focus-within:text-amber-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={calculatorInput}
-              onChange={(e) => setCalculatorInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && liveResult !== null) {
-                  e.preventDefault()
-                  setCalculatorInput(formatResult(liveResult))
-                }
-              }}
-              placeholder="e.g. 2+3"
-              title="Calculator: result updates as you type. Enter copies result."
-              className={`h-full flex-1 min-w-0 pl-2 pr-2 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 ${
-                isDarkMode ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'
-              }`}
-            />
-            {calculatorInput.trim() && (
-              <>
-                <div className={`shrink-0 w-px h-4 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`} aria-hidden />
+          {/* Right - Calculator: input with result dropdown below */}
+          <div className="hidden md:flex items-center">
+            <div className="relative">
+              <input
+                type="text"
+                value={calculatorInput}
+                onChange={(e) => setCalculatorInput(e.target.value)}
+                placeholder="Calculator (e.g., 3.45 + 89 / 2)"
+                className={`w-64 px-3 py-1.5 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-offset-0 ${inputBaseClass} ${isDarkMode ? 'focus:ring-amber-400/25 focus:border-amber-400' : 'focus:ring-amber-500/20 focus:border-amber-500'}`}
+              />
+              {calculatorResult && (
                 <div
-                  className={`shrink-0 pr-3 pl-2 text-sm font-medium tabular-nums ${
-                    liveResult !== null
-                      ? isDarkMode
-                        ? 'text-amber-400'
-                        : 'text-amber-600'
-                      : isDarkMode
-                      ? 'text-red-400/80'
-                      : 'text-red-500/80'
+                  className={`absolute top-full left-0 mt-1 px-2 py-1 text-xs rounded shadow-lg z-20 tabular-nums ${
+                    isDarkMode ? 'bg-gray-800 text-amber-400' : 'bg-gray-800 text-white'
                   }`}
-                  title={liveResult !== null ? 'Result' : 'Invalid'}
                 >
-                  {liveResult !== null ? formatResult(liveResult) : '—'}
+                  = {calculatorResult}
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
