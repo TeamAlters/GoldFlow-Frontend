@@ -50,18 +50,18 @@ export type EntityMetadataResponse = {
   status_code?: number
 }
 
-/** Metadata path template from env; {entity_name} is replaced at runtime. Default: /api/v1/entities/{entity_name}/metadata */
+/** Metadata path template from env; {entity_name} is replaced at runtime. Default: /api/v1/entities/{entity_name}/listing-metadata */
 const getEntityMetadataPath = (entityName: string): string => {
   const template =
     (typeof import.meta.env.VITE_ENTITY_METADATA_PATH === 'string' &&
       import.meta.env.VITE_ENTITY_METADATA_PATH.trim()) ||
-    '/api/v1/entities/{entity_name}/metadata'
+    '/api/v1/entities/{entity_name}/listing-metadata'
   return template.replace(/\{entity_name\}/g, encodeURIComponent(entityName))
 }
 
 /**
- * GET /api/v1/entities/{entity_name}/metadata
- * Path comes from VITE_ENTITY_METADATA_PATH in .env (default: /api/v1/entities/{entity_name}/metadata).
+ * GET /api/v1/entities/{entity_name}/listing-metadata
+ * Path comes from VITE_ENTITY_METADATA_PATH in .env (default: /api/v1/entities/{entity_name}/listing-metadata).
  */
 export async function getEntityMetadata(entityName: string): Promise<EntityMetadataResponse> {
   const baseUrl = getBaseUrl()
