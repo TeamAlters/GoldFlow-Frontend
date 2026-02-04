@@ -2,14 +2,16 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useUIStore } from '../../stores/ui.store'
 import type { TableColumn } from './DataTable'
 
-export type FilterValue = string | string[] | null
+export type FilterValue = string | string[] | null | { operator: string; value: string | string[] | null }
 
 export type FilterConfig = {
   key: string
   label: string
   dataType: 'string' | 'number' | 'select' | 'multi-select'
-  fetchFrom?: string // API route for fetching options
+  fetchFrom?: string // API route for fetching options (for "in" operator multi-select options)
   options?: Array<{ label: string; value: string }> // Static options
+  operators?: string[] // e.g. ["=", "≠", "contains", "in", ...]; when set, show operator dropdown
+  defaultOperator?: string // default "contains"
 }
 
 export type FilterComponentConfig = {
@@ -37,7 +39,9 @@ export default function FilterComponent<T extends Record<string, any>>({
   const [addableFilters, setAddableFilters] = useState<Record<string, FilterValue>>({})
   const [showAddFilter, setShowAddFilter] = useState(false)
   const [openSelectKey, setOpenSelectKey] = useState<string | null>(null)
+  const [openOperatorKey, setOpenOperatorKey] = useState<string | null>(null)
   const selectDropdownRef = useRef<HTMLDivElement>(null)
+  const operatorDropdownRef = useRef<HTMLDivElement>(null)
   const [apiOptions, setApiOptions] = useState<Record<string, Array<{ label: string; value: string }>>>({})
 
   // Get available column keys from table headers
@@ -123,9 +127,17 @@ export default function FilterComponent<T extends Record<string, any>>({
     const defaultFilters: Record<string, FilterValue> = {}
     const addableFiltersInit: Record<string, FilterValue> = {}
 
-    // Initialize default filters from initialFilters or set to null
-    Object.keys(config.default).forEach((key) => {
-      defaultFilters[key] = initialFilters?.[key] ?? null
+    // Initialize default filters from initialFilters or set to null / { operator, value }
+    Object.entries(config.default).forEach(([key, filterConfig]) => {
+      const initial = initialFilters?.[key]
+      if (filterConfig.operators?.length) {
+        defaultFilters[key] =
+          initial !== null && typeof initial === 'object' && 'operator' in (initial as object)
+            ? (initial as { operator: string; value: string | string[] | null })
+            : { operator: filterConfig.defaultOperator ?? 'contains', value: null }
+      } else {
+        defaultFilters[key] = initial ?? null
+      }
     })
 
     // Initialize addable filters from initialFilters
@@ -153,22 +165,43 @@ export default function FilterComponent<T extends Record<string, any>>({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openSelectKey])
 
-  // Handle submit - apply filters
+  // Close operator dropdown when clicking outside
+  useEffect(() => {
+    if (!openOperatorKey) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (operatorDropdownRef.current && !operatorDropdownRef.current.contains(e.target as Node)) {
+        setOpenOperatorKey(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openOperatorKey])
+
+  // Handle submit - apply filters (only include filters that have a value; skip null/empty)
   const handleSubmit = () => {
     const allFilters = { ...activeFilters, ...addableFilters }
-    onFilterChange(allFilters)
+    const onlyWithValues: Record<string, FilterValue> = {}
+    Object.entries(allFilters).forEach(([k, val]) => {
+      if (hasFilterValue(val)) onlyWithValues[k] = val
+    })
+    if (Object.keys(onlyWithValues).length > 0) {
+    }
+    console.log('[GoldFlow] [FilterComponent] handleSubmit', { onlyWithValues })
+    onFilterChange(onlyWithValues)
   }
 
-  // Handle clear all filters
+  // Handle clear all filters (pass empty so no filter keys with null are sent)
   const handleClearAll = () => {
-    const clearedFilters: Record<string, FilterValue> = {}
-    Object.keys(config.default).forEach((key) => {
-      clearedFilters[key] = null
+    const clearedDefaults: Record<string, FilterValue> = {}
+    Object.entries(config.default).forEach(([key, filterConfig]) => {
+      clearedDefaults[key] =
+        filterConfig.operators?.length
+          ? { operator: filterConfig.defaultOperator ?? 'contains', value: null }
+          : null
     })
-    setActiveFilters(clearedFilters)
+    setActiveFilters(clearedDefaults)
     setAddableFilters({})
-    // Apply cleared filters immediately
-    onFilterChange(clearedFilters)
+    onFilterChange({})
   }
 
   const handleFilterChange = (key: string, value: FilterValue, isAddable = false) => {
@@ -194,8 +227,11 @@ export default function FilterComponent<T extends Record<string, any>>({
   const addFilter = (key: string) => {
     const filterConfig = validAddableFilters[key]
     if (filterConfig) {
-      setAddableFilters((prev) => ({ ...prev, [key]: null }))
-      // Don't close dropdown - allow multiple selections
+      const initial: FilterValue =
+        filterConfig.operators?.length
+          ? { operator: filterConfig.defaultOperator ?? 'contains', value: null }
+          : null
+      setAddableFilters((prev) => ({ ...prev, [key]: initial }))
     }
   }
 
@@ -209,9 +245,148 @@ export default function FilterComponent<T extends Record<string, any>>({
     return []
   }
 
+  const hasFilterValue = (val: FilterValue): boolean => {
+    if (val === null || val === '') return false
+    if (Array.isArray(val)) return val.length > 0
+    if (typeof val === 'object' && val !== null && 'value' in val)
+      return hasFilterValue((val as { value: FilterValue }).value)
+    return true
+  }
+
+  const getOperatorAndValue = (
+    val: FilterValue,
+    defaultOp: string
+  ): { operator: string; value: string | string[] | null } => {
+    if (val !== null && typeof val === 'object' && 'operator' in val && 'value' in val) {
+      const o = val as { operator: string; value: string | string[] | null }
+      return { operator: o.operator, value: o.value }
+    }
+    return { operator: defaultOp, value: val as string | string[] | null }
+  }
+
   const renderFilterInput = (key: string, filterConfig: FilterConfig, isAddable = false) => {
-    const value = isAddable ? addableFilters[key] : activeFilters[key]
+    const rawValue = isAddable ? addableFilters[key] : activeFilters[key]
     const options = getFilterOptions(filterConfig, key)
+
+    // When filter has operators: render operator dropdown (left) + value input (right) in one bordered box
+    if (filterConfig.operators?.length) {
+      const defaultOp = filterConfig.defaultOperator ?? 'contains'
+      const { operator, value } = getOperatorAndValue(rawValue, defaultOp)
+      const inputBaseClasses = `px-3 py-2 text-sm border-0 focus:outline-none focus:ring-0 ${isDarkMode
+        ? 'bg-transparent text-white placeholder-gray-500'
+        : 'bg-transparent text-gray-900 placeholder-gray-400'
+        }`
+      const borderClasses = `rounded-lg border flex ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`
+
+      const updateFilter = (newOperator: string, newValue: string | string[] | null) => {
+        handleFilterChange(key, { operator: newOperator, value: newValue }, isAddable)
+      }
+
+      const operatorSelectId = `op-${isAddable ? 'addable-' : ''}${key}`
+      const isOperatorOpen = openOperatorKey === operatorSelectId
+
+      return (
+        <div className={borderClasses}>
+          {/* Operator dropdown - left section (custom styled); rounded left to match container */}
+          <div
+            ref={isOperatorOpen ? operatorDropdownRef : undefined}
+            className="relative min-w-[7rem] max-w-[10rem] shrink-0 overflow-visible"
+          >
+            <button
+              type="button"
+              onClick={() => setOpenOperatorKey(isOperatorOpen ? null : operatorSelectId)}
+              className={`w-full h-full min-h-[2.5rem] px-3 py-2 text-left text-sm border-r flex items-center justify-between gap-1 transition-colors rounded-l-lg ${isDarkMode
+                ? 'border-gray-600 bg-gray-700 text-white hover:bg-gray-600'
+                : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
+                } ${isOperatorOpen ? (isDarkMode ? 'ring-inset ring-1 ring-blue-500/60 bg-gray-600' : 'ring-inset ring-1 ring-blue-400 bg-gray-50') : ''}`}
+              aria-label={`Operator for ${filterConfig.label}`}
+              aria-expanded={isOperatorOpen}
+            >
+              <span className="truncate">{operator}</span>
+              <svg
+                className={`w-4 h-4 shrink-0 transition-transform ${isOperatorOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {isOperatorOpen && (
+              <div
+                className={`absolute left-0 top-full z-50 mt-1 min-w-full py-1 rounded-lg border shadow-xl ${isDarkMode
+                  ? 'bg-gray-800 border-gray-600'
+                  : 'bg-white border-gray-200'
+                  }`}
+              >
+                {filterConfig.operators.map((op) => (
+                  <button
+                    key={op}
+                    type="button"
+                    onClick={() => {
+                      updateFilter(op, value)
+                      setOpenOperatorKey(null)
+                    }}
+                    className={`w-full px-3 py-2 text-left text-sm truncate transition-colors ${operator === op
+                      ? isDarkMode
+                        ? 'bg-blue-600/30 text-blue-300 font-medium'
+                        : 'bg-blue-100 text-blue-800 font-medium'
+                      : isDarkMode
+                        ? 'text-gray-200 hover:bg-gray-700'
+                        : 'text-gray-800 hover:bg-gray-100'
+                      }`}
+                  >
+                    {op}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Value - right section: rounded right to match container */}
+          <div className="flex-1 min-w-0 rounded-r-lg">
+            {operator === 'in' ? (
+              <div className="relative w-full">
+                <select
+                  multiple
+                  value={Array.isArray(value) ? value : []}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, (o) => o.value)
+                    updateFilter(operator, selected.length > 0 ? selected : null)
+                  }}
+                  className={`w-full min-h-[2.5rem] ${inputBaseClasses}`}
+                  size={Math.min(Math.max(options.length, 1) + 1, 5)}
+                >
+                  {options.length ? (
+                    options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      Select multiple (options load from API)
+                    </option>
+                  )}
+                </select>
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={(value as string) ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value
+                  updateFilter(operator, v === '' ? null : v)
+                }}
+                placeholder={`Value for ${filterConfig.label}...`}
+                className={`w-full h-full ${inputBaseClasses}`}
+              />
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    const value = rawValue
 
     // Close dropdown when input is clicked
     const handleInputClick = () => {
@@ -225,7 +400,7 @@ export default function FilterComponent<T extends Record<string, any>>({
     const inputBaseClasses = `w-full px-3 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${isDarkMode
       ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
       : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
-    }`
+      }`
 
     switch (filterConfig.dataType) {
       case 'select': {
@@ -267,7 +442,7 @@ export default function FilterComponent<T extends Record<string, any>>({
                   className={`w-full px-3 py-2 text-left text-sm ${isDarkMode
                     ? 'text-gray-300 hover:bg-gray-700'
                     : 'text-gray-700 hover:bg-gray-100'
-                  } ${!value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
+                    } ${!value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
                 >
                   All {filterConfig.label}
                 </button>
@@ -282,7 +457,7 @@ export default function FilterComponent<T extends Record<string, any>>({
                     className={`w-full px-3 py-2 text-left text-sm ${isDarkMode
                       ? 'text-gray-300 hover:bg-gray-700'
                       : 'text-gray-700 hover:bg-gray-100'
-                    } ${value === option.value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
+                      } ${value === option.value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
                   >
                     {option.label}
                   </button>
@@ -305,8 +480,8 @@ export default function FilterComponent<T extends Record<string, any>>({
             }}
             onClick={handleInputClick}
             className={`w-full px-3 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${isDarkMode
-                ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
-                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
+              ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
+              : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
               }`}
             size={Math.min(options.length + 1, 5)}
           >
@@ -332,8 +507,8 @@ export default function FilterComponent<T extends Record<string, any>>({
             onFocus={handleInputClick}
             placeholder={`Filter by ${filterConfig.label}...`}
             className={`w-full px-3 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${isDarkMode
-                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+              ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
+              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
               }`}
           />
         )
@@ -363,8 +538,8 @@ export default function FilterComponent<T extends Record<string, any>>({
                 <button
                   onClick={() => setShowAddFilter(!showAddFilter)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${isDarkMode
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
                     }`}
                 >
                   <svg className="w-3 h-3g  " fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -394,8 +569,8 @@ export default function FilterComponent<T extends Record<string, any>>({
                 <button
                   onClick={() => setShowAddFilter(false)}
                   className={`text-xs px-2 py-1 rounded transition-colors ${isDarkMode
-                      ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-800'
-                      : 'text-gray-600 hover:text-gray-700 hover:bg-gray-100'
+                    ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-800'
+                    : 'text-gray-600 hover:text-gray-700 hover:bg-gray-100'
                     }`}
                 >
                   Done
@@ -407,8 +582,8 @@ export default function FilterComponent<T extends Record<string, any>>({
                     key={key}
                     onClick={() => addFilter(key)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${isDarkMode
-                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                       }`}
                   >
                     + {filterConfig.label}
@@ -422,7 +597,7 @@ export default function FilterComponent<T extends Record<string, any>>({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(config.default).map(([key, filterConfig]) => {
               const value = activeFilters[key]
-              const hasValue = value !== null && value !== '' && (Array.isArray(value) ? value.length > 0 : true)
+              const hasValue = hasFilterValue(value)
 
               return (
                 <div key={key} className="space-y-1">
@@ -473,8 +648,8 @@ export default function FilterComponent<T extends Record<string, any>>({
             <button
               onClick={handleClearAll}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${isDarkMode
-                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                 }`}
             >
               Clear Filters
@@ -482,8 +657,8 @@ export default function FilterComponent<T extends Record<string, any>>({
             <button
               onClick={handleSubmit}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${isDarkMode
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
             >
               Apply Filters

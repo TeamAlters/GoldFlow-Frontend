@@ -34,8 +34,9 @@ export default function Navbar() {
       try {
         await logoutApi(token)
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Logout failed'
-        toast.error(msg)
+        // 401 = token already invalid/expired; we're clearing state anyway, don't show error
+        const msg = err instanceof Error ? err.message : ''
+        if (msg && !/401|unauthorized/i.test(msg)) toast.error(msg)
       }
     }
     logout()
@@ -46,7 +47,7 @@ export default function Navbar() {
     setIsUserDropdownOpen(false)
     navigate('/profile')
   }
-  
+
 
   // Don't show navbar on login/signup pages
   if (location.pathname === '/login' || location.pathname === '/signUp') {
@@ -54,31 +55,28 @@ export default function Navbar() {
   }
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 ${
-      isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-    } border-b shadow-sm`}>
+    <nav className={`fixed top-0 left-0 right-0 z-50 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
+      } border-b shadow-sm`}>
       <div className="px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
-         
+
           <div className="flex items-center gap-4">
-           
+
 
             {/* Logo */}
             <Link to="/dashboard" className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                isDarkMode 
-                  ? 'bg-gradient-to-br from-amber-500 to-yellow-600' 
-                  : 'bg-gradient-to-br from-amber-400 to-yellow-500'
-              } shadow-lg`}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode
+                ? 'bg-gradient-to-br from-amber-500 to-yellow-600'
+                : 'bg-gradient-to-br from-amber-400 to-yellow-500'
+                } shadow-lg`}>
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
               </div>
-              <span className={`text-xl font-bold tracking-tight hidden sm:block ${
-                isDarkMode 
-                  ? 'bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent' 
-                  : 'bg-gradient-to-r from-amber-500 to-yellow-600 bg-clip-text text-transparent'
-              }`}>
+              <span className={`text-xl font-bold tracking-tight hidden sm:block ${isDarkMode
+                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent'
+                : 'bg-gradient-to-r from-amber-500 to-yellow-600 bg-clip-text text-transparent'
+                }`}>
                 GoldFlow
               </span>
             </Link>
@@ -98,21 +96,19 @@ export default function Navbar() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className={`w-48 lg:w-64 pl-9 pr-4 py-1.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${
-                  isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                className={`w-48 lg:w-64 pl-9 pr-4 py-1.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${isDarkMode
+                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+                  }`}
               />
             </div>
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-lg transition-colors ${
-                isDarkMode 
-                  ? 'hover:bg-gray-800 text-gray-400 hover:text-white' 
-                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-              }`}
+              className={`p-2 rounded-lg transition-colors ${isDarkMode
+                ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                }`}
               aria-label="Toggle theme"
             >
               {isDarkMode ? (
@@ -126,17 +122,16 @@ export default function Navbar() {
               )}
             </button>
 
-      
+
 
             {/* User Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                className={`p-2 rounded-lg transition-colors ${
-                  isDarkMode 
-                    ? 'hover:bg-gray-800 text-gray-400 hover:text-white' 
-                    : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-                }`}
+                className={`p-2 rounded-lg transition-colors ${isDarkMode
+                  ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                  }`}
                 aria-label="User menu"
               >
                 {/* User Icon */}
@@ -147,23 +142,21 @@ export default function Navbar() {
 
               {/* Dropdown Menu */}
               {isUserDropdownOpen && (
-                <div className={`absolute right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 ${
-                  isDarkMode 
-                    ? 'bg-gray-800 border-gray-700' 
-                    : 'bg-white border-gray-200'
-                }`}>
+                <div className={`absolute right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 ${isDarkMode
+                  ? 'bg-gray-800 border-gray-700'
+                  : 'bg-white border-gray-200'
+                  }`}>
                   {/* User Info Section */}
                   <button
                     onClick={handleUserInfo}
-                    className={`w-full px-4 py-3 flex items-center gap-3 transition-colors ${
-                      isDarkMode 
-                        ? 'hover:bg-gray-700 border-b border-gray-700' 
-                        : 'hover:bg-gray-50 border-b border-gray-100'
-                    }`}
+                    className={`w-full px-4 py-3 flex items-center gap-3 transition-colors ${isDarkMode
+                      ? 'hover:bg-gray-700 border-b border-gray-700'
+                      : 'hover:bg-gray-50 border-b border-gray-100'
+                      }`}
                   >
                     <div className="text-left">
                       <p className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {user?.name ?? user?.username ?? 'User'}
+                        {String(user?.name ?? user?.username ?? 'User')}
                       </p>
                       <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                         {user?.email ?? '—'}
@@ -178,11 +171,10 @@ export default function Navbar() {
                   {/* Logout Button */}
                   <button
                     onClick={handleLogout}
-                    className={`w-full px-4 py-3 flex items-center gap-3 transition-colors ${
-                      isDarkMode 
-                        ? 'text-red-400 hover:bg-red-500/10' 
-                        : 'text-red-600 hover:bg-red-50'
-                    }`}
+                    className={`w-full px-4 py-3 flex items-center gap-3 transition-colors ${isDarkMode
+                      ? 'text-red-400 hover:bg-red-500/10'
+                      : 'text-red-600 hover:bg-red-50'
+                      }`}
                   >
                     {/* Logout Icon */}
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +189,7 @@ export default function Navbar() {
         </div>
       </div>
 
-    
+
     </nav>
   )
 }

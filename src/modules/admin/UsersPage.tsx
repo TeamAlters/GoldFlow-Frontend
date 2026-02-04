@@ -1,188 +1,297 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../../auth/auth.store'
 import DataTable from '../../shared/components/DataTable'
 import type { TableColumn, TableAction } from '../../shared/components/DataTable'
-import FilterComponent, { type FilterComponentConfig, type FilterValue } from '../../shared/components/FilterComponent'
+import FilterComponent, { type FilterComponentConfig, type FilterConfig, type FilterValue } from '../../shared/components/FilterComponent'
 import { useUIStore } from '../../stores/ui.store'
+import { toast } from '../../stores/toast.store'
+import { getEntityMetadataCache, setEntityMetadataCache } from '../../utils/entityCache'
+import { getEntityMetadata, getEntityList, type EntityListFilter } from './admin.api'
+import type { EntityField, EntityFilterField } from './admin.api'
 
-// User type definition
-type User = {
-  id: number
-  name: string
-  email: string
-  role: string
-  mobileNo: string
+/** Format ISO date-time string for UI (e.g. "31 Jan 2026, 12:37 pm") */
+function formatDateTime(isoOrValue: string | number | null | undefined): string {
+  if (isoOrValue === null || isoOrValue === undefined) return '—'
+  const s = String(isoOrValue).trim()
+  if (!s) return '—'
+  const date = new Date(s)
+  if (Number.isNaN(date.getTime())) return s
+  return date.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
 }
+
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/
+
+function isDateTimeValue(val: unknown): boolean {
+  if (val === null || val === undefined) return false
+  return ISO_DATE_REGEX.test(String(val))
+}
+
+// Map metadata field names to row keys (for mock/API compatibility: username→name, status→role, etc.)
+function getRowDisplayValue(row: Record<string, unknown>, fieldKey: string, fieldType?: string): string {
+  const val = row[fieldKey]
+  const resolved =
+    val !== undefined && val !== null
+      ? val
+      : (() => {
+        const aliases: Record<string, string> = { username: 'name', status: 'role', mobile_number: 'mobileNo' }
+        const mapped = aliases[fieldKey] ? row[aliases[fieldKey]] : undefined
+        return mapped
+      })()
+  if (resolved === undefined || resolved === null) return '—'
+  if (fieldType === 'DateTime' || isDateTimeValue(resolved)) return formatDateTime(resolved as string | number)
+  return String(resolved)
+}
+
+// User type: API can return id as string, and fields like username, status, mobile_number, etc.
+type User = Record<string, unknown> & {
+  id: string | number
+  username?: string
+  name?: string
+  email?: string
+  role?: string
+  status?: string
+  mobileNo?: string
+  mobile_number?: string
+}
+
+function mapFieldTypeToDataType(apiType: string): 'string' | 'number' | 'select' | 'multi-select' {
+  if (apiType === 'Boolean') return 'select'
+  return 'string'
+}
+
+function defaultOperatorForType(apiType: string, operators: string[]): string {
+  if (apiType === 'DateTime' && operators.includes('=')) return '='
+  if (apiType === 'Boolean' && operators.includes('=')) return '='
+  if (operators.includes('contains')) return 'contains'
+  return operators[0] ?? '='
+}
+
+function metadataToFilterConfig(f: EntityFilterField): FilterConfig {
+  const dataType = mapFieldTypeToDataType(f.type)
+  const operators = f.operators ?? []
+  return {
+    key: f.field,
+    label: f.label,
+    dataType,
+    operators,
+    defaultOperator: defaultOperatorForType(f.type, operators),
+  }
+}
+
+/** Entity name from .env (e.g. VITE_ENTITY_NAME=user). Used for metadata and list API. */
+const getEntityName = (): string => {
+  const v = import.meta.env.VITE_ENTITY_NAME
+  return typeof v === 'string' && v.trim() ? v.trim() : 'user'
+}
+
+// Module-level in-flight flag so it survives Strict Mode unmount/remount (avoids duplicate API calls)
+let metadataFetchInFlight = false
 
 export default function UsersPage() {
   const navigate = useNavigate()
   const isDarkMode = useUIStore((state) => state.isDarkMode)
-  const [searchQuery, setSearchQuery] = useState('')
+  const entityName = getEntityName()
   const [filters, setFilters] = useState<Record<string, FilterValue>>({})
-  // Initialize users from localStorage or default data
-  const getInitialUsers = (): User[] => {
-    const stored = localStorage.getItem('users')
-    if (stored) {
-      return JSON.parse(stored)
-    }
-    // Default users
-    const defaultUsers: User[] = [
-      {
-        id: 1,
-        name: 'John Doe',
-        email: 'john.doe@goldflow.com',
-        role: 'Admin',
-        mobileNo: '0987654321',
-      },
-      {
-        id: 2,
-        name: 'Jane Smith',
-        email: 'jane.smith@goldflow.com',
-        role: 'Manager',
-        mobileNo: '0987654321',
-      },
-      {
-        id: 3,
-        name: 'Bob Johnson',
-        email: 'bob.johnson@goldflow.com',
-        role: 'Operator',
-        mobileNo: '0987654321',
-      },
-      {
-        id: 4,
-        name: 'Alice Williams',
-        email: 'alice.williams@goldflow.com',
-        role: 'Supervisor',
-        mobileNo: '0987654321',
-      },
-      {
-        id: 5,
-        name: 'Charlie Brown',
-        email: 'charlie.brown@goldflow.com',
-        role: 'Operator',
-        mobileNo: '0987654321',
-      },
-    ]
-    localStorage.setItem('users', JSON.stringify(defaultUsers))
-    return defaultUsers
-  }
+  const [entityMetadata, setEntityMetadata] = useState<{
+    display_name: string
+    fields: EntityField[]
+    filters: { default_visible: EntityFilterField[]; additional: EntityFilterField[] }
+  } | null>(null)
+  const [metadataLoading, setMetadataLoading] = useState(true)
+  const [metadataError, setMetadataError] = useState<string | null>(null)
+  const [metadataSource, setMetadataSource] = useState<'cache' | 'api' | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [listLoading, setListLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(20)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const token = useAuthStore((state) => state.token)
+  const logout = useAuthStore((state) => state.logout)
+  const lastToastedErrorRef = useRef<string | null>(null)
 
-  const [users, setUsers] = useState<User[]>(getInitialUsers())
+  const handleAuthError = useCallback(() => {
+    console.warn('[GoldFlow] [UsersPage] Auth error – clearing session and redirecting to login')
+    logout()
+    navigate('/login', { replace: true })
+  }, [logout, navigate])
 
-  // Sync users with localStorage when it changes
-  useEffect(() => {
-    const handleUsersUpdate = () => {
-      const stored = localStorage.getItem('users')
-      if (stored) {
-        setUsers(JSON.parse(stored))
-      }
-    }
-
-    // Listen for custom event (when UserFormPage updates localStorage)
-    window.addEventListener('usersUpdated', handleUsersUpdate)
-    
-    // Also listen for storage events (cross-tab updates)
-    window.addEventListener('storage', handleUsersUpdate)
-
-    return () => {
-      window.removeEventListener('usersUpdated', handleUsersUpdate)
-      window.removeEventListener('storage', handleUsersUpdate)
-    }
+  // Show error in toaster once per distinct message (avoids double toast from Strict Mode / duplicate paths)
+  const showErrorToast = useCallback((msg: string) => {
+    if (lastToastedErrorRef.current === msg) return
+    lastToastedErrorRef.current = msg
+    toast.error(msg)
   }, [])
 
-  // Save users to localStorage whenever users state changes
+  // Fetch entity metadata (and save to cache on success)
+  const fetchMetadata = useCallback(() => {
+    if (!token) {
+      console.warn('[GoldFlow] [UsersPage] fetchMetadata: no token, skipping')
+      const msg = 'Not logged in. Sign in and try again.'
+      setMetadataError(msg)
+      showErrorToast(msg)
+      setMetadataLoading(false)
+      return
+    }
+    if (metadataFetchInFlight) {
+      console.log('[GoldFlow] [UsersPage] fetchMetadata: request already in flight, skipping')
+      return
+    }
+    metadataFetchInFlight = true
+    setMetadataLoading(true)
+    setMetadataError(null)
+    lastToastedErrorRef.current = null
+    getEntityMetadata(entityName)
+      .then((res) => {
+        const data = res.data
+        if (data && (data.fields?.length || data.display_name != null || data.filters)) {
+          const meta = {
+            display_name: data.display_name ?? 'Users',
+            fields: Array.isArray(data.fields) ? data.fields : [],
+            filters: {
+              default_visible: Array.isArray(data.filters?.default_visible) ? data.filters.default_visible : [],
+              additional: Array.isArray(data.filters?.additional) ? data.filters.additional : [],
+            },
+          }
+          console.log('[GoldFlow] [UsersPage] Metadata: from database (API)', { entityName })
+          setEntityMetadata(meta)
+          setEntityMetadataCache(entityName, meta)
+          setMetadataSource('api')
+        } else {
+          const msg = 'Metadata response had no fields or filters.'
+          setMetadataError(msg)
+          showErrorToast(msg)
+        }
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : 'Failed to load metadata'
+        if (/credentials|401|validate|unauthorized/i.test(msg)) {
+          console.warn('[GoldFlow] [UsersPage] fetchMetadata: auth error (401/credentials)', { msg })
+          showErrorToast('Session expired. Please sign in again.')
+          handleAuthError()
+          return
+        }
+        console.log('[GoldFlow] [UsersPage] fetchMetadata: error', { msg })
+        setMetadataError(msg)
+        showErrorToast(msg)
+      })
+      .finally(() => {
+        metadataFetchInFlight = false
+        setMetadataLoading(false)
+      })
+  }, [token, entityName, showErrorToast, handleAuthError])
+
   useEffect(() => {
-    localStorage.setItem('users', JSON.stringify(users))
-  }, [users])
+    if (!token) {
+      console.warn('[GoldFlow] [UsersPage] useEffect: no token, not loading metadata')
+      const msg = 'Not logged in. Sign in and try again.'
+      setMetadataError(msg)
+      showErrorToast(msg)
+      setMetadataLoading(false)
+      return
+    }
+    // Always try cache first (including on reload). Only call API when cache is missing.
+    const cached = getEntityMetadataCache(entityName)
+    if (cached) {
+      console.log('[GoldFlow] [UsersPage] Metadata: from cache', { entityName, cachedAt: cached.fetchedAt })
+      setEntityMetadata({
+        display_name: cached.display_name,
+        fields: cached.fields,
+        filters: cached.filters,
+      })
+      setMetadataSource('cache')
+      setMetadataLoading(false)
+      setMetadataError(null)
+      return
+    }
+    fetchMetadata()
+  }, [token, entityName, fetchMetadata, showErrorToast])
 
-  // Define table columns
-  const columns: TableColumn<User>[] = [
-    {
-      key: 'id',
-      header: 'ID',
-      sortable: true,
-      width: '80px',
-      align: 'center',
-    },
-    {
-      key: 'first name',
-      header: 'First Name',
-      sortable: true,
-      accessor: (row) => {
-        const firstName = row.name.split(' ')[0] || row.name
-        return (
-          <div className="flex items-center gap-3">
-            <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-              {firstName}
-            </span>
-          </div>
-        )
-      },
-    },
-    {
-      key: 'last name',
-      header: 'Last Name',
-      sortable: true,
-      accessor: (row) => {
-        const nameParts = row.name.split(' ')
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '-'
-        return (
-          <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-            {lastName}
-          </span>
-        )
-      },
-    },
-    {
-      key: 'email',
-      header: 'Email',
-      sortable: true,
-      accessor: (row) => (
-        <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
-          {row.email}
-        </span>
-      ),
-    },
-    {
-      key: 'role',
-      header: 'Role',
-      sortable: true,
-      align: 'center',
-      accessor: (row) => (
-        <span
-          className={`px-2 py-1 text-xs font-medium rounded-full ${row.role === 'Admin'
-            ? isDarkMode
-              ? 'bg-purple-500/20 text-purple-400'
-              : 'bg-purple-100 text-purple-700'
-            : row.role === 'Manager'
-              ? isDarkMode
-                ? 'bg-blue-500/20 text-blue-400'
-                : 'bg-blue-100 text-blue-700'
-              : row.role === 'Supervisor'
-                ? isDarkMode
-                  ? 'bg-green-500/20 text-green-400'
-                  : 'bg-green-100 text-green-700'
-                : isDarkMode
-                  ? 'bg-gray-500/20 text-gray-400'
-                  : 'bg-gray-100 text-gray-700'
-            }`}
-        >
-          {row.role}
-        </span>
-      ),
-    },
+  // Convert UI filters to API format: [{ field, operator, value }]. Skip empty values; trim strings so "  anupam  " is sent as "anupam".
+  const filtersForApi = useMemo((): EntityListFilter[] => {
+    const trimValue = (v: string | string[] | null): string | string[] | null => {
+      if (v === null || v === undefined) return v
+      if (typeof v === 'string') return v.trim()
+      if (Array.isArray(v)) return v.map((s) => (typeof s === 'string' ? s.trim() : s)).filter((s) => s !== '')
+      return v
+    }
+    const out: EntityListFilter[] = []
+    Object.entries(filters).forEach(([field, filterVal]) => {
+      if (filterVal === null || filterVal === undefined) return
+      const isObj = typeof filterVal === 'object' && filterVal !== null && 'operator' in filterVal && 'value' in filterVal
+      const operator = isObj ? (filterVal as { operator: string }).operator : 'contains'
+      const raw = isObj ? (filterVal as { value: string | string[] | null }).value : (filterVal as string)
+      const value = trimValue(raw)
+      const isEmpty =
+        value === null ||
+        value === undefined ||
+        value === '' ||
+        (Array.isArray(value) && value.length === 0)
+      if (isEmpty) return
+      out.push({ field, operator, value })
+    })
+    return out
+  }, [filters])
 
-    {
-      key: 'mobileNo',
-      header: 'Mobile No',
+  const fetchList = useCallback(() => {
+    if (!token || !entityName) {
+      console.log('[GoldFlow] [UsersPage] fetchList: skipped (no token or entityName)', { hasToken: !!token, entityName })
+      return
+    }
+    console.log('[GoldFlow] [UsersPage] fetchList: request', { entityName, page, pageSize, filtersCount: filtersForApi.length })
+    setListLoading(true)
+    getEntityList(entityName, { page, page_size: pageSize, filters: filtersForApi })
+      .then((res) => {
+        const items = res.data?.items ?? []
+        const pag = res.data?.pagination
+        setUsers(items as User[])
+        setTotalItems(pag?.total_items ?? 0)
+        setTotalPages(pag?.total_pages ?? 0)
+        console.log('[GoldFlow] [UsersPage] fetchList: success', { itemCount: items.length, totalItems: pag?.total_items, totalPages: pag?.total_pages })
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : 'Failed to load list'
+        if (/credentials|401|validate|unauthorized/i.test(msg)) {
+          console.warn('[GoldFlow] [UsersPage] fetchList: auth error (401/credentials)', { msg })
+          showErrorToast('Session expired. Please sign in again.')
+          handleAuthError()
+          return
+        }
+        console.log('[GoldFlow] [UsersPage] fetchList: error', { msg })
+        showErrorToast(msg)
+        setUsers([])
+      })
+      .finally(() => setListLoading(false))
+  }, [token, entityName, page, pageSize, filtersForApi, showErrorToast, handleAuthError])
+
+  useEffect(() => {
+    if (!token || !entityMetadata) return
+    fetchList()
+  }, [token, entityMetadata, fetchList])
+
+  // Table columns from metadata fields (visible_in_list only)
+  const columns: TableColumn<User>[] = useMemo(() => {
+    const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? []
+    if (!visibleFields.length) return []
+    return visibleFields.map((f) => ({
+      key: f.name,
+      header: f.label,
       sortable: true,
-      accessor: (row) => (
-        <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-          {row.mobileNo}
+      accessor: (row: User) => (
+        <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
+          {getRowDisplayValue(row as Record<string, unknown>, f.name, f.type)}
         </span>
       ),
-    },
-  ]
+    }))
+  }, [entityMetadata, isDarkMode])
 
   // Handle add user - navigate to add page
   const handleAddUser = () => {
@@ -211,8 +320,9 @@ export default function UsersPage() {
     {
       label: 'Delete',
       onClick: (row) => {
-        if (window.confirm(`Are you sure you want to delete ${row.name}?`)) {
-          setUsers(users.filter((u) => u.id !== row.id))
+        const displayName = (row.name ?? row.username ?? 'this user') as string
+        if (window.confirm(`Are you sure you want to delete ${displayName}?`)) {
+          // TODO: call your delete API then refetch list
         }
       },
       variant: 'danger',
@@ -229,98 +339,21 @@ export default function UsersPage() {
     },
   ]
 
-  // Filter configuration
-  const filterConfig: FilterComponentConfig = {
-    default: {
-      email: {
-        key: 'email',
-        label: 'Email',
-        dataType: 'string',
-      },
-      'first name': {
-        key: 'first name',
-        label: 'First Name',
-        dataType: 'string',
-      },
-      role: {
-        key: 'role',
-        label: 'Role',
-        dataType: 'select',
-        options: [
-          { label: 'Admin', value: 'Admin' },
-          { label: 'Manager', value: 'Manager' },
-          { label: 'Supervisor', value: 'Supervisor' },
-          { label: 'Operator', value: 'Operator' },
-        ],
-      },
-    },
-    addable: {
-      'last name': {
-        key: 'last name',
-        label: 'Last Name',
-        dataType: 'string',
-      },
-      mobileNo: {
-        key: 'mobileNo',
-        label: 'Mobile No',
-        dataType: 'string',
-      },
-    },
-  }
-
-  // Filter users based on search query and filters
-  const filteredUsers = useMemo(() => {
-    let result = users
-
-    // Apply search query
-    if (searchQuery) {
-      const searchLower = searchQuery.toLowerCase()
-      result = result.filter((user) => {
-        return (
-          user.name.toLowerCase().includes(searchLower) ||
-          user.email.toLowerCase().includes(searchLower) ||
-          user.role.toLowerCase().includes(searchLower) ||
-          user.mobileNo.includes(searchQuery)
-        )
-      })
-    }
-
-    // Apply filters
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
-        return
-      }
-
-      result = result.filter((user) => {
-        switch (key) {
-          case 'email':
-            return typeof value === 'string' && user.email.toLowerCase().includes(value.toLowerCase())
-          
-          case 'first name': {
-            const firstName = user.name.split(' ')[0] || user.name
-            return typeof value === 'string' && firstName.toLowerCase().includes(value.toLowerCase())
-          }
-          
-          case 'last name': {
-            const nameParts = user.name.split(' ')
-            const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''
-            return typeof value === 'string' && lastName.toLowerCase().includes(value.toLowerCase())
-          }
-          
-          case 'role':
-            return typeof value === 'string' && user.role === value
-          
-          case 'mobileNo':
-            return typeof value === 'string' && user.mobileNo.includes(value)
-          
-          default:
-            return true
-        }
-      })
+  // Filter configuration from entity metadata (default_visible + additional)
+  const filterConfig: FilterComponentConfig = useMemo(() => {
+    if (!entityMetadata?.filters) return { default: {}, addable: {} }
+    const defaultVisible = entityMetadata.filters.default_visible ?? []
+    const additional = entityMetadata.filters.additional ?? []
+    const defaultConfig: Record<string, FilterConfig> = {}
+    defaultVisible.forEach((f) => {
+      defaultConfig[f.field] = metadataToFilterConfig(f)
     })
-
-    return result
-  }, [users, searchQuery, filters])
+    const addableConfig: Record<string, FilterConfig> = {}
+    additional.forEach((f) => {
+      addableConfig[f.field] = metadataToFilterConfig(f)
+    })
+    return { default: defaultConfig, addable: addableConfig }
+  }, [entityMetadata])
 
   const handleRowClick = (row: User) => {
     console.log('Row clicked:', row)
@@ -332,7 +365,7 @@ export default function UsersPage() {
       {/* Page Header */}
       <div className="mb-6">
         <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-          Users Management
+          {metadataLoading ? '...' : (entityMetadata?.display_name ?? 'Users Management')}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
           Manage all users and their permissions
@@ -344,13 +377,13 @@ export default function UsersPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           {/* Left Side - Search and Total */}
           <div className="flex-1 w-full sm:w-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            
 
-            {/* Total Users */}
+
+            {/* Total Users (from API) */}
             <div className={`text-sm flex items-center gap-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               <span>Total Users:</span>
               <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {filteredUsers.length}
+                {listLoading ? '...' : totalItems}
               </span>
             </div>
           </div>
@@ -359,8 +392,8 @@ export default function UsersPage() {
           <div className="w-full sm:w-auto">
             <button
               className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
               onClick={handleAddUser}
             >
@@ -373,24 +406,57 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Filter Component */}
-      <div className="mb-4">
-        <FilterComponent
-          columns={columns}
-          config={filterConfig}
-          onFilterChange={setFilters}
-          initialFilters={filters}
-        />
-      </div>
+      {/* Filter Component – only when we have metadata (default or addable filters) */}
+      {(Object.keys(filterConfig.default).length > 0 || Object.keys(filterConfig.addable ?? {}).length > 0) && (
+        <div className="mb-4">
+          <FilterComponent
+            columns={columns}
+            config={filterConfig}
+            onFilterChange={setFilters}
+            initialFilters={filters}
+          />
+        </div>
+      )}
+
+      {/* Show hint when metadata not loaded and no error (e.g. slow network) */}
+      {!metadataLoading && !metadataError && columns.length === 0 && (
+        <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          Loading table columns and filters…
+        </p>
+      )}
+
+      {/* Server-side pagination */}
+      {totalPages > 1 && (
+        <div className={`mb-2 flex items-center gap-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <span>Page {page} of {totalPages}</span>
+          <button
+            type="button"
+            disabled={page <= 1 || listLoading}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="px-2 py-1 rounded border disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            disabled={page >= totalPages || listLoading}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="px-2 py-1 rounded border disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {/* Data Table */}
       <DataTable
-        data={filteredUsers}
+        data={users}
         columns={columns}
         actions={actions}
         searchable={false}
-        pagination={true}
-        pageSize={10}
+        pagination={totalPages <= 1}
+        pageSize={pageSize}
+        loading={listLoading}
         onRowClick={handleRowClick}
         emptyMessage="No users found"
       />

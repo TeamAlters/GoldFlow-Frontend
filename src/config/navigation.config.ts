@@ -5,6 +5,7 @@ export type NavItem = {
   name: string
   path: string
   icon?: string // Icon name reference
+  entityName?: string // Entity for metadata API (e.g. "user" for All Users)
 }
 
 export type NavCategory = {
@@ -78,7 +79,7 @@ export const sidebarNavConfig: NavCategory[] = [
     category: 'Users',
     icon: 'user',
     items: [
-      { name: 'All Users', path: '/users', icon: 'list' },
+      { name: 'All Users', path: '/users', icon: 'list', entityName: 'user' },
     ],
   },
   {
