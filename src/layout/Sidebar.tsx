@@ -163,11 +163,10 @@ function LogoutButton({ isDarkMode }: { isDarkMode: boolean }) {
     <button
       type="button"
       onClick={handleLogout}
-      className={`flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
-        isDarkMode
-          ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
-          : 'text-red-600 hover:bg-red-50 hover:text-red-700'
-      }`}
+      className={`flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${isDarkMode
+        ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
+        : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+        }`}
     >
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -178,11 +177,11 @@ function LogoutButton({ isDarkMode }: { isDarkMode: boolean }) {
 }
 
 // Menu Category Component
-const MenuCategory = ({ 
-  category, 
-  isDarkMode, 
-  currentPath 
-}: { 
+const MenuCategory = ({
+  category,
+  isDarkMode,
+  currentPath
+}: {
   category: NavCategory
   isDarkMode: boolean
   currentPath: string
@@ -202,11 +201,10 @@ const MenuCategory = ({
       {/* Category Header */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
-          isDarkMode 
-            ? 'text-gray-300 hover:bg-gray-800 hover:text-white' 
-            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-        }`}
+        className={`flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${isDarkMode
+          ? 'text-gray-300 hover:bg-gray-800 hover:text-white'
+          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+          }`}
       >
         <NavIcon name={category.icon} className="w-5 h-5" />
         <span className="ml-3 flex-1 text-left">{category.category}</span>
@@ -229,15 +227,14 @@ const MenuCategory = ({
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
-                  isActive
-                    ? isDarkMode
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-blue-500 text-white'
-                    : isDarkMode
+                className={`flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${isActive
+                  ? isDarkMode
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-blue-500 text-white'
+                  : isDarkMode
                     ? 'text-gray-400 hover:bg-gray-800 hover:text-white'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 {item.icon && <NavIcon name={item.icon} className="w-4 h-4" />}
                 <span className="ml-3">{item.name}</span>
@@ -250,7 +247,7 @@ const MenuCategory = ({
   )
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose: _onClose }: SidebarProps) {
   const location = useLocation()
   const isDarkMode = useUIStore((state) => state.isDarkMode)
 
@@ -261,18 +258,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Backdrop - fades in/out, click outside to close */}
-      <div
-        className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-300 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Sidebar - smooth slide in/out */}
+      {/* Sidebar - toggles on button click only; no backdrop/dim/blur */}
       <aside
-        className={`fixed left-0 z-40 w-64 top-[6.75rem] h-[calc(100vh-6.75rem)] will-change-transform transition-[transform] duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r`}
+        className={`fixed left-0 z-40 w-64 top-[6.75rem] h-[calc(100vh-6.75rem)] will-change-transform transition-[transform] duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          } ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-r`}
       >
         {/* Scrollable Navigation */}
         <nav className="h-full overflow-y-auto px-3 py-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
