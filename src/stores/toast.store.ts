@@ -16,12 +16,17 @@ type ToastState = {
 
 let toastId = 0
 export const TOAST_DURATION_MS = 4000
+export const MAX_TOASTS = 3
 
 export const useToastStore = create<ToastState>((set) => ({
   toasts: [],
   addToast: (message, type) => {
     const id = `toast-${++toastId}-${Date.now()}`
-    set((state) => ({ toasts: [...state.toasts, { id, message, type }] }))
+    set((state) => {
+      const next = [...state.toasts, { id, message, type }]
+      const trimmed = next.length > MAX_TOASTS ? next.slice(-MAX_TOASTS) : next
+      return { toasts: trimmed }
+    })
   },
   removeToast: (id) => {
     set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }))
