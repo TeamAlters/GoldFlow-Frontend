@@ -174,7 +174,7 @@ export default function DataTable<T extends Record<string, any>>({
 
       {/* Table Container */}
       <div
-        className={`rounded-lg border overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        className={`rounded-lg border-2 border-solid overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-500' : 'bg-white border-gray-300'
           }`}
       >
         <div className="overflow-x-auto">
