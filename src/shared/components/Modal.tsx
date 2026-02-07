@@ -1,13 +1,13 @@
-import { useEffect } from 'react'
-import { useUIStore } from '../../stores/ui.store'
+import { useEffect } from 'react';
+import { useUIStore } from '../../stores/ui.store';
 
 export interface ModalProps {
-  isOpen: boolean
-  onClose: () => void
-  title: string
-  children: React.ReactNode
-  size?: 'sm' | 'md' | 'lg' | 'xl'
-  className?: string
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  className?: string;
 }
 
 export default function Modal({
@@ -18,46 +18,46 @@ export default function Modal({
   size = 'md',
   className = '',
 }: ModalProps) {
-  const isDarkMode = useUIStore((state) => state.isDarkMode)
+  const isDarkMode = useUIStore((state) => state.isDarkMode);
 
   // Close modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose()
+        onClose();
       }
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset'
+      document.body.style.overflow = 'unset';
     }
     return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   const sizeClasses = {
     sm: 'max-w-md',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
-  }
+  };
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          onClose()
+          onClose();
         }
       }}
     >
@@ -80,9 +80,7 @@ export default function Modal({
             isDarkMode ? 'border-gray-700' : 'border-gray-200'
           }`}
         >
-          <h2
-            className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-          >
+          <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             {title}
           </h2>
           <button
@@ -105,10 +103,8 @@ export default function Modal({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-          {children}
-        </div>
+        <div className="px-6 py-4 max-h-[calc(100vh-200px)] overflow-y-auto">{children}</div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,9 +1,9 @@
 /**
  * Entity Configuration
- * 
+ *
  * Centralized configuration for all dynamic entities in the system.
  * Each entity can have custom API endpoints, display names, and other metadata.
- * 
+ *
  * Usage:
  * - Use getEntityConfig('user') to get configuration for a specific entity
  * - Add new entities by adding entries to the ENTITY_CONFIG object
@@ -12,62 +12,62 @@
 
 export type EntityConfig = {
   /** Internal entity identifier (used in routes and API calls) */
-  name: string
-  
+  name: string;
+
   /** Display name shown in UI */
-  displayName: string
-  
+  displayName: string;
+
   /** Plural form for UI (e.g., "Users", "Products") */
-  displayNamePlural: string
-  
+  displayNamePlural: string;
+
   /** API endpoint paths - can use {entity_name} placeholder which will be replaced with entity name */
   api: {
     /** GET metadata endpoint */
-    metadata: string
-    
+    metadata: string;
+
     /** GET list endpoint */
-    list: string
-    
+    list: string;
+
     /** POST create endpoint */
-    create: string
-    
+    create: string;
+
     /** GET single item endpoint (use {id} placeholder) */
-    get: string
-    
+    get: string;
+
     /** PUT/PATCH update endpoint (use {id} placeholder) */
-    update: string
-    
+    update: string;
+
     /** DELETE endpoint (use {id} placeholder) */
-    delete: string
-  }
-  
+    delete: string;
+  };
+
   /** Route paths in the app */
   routes: {
     /** List page route */
-    list: string
-    
+    list: string;
+
     /** Add new item route */
-    add: string
-    
+    add: string;
+
     /** Edit item route (use :id for route param) */
-    edit: string
-  }
-  
+    edit: string;
+  };
+
   /** Optional: Enable/disable specific features */
   features?: {
-    canCreate?: boolean
-    canEdit?: boolean
-    canDelete?: boolean
-    canExport?: boolean
-  }
-}
+    canCreate?: boolean;
+    canEdit?: boolean;
+    canDelete?: boolean;
+    canExport?: boolean;
+  };
+};
 
 /**
  * Get base URL from environment
  */
 const getBaseUrl = (): string => {
-  return import.meta.env.VITE_API_BASE_URL ?? ''
-}
+  return import.meta.env.VITE_API_BASE_URL ?? '';
+};
 
 /**
  * Default API endpoint templates (can be overridden per entity)
@@ -80,7 +80,7 @@ const DEFAULT_API_PATHS = {
   get: '/api/v1/entities/{entity_name}/{id}',
   update: '/api/v1/entities/{entity_name}/{id}',
   delete: '/api/v1/entities/{entity_name}/{id}',
-}
+};
 
 /**
  * Entity configurations
@@ -110,7 +110,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       canExport: false,
     },
   },
-  
+
   // Example: Add more entities as needed
   product: {
     displayName: 'Product',
@@ -135,7 +135,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       canExport: true,
     },
   },
-  
+
   workorder: {
     displayName: 'Work Order',
     displayNamePlural: 'Work Orders',
@@ -159,17 +159,19 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       canExport: true,
     },
   },
-}
+};
 
 /**
  * Get entity configuration by name
  * Returns default configuration if entity not found
  */
 export function getEntityConfig(entityName: string): EntityConfig {
-  const config = ENTITY_CONFIG[entityName]
-  
+  const config = ENTITY_CONFIG[entityName];
+
   if (!config) {
-    console.warn(`[EntityConfig] No configuration found for entity "${entityName}", using defaults`)
+    console.warn(
+      `[EntityConfig] No configuration found for entity "${entityName}", using defaults`
+    );
     return {
       name: entityName,
       displayName: entityName.charAt(0).toUpperCase() + entityName.slice(1),
@@ -186,20 +188,20 @@ export function getEntityConfig(entityName: string): EntityConfig {
         canDelete: true,
         canExport: false,
       },
-    }
+    };
   }
-  
+
   return {
     name: entityName,
     ...config,
-  }
+  };
 }
 
 /**
  * Get list of all configured entity names
  */
 export function getAllEntityNames(): string[] {
-  return Object.keys(ENTITY_CONFIG)
+  return Object.keys(ENTITY_CONFIG);
 }
 
 /**
@@ -211,28 +213,27 @@ export function buildEntityUrl(
   entityName: string,
   params?: { id?: string | number }
 ): string {
-  const baseUrl = getBaseUrl()
-  let url = endpoint
-    .replace(/\{entity_name\}/g, encodeURIComponent(entityName))
-  
+  const baseUrl = getBaseUrl();
+  let url = endpoint.replace(/\{entity_name\}/g, encodeURIComponent(entityName));
+
   if (params?.id) {
-    url = url.replace(/\{id\}/g, encodeURIComponent(String(params.id)))
+    url = url.replace(/\{id\}/g, encodeURIComponent(String(params.id)));
   }
-  
+
   // Ensure path starts with /
   if (!url.startsWith('/')) {
-    url = '/' + url
+    url = '/' + url;
   }
-  
-  return `${baseUrl}${url}`
+
+  return `${baseUrl}${url}`;
 }
 
 /**
  * Get all API URLs for an entity
  */
 export function getEntityApiUrls(entityName: string) {
-  const config = getEntityConfig(entityName)
-  
+  const config = getEntityConfig(entityName);
+
   return {
     metadata: buildEntityUrl(config.api.metadata, entityName),
     list: buildEntityUrl(config.api.list, entityName),
@@ -240,7 +241,7 @@ export function getEntityApiUrls(entityName: string) {
     get: (id: string | number) => buildEntityUrl(config.api.get, entityName, { id }),
     update: (id: string | number) => buildEntityUrl(config.api.update, entityName, { id }),
     delete: (id: string | number) => buildEntityUrl(config.api.delete, entityName, { id }),
-  }
+  };
 }
 
 /**
@@ -250,8 +251,6 @@ export function hasEntityFeature(
   entityName: string,
   feature: keyof NonNullable<EntityConfig['features']>
 ): boolean {
-  const config = getEntityConfig(entityName)
-  return config.features?.[feature] ?? true // Default to true if not specified
+  const config = getEntityConfig(entityName);
+  return config.features?.[feature] ?? true; // Default to true if not specified
 }
-
-

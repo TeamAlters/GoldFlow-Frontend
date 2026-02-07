@@ -1,24 +1,24 @@
-import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import Navbar from './Navbar'
-import SecondNavbar from './SecondNavbar'
-import Sidebar from './Sidebar'
-import { useUIStore } from '../stores/ui.store'
+import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import Navbar from './Navbar';
+import SecondNavbar from './SecondNavbar';
+import Sidebar from './Sidebar';
+import { useUIStore } from '../stores/ui.store';
 
 interface MainLayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const location = useLocation()
-  const isDarkMode = useUIStore((state) => state.isDarkMode)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation();
+  const isDarkMode = useUIStore((state) => state.isDarkMode);
 
   // Don't show layout on login/signup pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signUp'
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signUp';
 
   if (isAuthPage) {
-    return <>{children}</>
+    return <>{children}</>;
   }
 
   return (
@@ -33,10 +33,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       />
 
       {/* Sidebar */}
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       {/* Main Content - smooth shift when sidebar opens/closes */}
       <main
@@ -44,10 +41,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
           isSidebarOpen ? 'lg:ml-64' : 'ml-0'
         }`}
       >
-        <div className="p-4 sm:p-6 lg:p-8">
-          {children}
-        </div>
+        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
     </div>
-  )
+  );
 }

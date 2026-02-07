@@ -1,29 +1,29 @@
-import { useState, useEffect, useRef } from 'react'
-import { useUIStore } from '../../stores/ui.store'
+import { useState, useEffect, useRef } from 'react';
+import { useUIStore } from '../../stores/ui.store';
 
 export type UserFormData = {
-  name: string
-  email: string
-  role: string
-  mobileNo: string
-}
+  name: string;
+  email: string;
+  role: string;
+  mobileNo: string;
+};
 
 export type UserFormField = {
-  key: keyof UserFormData
-  label: string
-  type: 'text' | 'email' | 'select' | 'tel'
-  required?: boolean
-  options?: Array<{ label: string; value: string }>
-  placeholder?: string
-  validation?: (value: string) => string | null
-}
+  key: keyof UserFormData;
+  label: string;
+  type: 'text' | 'email' | 'select' | 'tel';
+  required?: boolean;
+  options?: Array<{ label: string; value: string }>;
+  placeholder?: string;
+  validation?: (value: string) => string | null;
+};
 
 export interface UserFormProps {
-  initialData?: Partial<UserFormData>
-  onSubmit: (data: UserFormData) => void
-  onCancel: () => void
-  isEdit?: boolean
-  fields?: UserFormField[]
+  initialData?: Partial<UserFormData>;
+  onSubmit: (data: UserFormData) => void;
+  onCancel: () => void;
+  isEdit?: boolean;
+  fields?: UserFormField[];
 }
 
 const defaultFields: UserFormField[] = [
@@ -34,9 +34,9 @@ const defaultFields: UserFormField[] = [
     required: true,
     placeholder: 'Enter full name',
     validation: (value) => {
-      if (!value.trim()) return 'Name is required'
-      if (value.trim().length < 2) return 'Name must be at least 2 characters'
-      return null
+      if (!value.trim()) return 'Name is required';
+      if (value.trim().length < 2) return 'Name must be at least 2 characters';
+      return null;
     },
   },
   {
@@ -46,10 +46,10 @@ const defaultFields: UserFormField[] = [
     required: true,
     placeholder: 'Enter email address',
     validation: (value) => {
-      if (!value.trim()) return 'Email is required'
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(value)) return 'Please enter a valid email address'
-      return null
+      if (!value.trim()) return 'Email is required';
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) return 'Please enter a valid email address';
+      return null;
     },
   },
   {
@@ -71,15 +71,15 @@ const defaultFields: UserFormField[] = [
     required: true,
     placeholder: 'Enter mobile number',
     validation: (value) => {
-      if (!value.trim()) return 'Mobile number is required'
-      const phoneRegex = /^[0-9]{10}$/
+      if (!value.trim()) return 'Mobile number is required';
+      const phoneRegex = /^[0-9]{10}$/;
       if (!phoneRegex.test(value.replace(/\s+/g, ''))) {
-        return 'Please enter a valid 10-digit mobile number'
+        return 'Please enter a valid 10-digit mobile number';
       }
-      return null
+      return null;
     },
   },
-]
+];
 
 export default function UserForm({
   initialData,
@@ -88,17 +88,17 @@ export default function UserForm({
   isEdit = false,
   fields = defaultFields,
 }: UserFormProps) {
-  const isDarkMode = useUIStore((state) => state.isDarkMode)
+  const isDarkMode = useUIStore((state) => state.isDarkMode);
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
     email: '',
     role: '',
     mobileNo: '',
-  })
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [touched, setTouched] = useState<Record<string, boolean>>({})
-  const [openSelectKey, setOpenSelectKey] = useState<string | null>(null)
-  const selectDropdownRef = useRef<HTMLDivElement>(null)
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [openSelectKey, setOpenSelectKey] = useState<string | null>(null);
+  const selectDropdownRef = useRef<HTMLDivElement>(null);
 
   // Initialize form data
   useEffect(() => {
@@ -106,86 +106,89 @@ export default function UserForm({
       setFormData((prev) => ({
         ...prev,
         ...initialData,
-      }))
+      }));
     }
-  }, [initialData])
+  }, [initialData]);
 
   // Close role/select dropdown when clicking outside
   useEffect(() => {
-    if (!openSelectKey) return
+    if (!openSelectKey) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (selectDropdownRef.current && !selectDropdownRef.current.contains(e.target as Node)) {
-        setOpenSelectKey(null)
+        setOpenSelectKey(null);
       }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [openSelectKey])
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openSelectKey]);
 
   const handleChange = (key: keyof UserFormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [key]: value }))
-    
+    setFormData((prev) => ({ ...prev, [key]: value }));
+
     // Clear error when user starts typing
     if (errors[key]) {
       setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[key]
-        return newErrors
-      })
+        const newErrors = { ...prev };
+        delete newErrors[key];
+        return newErrors;
+      });
     }
-  }
+  };
 
   const handleBlur = (key: keyof UserFormData, field: UserFormField) => {
-    setTouched((prev) => ({ ...prev, [key]: true }))
-    
+    setTouched((prev) => ({ ...prev, [key]: true }));
+
     if (field.validation) {
-      const error = field.validation(formData[key])
+      const error = field.validation(formData[key]);
       if (error) {
-        setErrors((prev) => ({ ...prev, [key]: error }))
+        setErrors((prev) => ({ ...prev, [key]: error }));
       }
     }
-  }
+  };
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
-    
+    const newErrors: Record<string, string> = {};
+
     fields.forEach((field) => {
-      const value = formData[field.key]
-      
+      const value = formData[field.key];
+
       if (field.required && !value.trim()) {
-        newErrors[field.key] = `${field.label} is required`
+        newErrors[field.key] = `${field.label} is required`;
       } else if (field.validation) {
-        const error = field.validation(value)
+        const error = field.validation(value);
         if (error) {
-          newErrors[field.key] = error
+          newErrors[field.key] = error;
         }
       }
-    })
-    
-    setErrors(newErrors)
+    });
+
+    setErrors(newErrors);
     setTouched(
-      fields.reduce((acc, field) => {
-        acc[field.key] = true
-        return acc
-      }, {} as Record<string, boolean>)
-    )
-    
-    return Object.keys(newErrors).length === 0
-  }
+      fields.reduce(
+        (acc, field) => {
+          acc[field.key] = true;
+          return acc;
+        },
+        {} as Record<string, boolean>
+      )
+    );
+
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (validateForm()) {
-      onSubmit(formData)
+      onSubmit(formData);
     }
-  }
+  };
 
   const renderField = (field: UserFormField) => {
-    const value = formData[field.key]
-    const error = errors[field.key]
-    const isTouched = touched[field.key]
-    const showError = isTouched && error
+    const value = formData[field.key];
+    const error = errors[field.key];
+    const isTouched = touched[field.key];
+    const showError = isTouched && error;
 
     const baseInputClasses = `w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${
       showError
@@ -195,20 +198,17 @@ export default function UserForm({
         : isDarkMode
           ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20 hover:border-gray-500'
           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20 hover:border-gray-400'
-    }`
+    }`;
 
     switch (field.type) {
       case 'select': {
-        const isOpen = openSelectKey === field.key
+        const isOpen = openSelectKey === field.key;
         const currentLabel = value
           ? (field.options?.find((o) => o.value === value)?.label ?? value)
-          : `Select ${field.label}`
+          : `Select ${field.label}`;
         return (
           <div className="space-y-1">
-            <div
-              ref={isOpen ? selectDropdownRef : undefined}
-              className="relative w-full min-w-0"
-            >
+            <div ref={isOpen ? selectDropdownRef : undefined} className="relative w-full min-w-0">
               <button
                 type="button"
                 onClick={() => setOpenSelectKey(isOpen ? null : field.key)}
@@ -224,7 +224,12 @@ export default function UserForm({
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               {isOpen && (
@@ -234,12 +239,13 @@ export default function UserForm({
                   <button
                     type="button"
                     onClick={() => {
-                      handleChange(field.key, '')
-                      setOpenSelectKey(null)
+                      handleChange(field.key, '');
+                      setOpenSelectKey(null);
                     }}
-                    className={`w-full px-4 py-2.5 text-left text-sm ${isDarkMode
-                      ? 'text-gray-300 hover:bg-gray-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    className={`w-full px-4 py-2.5 text-left text-sm ${
+                      isDarkMode
+                        ? 'text-gray-300 hover:bg-gray-700'
+                        : 'text-gray-700 hover:bg-gray-100'
                     } ${!value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
                   >
                     Select {field.label}
@@ -249,12 +255,13 @@ export default function UserForm({
                       key={option.value}
                       type="button"
                       onClick={() => {
-                        handleChange(field.key, option.value)
-                        setOpenSelectKey(null)
+                        handleChange(field.key, option.value);
+                        setOpenSelectKey(null);
                       }}
-                      className={`w-full px-4 py-2.5 text-left text-sm ${isDarkMode
-                        ? 'text-gray-300 hover:bg-gray-700'
-                        : 'text-gray-700 hover:bg-gray-100'
+                      className={`w-full px-4 py-2.5 text-left text-sm ${
+                        isDarkMode
+                          ? 'text-gray-300 hover:bg-gray-700'
+                          : 'text-gray-700 hover:bg-gray-100'
                       } ${value === option.value ? (isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}
                     >
                       {option.label}
@@ -264,12 +271,10 @@ export default function UserForm({
               )}
             </div>
             {showError && (
-              <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
-                {error}
-              </p>
+              <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{error}</p>
             )}
           </div>
-        )
+        );
       }
 
       case 'text':
@@ -287,14 +292,12 @@ export default function UserForm({
               className={baseInputClasses}
             />
             {showError && (
-              <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
-                {error}
-              </p>
+              <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{error}</p>
             )}
           </div>
-        )
+        );
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -308,9 +311,7 @@ export default function UserForm({
             >
               {field.label}
               {field.required && (
-                <span className={`ml-1 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
-                  *
-                </span>
+                <span className={`ml-1 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>*</span>
               )}
             </label>
             {renderField(field)}
@@ -364,5 +365,5 @@ export default function UserForm({
         </button>
       </div>
     </form>
-  )
+  );
 }

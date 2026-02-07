@@ -1,21 +1,21 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import { clearEntityCache } from '../utils/entityCache'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { clearEntityCache } from '../utils/entityCache';
 
 export type AuthUser = {
-  id: string
-  username?: string
-  email: string
-  [key: string]: unknown
-}
+  id: string;
+  username?: string;
+  email: string;
+  [key: string]: unknown;
+};
 
 type AuthState = {
-  token: string | null,
-  user: AuthUser | null,
-  setAuth: (token: string, user?: AuthUser | null) => void,
-  logout: () => void,
-  isAuthenticated: () => boolean
-}
+  token: string | null;
+  user: AuthUser | null;
+  setAuth: (token: string, user?: AuthUser | null) => void;
+  logout: () => void;
+  isAuthenticated: () => boolean;
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -24,11 +24,11 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       setAuth: (token, user) => set({ token, user: user ?? null }),
       logout: () => {
-        console.log('[GoldFlow] [auth.store] logout: clearing token, user, and entity cache')
-        set({ token: null, user: null })
+        console.log('[GoldFlow] [auth.store] logout: clearing token, user, and entity cache');
+        set({ token: null, user: null });
         try {
-          localStorage.removeItem('goldflow-auth')
-          clearEntityCache()
+          localStorage.removeItem('goldflow-auth');
+          clearEntityCache();
         } catch {
           // ignore
         }
@@ -37,4 +37,4 @@ export const useAuthStore = create<AuthState>()(
     }),
     { name: 'goldflow-auth' }
   )
-)
+);
