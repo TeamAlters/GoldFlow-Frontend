@@ -4,6 +4,7 @@ import { useAuthStore } from '../../auth/auth.store'
 import DataTable from '../../shared/components/DataTable'
 import type { TableColumn, TableAction } from '../../shared/components/DataTable'
 import FilterComponent, { type FilterComponentConfig, type FilterConfig, type FilterValue } from '../../shared/components/FilterComponent'
+import ListPageLayout from '../../shared/components/ListPageLayout'
 import { useUIStore } from '../../stores/ui.store'
 import { toast } from '../../stores/toast.store'
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../utils/entityCache'
@@ -355,75 +356,66 @@ export default function UsersPage() {
     // Navigate to user detail page or open modal
   }
 
+  const hasFilters =
+    Object.keys(filterConfig.default).length > 0 ||
+    Object.keys(filterConfig.addable ?? {}).length > 0
+
   return (
-    <div className="w-full">
-      {/* Page Header */}
-      <div className="mb-6">
-        <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-          {metadataLoading ? '...' : (entityMetadata?.display_name ?? `${entityConfig.displayNamePlural} Management`)}
-        </h1>
-        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Manage all {entityConfig.displayNamePlural.toLowerCase()} and their permissions
-        </p>
-      </div>
-
-      {/* Toolbar - Search, Total Items, and Add Button */}
-      <div className={`mb-4 p-4`}>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          {/* Left Side - Search and Total */}
-          <div className="flex-1 w-full sm:w-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
-
-
-            {/* Total Items (from API) */}
-            <div className={`text-sm flex items-center gap-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              <span>Total {entityConfig.displayNamePlural}:</span>
-              <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {listLoading ? '...' : totalItems}
-              </span>
-            </div>
-          </div>
-
-          {/* Right Side - Add Button (matches Add Filter: height, padding, font) */}
-          <div className="w-full sm:w-auto">
-            <button
-              className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              onClick={handleAddEntity}
-            >
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>Add {entityConfig.displayName}</span>
-            </button>
-          </div>
+    <ListPageLayout
+      title={
+        metadataLoading
+          ? '...'
+          : (entityMetadata?.display_name ?? `${entityConfig.displayNamePlural} Management`)
+      }
+      description={`Manage all ${entityConfig.displayNamePlural.toLowerCase()} and their permissions`}
+      toolbarLeft={
+        <div
+          className={`text-sm flex items-center gap-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}
+        >
+          <span>Total {entityConfig.displayNamePlural}:</span>
+          <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            {listLoading ? '...' : totalItems}
+          </span>
         </div>
-      </div>
-
-      {/* Filter Component – only when we have metadata (default or addable filters) */}
-      {(Object.keys(filterConfig.default).length > 0 || Object.keys(filterConfig.addable ?? {}).length > 0) && (
-        <div className="mb-4">
+      }
+      toolbarRight={
+        <button
+          className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          onClick={handleAddEntity}
+        >
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Add {entityConfig.displayName}</span>
+        </button>
+      }
+      filters={
+        hasFilters ? (
           <FilterComponent
             columns={columns}
             config={filterConfig}
             onFilterChange={setFilters}
             initialFilters={filters}
           />
-        </div>
-      )}
-
-      {/* Show hint when metadata not loaded and no error (e.g. slow network) */}
+        ) : undefined
+      }
+    >
       {!metadataLoading && !metadataError && columns.length === 0 && (
         <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
           Loading table columns and filters…
         </p>
       )}
 
-      {/* Server-side pagination */}
       {totalPages > 1 && (
-        <div className={`mb-2 flex items-center gap-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          <span>Page {page} of {totalPages}</span>
+        <div
+          className={`mb-2 flex items-center gap-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}
+        >
+          <span>
+            Page {page} of {totalPages}
+          </span>
           <button
             type="button"
             disabled={page <= 1 || listLoading}
@@ -443,7 +435,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Data Table */}
       <DataTable
         data={users}
         columns={columns}
@@ -455,6 +446,6 @@ export default function UsersPage() {
         onRowClick={handleRowClick}
         emptyMessage={`No ${entityConfig.displayNamePlural.toLowerCase()} found`}
       />
-    </div>
+    </ListPageLayout>
   )
 }
