@@ -51,11 +51,11 @@ export type EntityMetadataResponse = {
 
 /**
  * GET /api/v1/entities/{entity_name}/listing-metadata
- * Uses entity config to build the URL dynamically.
+ * Fetches metadata for entity list views (columns, filters, etc.)
  */
 export async function getEntityMetadata(entityName: string): Promise<EntityMetadataResponse> {
   const config = getEntityConfig(entityName);
-  const url = buildEntityUrl(config.api.metadata, entityName);
+  const url = buildEntityUrl(config.api.listingMetadata, entityName);
   const headers = getAuthHeaders();
   const hasToken = !!(headers as Record<string, string>).Authorization;
   console.log('[GoldFlow] [admin.api] getEntityMetadata: request', {
@@ -95,6 +95,82 @@ export async function getEntityMetadata(entityName: string): Promise<EntityMetad
     throw new Error(errMsg);
   }
   console.log('[GoldFlow] [admin.api] getEntityMetadata: success', { entityName });
+
+  // Normalize: accept payload in .data or at top level
+  const payload = (data as { data?: typeof data }).data ?? data;
+  const raw = payload as Record<string, unknown>;
+  const hasData = Array.isArray(raw?.fields) || raw?.display_name != null || raw?.filters != null;
+  if (!hasData) return data as EntityMetadataResponse;
+
+  const out = {
+    ...data,
+    data: {
+      entity_name: (raw.entity_name as string) ?? entityName,
+      display_name: (raw.display_name as string) ?? '',
+      fields: (Array.isArray(raw.fields) ? raw.fields : []) as EntityField[],
+      filters: {
+        default_visible: Array.isArray((raw.filters as Record<string, unknown>)?.default_visible)
+          ? (raw.filters as { default_visible: EntityFilterField[] }).default_visible
+          : [],
+        additional: Array.isArray((raw.filters as Record<string, unknown>)?.additional)
+          ? (raw.filters as { additional: EntityFilterField[] }).additional
+          : [],
+      },
+      ...(raw.actions != null && { actions: raw.actions as { create_url?: string } }),
+      ...(raw.pagination != null && {
+        pagination: raw.pagination as { default_page_size?: number; page_sizes?: number[] },
+      }),
+    },
+  } as EntityMetadataResponse;
+  return out;
+}
+
+/**
+ * GET /api/v1/entities/{entity_name}/form-metadata
+ * Fetches metadata for entity forms (fields, validation, etc.)
+ */
+export async function getEntityFormMetadata(entityName: string): Promise<EntityMetadataResponse> {
+  const config = getEntityConfig(entityName);
+  const url = buildEntityUrl(config.api.formMetadata, entityName);
+  const headers = getAuthHeaders();
+  const hasToken = !!(headers as Record<string, string>).Authorization;
+  console.log('[GoldFlow] [admin.api] getEntityFormMetadata: request', {
+    entityName,
+    url: url.replace(/\?.*/, ''),
+    hasToken,
+  });
+  if (!hasToken) {
+    console.warn('[GoldFlow] [admin.api] getEntityFormMetadata: no token – backend may return 401');
+  }
+  const res = await fetch(url, { method: 'GET', headers });
+  const text = await res.text();
+  let data: EntityMetadataResponse & { detail?: string | string[] } = {};
+  if (text.trim()) {
+    try {
+      data = JSON.parse(text) as EntityMetadataResponse & { detail?: string | string[] };
+    } catch {
+      // ignore
+    }
+  }
+  if (!res.ok) {
+    const detail = data.detail;
+    const detailStr =
+      typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.join(', ') : null;
+    const errMsg =
+      detailStr ??
+      (data as { message?: string }).message ??
+      (Array.isArray((data as { errors?: string[] }).errors)
+        ? (data as { errors: string[] }).errors.join(', ')
+        : null) ??
+      `Failed to load form metadata (${res.status})`;
+    console.log('[GoldFlow] [admin.api] getEntityFormMetadata: failed', {
+      status: res.status,
+      entityName,
+      errMsg,
+    });
+    throw new Error(errMsg);
+  }
+  console.log('[GoldFlow] [admin.api] getEntityFormMetadata: success', { entityName });
 
   // Normalize: accept payload in .data or at top level
   const payload = (data as { data?: typeof data }).data ?? data;
