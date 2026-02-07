@@ -536,13 +536,13 @@ export default function FilterComponent<T extends Record<string, any>>({
   return (
     <div className={`w-full ${className}`}>
       <div
-        className={`rounded-lg border p-4 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+        className={`rounded-lg border border-solid p-4 ${isDarkMode ? 'bg-gray-800 border-gray-500' : 'bg-white border-gray-300'}`}
       >
         {/* Default Filters */}
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
             <h2
-              className={`text-xl font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+              className={`text-xll font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
             >
               Filters
             </h2>
