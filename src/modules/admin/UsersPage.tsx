@@ -15,6 +15,7 @@ import { getEntityMetadataCache, setEntityMetadataCache } from '../../utils/enti
 import { getEntityMetadata, getEntityList, type EntityListFilter } from './admin.api';
 import type { EntityField, EntityFilterField } from './admin.api';
 import { getEntityConfig } from '../../config/entity.config';
+import { getOperatorsForType } from '../../shared/constants/filterOperators';
 
 /** Format ISO date-time string for UI (e.g. "31 Jan 2026, 12:37 pm") */
 function formatDateTime(isoOrValue: string | number | null | undefined): string {
@@ -77,8 +78,11 @@ type User = Record<string, unknown> & {
   mobile_number?: string;
 };
 
-function mapFieldTypeToDataType(apiType: string): 'string' | 'number' | 'select' | 'multi-select' {
+function mapFieldTypeToDataType(
+  apiType: string
+): 'string' | 'number' | 'select' | 'multi-select' | 'datetime' {
   if (apiType === 'Boolean') return 'select';
+  if (apiType === 'DateTime') return 'datetime';
   return 'string';
 }
 
@@ -91,11 +95,13 @@ function defaultOperatorForType(apiType: string, operators: string[]): string {
 
 function metadataToFilterConfig(f: EntityFilterField): FilterConfig {
   const dataType = mapFieldTypeToDataType(f.type);
-  const operators = f.operators ?? [];
+  const operatorOptions = getOperatorsForType(f.type);
+  const operators = operatorOptions.map((o) => o.value);
   return {
     key: f.field,
     label: f.label,
     dataType,
+    operatorOptions,
     operators,
     defaultOperator: defaultOperatorForType(f.type, operators),
   };
@@ -230,7 +236,7 @@ export default function UsersPage() {
     fetchMetadata();
   }, [token, entityName, fetchMetadata, showErrorToast]);
 
-  // Convert UI filters to API format: [{ field, operator, value }]. Skip empty values; trim strings so "  anupam  " is sent as "anupam".
+  // Convert UI filters to API format: [{ field, operator, value }]. Include "is not set" / "is set" with value null.
   const filtersForApi = useMemo((): EntityListFilter[] => {
     const trimValue = (v: string | string[] | null): string | string[] | null => {
       if (v === null || v === undefined) return v;
@@ -252,6 +258,11 @@ export default function UsersPage() {
         ? (filterVal as { value: string | string[] | null }).value
         : (filterVal as string);
       const value = trimValue(raw);
+      const noValueOperators = ['is not set', 'is set'];
+      if (noValueOperators.includes(operator)) {
+        out.push({ field, operator, value: null });
+        return;
+      }
       const isEmpty =
         value === null ||
         value === undefined ||

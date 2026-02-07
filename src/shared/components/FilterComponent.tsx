@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useUIStore } from '../../stores/ui.store';
 import type { TableColumn } from './DataTable';
+import type { FilterOperatorOption } from '../constants/filterOperators';
 
 export type FilterValue =
   | string
@@ -11,17 +12,40 @@ export type FilterValue =
 export type FilterConfig = {
   key: string;
   label: string;
-  dataType: 'string' | 'number' | 'select' | 'multi-select';
+  dataType: 'string' | 'number' | 'select' | 'multi-select' | 'datetime';
   fetchFrom?: string; // API route for fetching options (for "in" operator multi-select options)
   options?: Array<{ label: string; value: string }>; // Static options
-  operators?: string[]; // e.g. ["=", "≠", "contains", "in", ...]; when set, show operator dropdown
-  defaultOperator?: string; // default "contains"
+  /** Legacy: operator values only; when set, show operator dropdown (label = value) */
+  operators?: string[];
+  /** Preferred: full operator options (value, label, requiresValue, isArray, arrayLength) */
+  operatorOptions?: FilterOperatorOption[];
+  defaultOperator?: string;
 };
 
 export type FilterComponentConfig = {
   default: Record<string, FilterConfig>;
   addable?: Record<string, FilterConfig>;
 };
+
+/** Convert stored value to datetime-local input value (yyyy-MM-ddThh:mm). */
+function toDateTimeLocalValue(s: string | null | undefined): string {
+  if (s == null || s === '') return '';
+  const trimmed = String(s).trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) return trimmed.slice(0, 16);
+  return trimmed;
+}
+
+/** Current date/time in datetime-local format (yyyy-MM-ddThh:mm). Use as max so future dates cannot be selected. */
+function getDateTimeLocalMax(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const h = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${d}T${h}:${min}`;
+}
 
 export interface FilterComponentProps<T> {
   columns: TableColumn<T>[];
@@ -132,14 +156,18 @@ export default function FilterComponent<T extends Record<string, any>>({
     const defaultFilters: Record<string, FilterValue> = {};
     const addableFiltersInit: Record<string, FilterValue> = {};
 
-    // Initialize default filters from initialFilters or set to null / { operator, value }
+    const hasOperators = (fc: FilterConfig) =>
+      (fc.operatorOptions?.length ?? 0) > 0 || (fc.operators?.length ?? 0) > 0;
+    const defaultOpFor = (fc: FilterConfig) =>
+      fc.defaultOperator ?? fc.operatorOptions?.[0]?.value ?? fc.operators?.[0] ?? 'contains';
+
     Object.entries(config.default).forEach(([key, filterConfig]) => {
       const initial = initialFilters?.[key];
-      if (filterConfig.operators?.length) {
+      if (hasOperators(filterConfig)) {
         defaultFilters[key] =
           initial !== null && typeof initial === 'object' && 'operator' in (initial as object)
             ? (initial as { operator: string; value: string | string[] | null })
-            : { operator: filterConfig.defaultOperator ?? 'contains', value: null };
+            : { operator: defaultOpFor(filterConfig), value: null };
       } else {
         defaultFilters[key] = initial ?? null;
       }
@@ -195,12 +223,16 @@ export default function FilterComponent<T extends Record<string, any>>({
     onFilterChange(onlyWithValues);
   };
 
-  // Handle clear all filters (pass empty so no filter keys with null are sent)
+  const hasOperators = (fc: FilterConfig) =>
+    (fc.operatorOptions?.length ?? 0) > 0 || (fc.operators?.length ?? 0) > 0;
+  const defaultOpFor = (fc: FilterConfig) =>
+    fc.defaultOperator ?? fc.operatorOptions?.[0]?.value ?? fc.operators?.[0] ?? 'contains';
+
   const handleClearAll = () => {
     const clearedDefaults: Record<string, FilterValue> = {};
     Object.entries(config.default).forEach(([key, filterConfig]) => {
-      clearedDefaults[key] = filterConfig.operators?.length
-        ? { operator: filterConfig.defaultOperator ?? 'contains', value: null }
+      clearedDefaults[key] = hasOperators(filterConfig)
+        ? { operator: defaultOpFor(filterConfig), value: null }
         : null;
     });
     setActiveFilters(clearedDefaults);
@@ -231,8 +263,8 @@ export default function FilterComponent<T extends Record<string, any>>({
   const addFilter = (key: string) => {
     const filterConfig = validAddableFilters[key];
     if (filterConfig) {
-      const initial: FilterValue = filterConfig.operators?.length
-        ? { operator: filterConfig.defaultOperator ?? 'contains', value: null }
+      const initial: FilterValue = hasOperators(filterConfig)
+        ? { operator: defaultOpFor(filterConfig), value: null }
         : null;
       setAddableFilters((prev) => ({ ...prev, [key]: initial }));
     }
@@ -251,6 +283,11 @@ export default function FilterComponent<T extends Record<string, any>>({
   const hasFilterValue = (val: FilterValue): boolean => {
     if (val === null || val === '') return false;
     if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === 'object' && val !== null && 'operator' in val && 'value' in val) {
+      const o = val as { operator: string; value: string | string[] | null };
+      if (o.operator === 'is not set' || o.operator === 'is set') return true;
+      return hasFilterValue(o.value);
+    }
     if (typeof val === 'object' && val !== null && 'value' in val)
       return hasFilterValue((val as { value: FilterValue }).value);
     return true;
@@ -271,15 +308,51 @@ export default function FilterComponent<T extends Record<string, any>>({
     const rawValue = isAddable ? addableFilters[key] : activeFilters[key];
     const options = getFilterOptions(filterConfig, key);
 
-    // When filter has operators: render operator dropdown (left) + value input (right) in one bordered box
-    if (filterConfig.operators?.length) {
-      const defaultOp = filterConfig.defaultOperator ?? 'contains';
+    const hasOperatorUI =
+      (filterConfig.operatorOptions?.length ?? 0) > 0 || (filterConfig.operators?.length ?? 0) > 0;
+    if (hasOperatorUI) {
+      const operatorOptions = filterConfig.operatorOptions ?? [];
+      const legacyOperators = filterConfig.operators ?? [];
+      const defaultOp =
+        filterConfig.defaultOperator ??
+        (operatorOptions[0]?.value ?? legacyOperators[0] ?? 'contains');
       const { operator, value } = getOperatorAndValue(rawValue, defaultOp);
-      const inputBaseClasses = `px-3 py-2 text-sm border-0 focus:outline-none focus:ring-0 ${isDarkMode
-        ? 'bg-transparent text-white placeholder-gray-500'
-        : 'bg-transparent text-gray-900 placeholder-gray-400'
+      const currentOpOption = operatorOptions.find((o) => o.value === operator);
+      const inputBorderClasses = isDarkMode ? 'border-gray-600' : 'border-gray-300';
+      const datetimeBorderClasses = isDarkMode
+        ? 'border-2 border-gray-400'
+        : 'border-2 border-gray-300';
+      const displayLabel =
+        currentOpOption?.label ?? operator;
+      const requiresValue = currentOpOption?.requiresValue ?? true;
+      const isBetween =
+        (currentOpOption?.isArray && currentOpOption?.arrayLength === 2) || operator === 'between';
+      const isInList = currentOpOption?.isArray && operator === 'in';
+      const isSingleFieldLook = isBetween && filterConfig.dataType === 'datetime';
+      const inputBaseClasses = `px-3 py-2 text-sm rounded-r-lg border border-l-0 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset ${isDarkMode
+        ? `bg-gray-800 ${inputBorderClasses} text-white placeholder-gray-500 focus:border-blue-500`
+        : `bg-white ${inputBorderClasses} text-gray-900 placeholder-gray-400 focus:border-blue-500`
         }`;
-      const borderClasses = `rounded-lg border flex ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`;
+      const inputBaseClassesFull = `px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${isDarkMode
+        ? `bg-gray-800 ${inputBorderClasses} text-white placeholder-gray-500 focus:border-blue-500`
+        : `bg-white ${inputBorderClasses} text-gray-900 placeholder-gray-400 focus:border-blue-500`
+        }`;
+      const inputBaseClassesFullDatetime = `filter-datetime-input px-3 py-2 text-sm rounded-lg min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset ${datetimeBorderClasses} ${isDarkMode
+        ? `bg-gray-800 text-white placeholder-gray-400 focus:border-blue-500`
+        : `bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500`
+        }`;
+      const inputBaseClassesDatetime = `filter-datetime-input px-3 py-2 text-sm rounded-r-lg border-l-0 min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset ${datetimeBorderClasses} ${isDarkMode
+        ? `bg-gray-800 text-white placeholder-gray-400 focus:border-blue-500`
+        : `bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500`
+        }`;
+      const borderClasses = isSingleFieldLook
+        ? `overflow-hidden rounded-lg flex border-2 ${isDarkMode ? 'border-gray-400' : 'border-gray-300'}`
+        : 'rounded-lg flex';
+      const betweenDatetimeInputClasses = `px-3 py-2 text-sm min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset border-0 rounded-none ${isDarkMode
+        ? 'bg-gray-800 text-white placeholder-gray-400 focus:border-blue-500'
+        : 'bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500'
+        }`;
+      const betweenDatetimeDivider = isDarkMode ? 'border-r border-gray-500' : 'border-r border-gray-300';
 
       const updateFilter = (newOperator: string, newValue: string | string[] | null) => {
         handleFilterChange(key, { operator: newOperator, value: newValue }, isAddable);
@@ -288,9 +361,12 @@ export default function FilterComponent<T extends Record<string, any>>({
       const operatorSelectId = `op-${isAddable ? 'addable-' : ''}${key}`;
       const isOperatorOpen = openOperatorKey === operatorSelectId;
 
+      const operatorList = operatorOptions.length
+        ? operatorOptions
+        : legacyOperators.map((v) => ({ value: v, label: v, requiresValue: true }));
+
       return (
         <div className={borderClasses}>
-          {/* Operator dropdown - left section (custom styled); rounded left to match container */}
           <div
             ref={isOperatorOpen ? operatorDropdownRef : undefined}
             className="relative min-w-[7rem] max-w-[10rem] shrink-0 overflow-visible"
@@ -298,14 +374,14 @@ export default function FilterComponent<T extends Record<string, any>>({
             <button
               type="button"
               onClick={() => setOpenOperatorKey(isOperatorOpen ? null : operatorSelectId)}
-              className={`w-full h-full min-h-[2.5rem] px-3 py-2 text-left text-sm border-r flex items-center justify-between gap-1 transition-colors rounded-l-lg ${isDarkMode
-                ? 'border-gray-600 bg-gray-700 text-white hover:bg-gray-600'
-                : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
-                } ${isOperatorOpen ? (isDarkMode ? 'ring-inset ring-1 ring-blue-500/60 bg-gray-600' : 'ring-inset ring-1 ring-blue-400 bg-gray-50') : ''}`}
+              className={`w-full h-full min-h-[2.5rem] px-3 py-2 text-left text-sm flex items-center justify-between gap-1 transition-colors rounded-l-lg ${isSingleFieldLook ? 'border-0' : `border border-r-0 ${inputBorderClasses}`} ${isDarkMode
+                ? 'bg-gray-700 text-white hover:bg-gray-600'
+                : 'bg-white text-gray-900 hover:bg-gray-50'
+                } ${isOperatorOpen ? (isDarkMode ? 'ring-inset ring-2 ring-blue-500/60 bg-gray-600 border-blue-500/50' : 'ring-inset ring-2 ring-blue-400 bg-gray-50 border-blue-400') : ''}`}
               aria-label={`Operator for ${filterConfig.label}`}
               aria-expanded={isOperatorOpen}
             >
-              <span className="truncate">{operator}</span>
+              <span className="truncate">{displayLabel}</span>
               <svg
                 className={`w-4 h-4 shrink-0 transition-transform ${isOperatorOpen ? 'rotate-180' : ''}`}
                 fill="none"
@@ -322,18 +398,19 @@ export default function FilterComponent<T extends Record<string, any>>({
             </button>
             {isOperatorOpen && (
               <div
-                className={`absolute left-0 top-full z-50 mt-1 min-w-full py-1 rounded-lg border shadow-xl ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
+                className={`absolute left-0 top-full z-50 mt-1 min-w-full py-1 rounded-lg shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'
                   }`}
               >
-                {filterConfig.operators.map((op) => (
+                {operatorList.map((op) => (
                   <button
-                    key={op}
+                    key={op.value}
                     type="button"
                     onClick={() => {
-                      updateFilter(op, value);
+                      const nextRequiresValue = 'requiresValue' in op ? op.requiresValue : true;
+                      updateFilter(op.value, nextRequiresValue ? value : null);
                       setOpenOperatorKey(null);
                     }}
-                    className={`w-full px-3 py-2 text-left text-sm truncate transition-colors ${operator === op
+                    className={`w-full px-3 py-2 text-left text-sm truncate transition-colors ${operator === op.value
                       ? isDarkMode
                         ? 'bg-blue-600/30 text-blue-300 font-medium'
                         : 'bg-blue-100 text-blue-800 font-medium'
@@ -342,15 +419,82 @@ export default function FilterComponent<T extends Record<string, any>>({
                         : 'text-gray-800 hover:bg-gray-100'
                       }`}
                   >
-                    {op}
+                    {op.label}
                   </button>
                 ))}
               </div>
             )}
           </div>
-          {/* Value - right section: rounded right to match container */}
-          <div className="flex-1 min-w-0 rounded-r-lg">
-            {operator === 'in' ? (
+          <div
+            className={`flex-1 min-w-0 rounded-r-lg ${!isSingleFieldLook && !requiresValue ? `border border-l-0 ${inputBorderClasses} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}` : ''}`}
+          >
+            {!requiresValue ? (
+              <span className={`inline-flex items-center min-h-[2.5rem] px-3 py-2 text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                N/A
+              </span>
+            ) : isBetween ? (
+              <div className={`flex flex-1 min-w-0 ${isSingleFieldLook ? 'gap-0' : 'gap-1'}`}>
+                {filterConfig.dataType === 'datetime' ? (
+                  <>
+                    <input
+                      type="datetime-local"
+                      max={getDateTimeLocalMax()}
+                      value={toDateTimeLocalValue(Array.isArray(value) ? value[0] : null)}
+                      onChange={(e) => {
+                        const v0 = e.target.value;
+                        const v1 = Array.isArray(value) ? (value[1] ?? '') : '';
+                        updateFilter(operator, v0 || v1 ? [v0, v1] : null);
+                      }}
+                      className={
+                        isSingleFieldLook
+                          ? `flex-1 min-w-0 ${betweenDatetimeInputClasses} ${betweenDatetimeDivider} rounded-none`
+                          : `flex-1 min-w-0 ${inputBaseClassesFullDatetime}`
+                      }
+                    />
+                    <input
+                      type="datetime-local"
+                      max={getDateTimeLocalMax()}
+                      value={toDateTimeLocalValue(Array.isArray(value) ? value[1] : null)}
+                      onChange={(e) => {
+                        const v0 = Array.isArray(value) ? (value[0] ?? '') : '';
+                        const v1 = e.target.value;
+                        updateFilter(operator, v0 || v1 ? [v0, v1] : null);
+                      }}
+                      className={
+                        isSingleFieldLook
+                          ? `flex-1 min-w-0 ${betweenDatetimeInputClasses} rounded-r-lg`
+                          : `flex-1 min-w-0 ${inputBaseClassesFullDatetime}`
+                      }
+                    />
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      value={Array.isArray(value) ? (value[0] ?? '') : ''}
+                      onChange={(e) => {
+                        const v0 = e.target.value;
+                        const v1 = Array.isArray(value) ? (value[1] ?? '') : '';
+                        updateFilter(operator, v0 || v1 ? [v0, v1] : null);
+                      }}
+                      placeholder="From"
+                      className={`flex-1 min-w-0 ${inputBaseClassesFull}`}
+                    />
+                    <input
+                      type="text"
+                      value={Array.isArray(value) ? (value[1] ?? '') : ''}
+                      onChange={(e) => {
+                        const v0 = Array.isArray(value) ? (value[0] ?? '') : '';
+                        const v1 = e.target.value;
+                        updateFilter(operator, v0 || v1 ? [v0, v1] : null);
+                      }}
+                      placeholder="To"
+                      className={`flex-1 min-w-0 ${inputBaseClassesFull}`}
+                    />
+                  </>
+                )}
+              </div>
+            ) : isInList ? (
               <div className="relative w-full">
                 <select
                   multiple
@@ -359,7 +503,7 @@ export default function FilterComponent<T extends Record<string, any>>({
                     const selected = Array.from(e.target.selectedOptions, (o) => o.value);
                     updateFilter(operator, selected.length > 0 ? selected : null);
                   }}
-                  className={`w-full min-h-[2.5rem] ${inputBaseClasses}`}
+                  className={`w-full min-h-[2.5rem] ${inputBaseClassesFull}`}
                   size={Math.min(Math.max(options.length, 1) + 1, 5)}
                 >
                   {options.length ? (
@@ -375,6 +519,17 @@ export default function FilterComponent<T extends Record<string, any>>({
                   )}
                 </select>
               </div>
+            ) : filterConfig.dataType === 'datetime' ? (
+              <input
+                type="datetime-local"
+                max={getDateTimeLocalMax()}
+                value={toDateTimeLocalValue((value as string) ?? null)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  updateFilter(operator, v === '' ? null : v);
+                }}
+                className={`w-full ${inputBaseClassesDatetime}`}
+              />
             ) : (
               <input
                 type="text"
@@ -504,6 +659,25 @@ export default function FilterComponent<T extends Record<string, any>>({
           </select>
         );
 
+      case 'datetime':
+        return (
+          <input
+            type="datetime-local"
+            max={getDateTimeLocalMax()}
+            value={toDateTimeLocalValue((value as string) ?? null)}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              handleFilterChange(key, newValue === '' ? null : newValue, isAddable);
+            }}
+            onClick={handleInputClick}
+            onFocus={handleInputClick}
+            className={`w-full min-h-[2.5rem] px-3 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-inset ${isDarkMode
+              ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-blue-500/20'
+              : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
+              }`}
+          />
+        );
+
       case 'string':
       default:
         return (
@@ -536,13 +710,13 @@ export default function FilterComponent<T extends Record<string, any>>({
   return (
     <div className={`w-full ${className}`}>
       <div
-        className={`rounded-lg border border-solid p-4 ${isDarkMode ? 'bg-gray-800 border-gray-500' : 'bg-white border-gray-300'}`}
+        className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}
       >
         {/* Default Filters */}
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
             <h2
-              className={`text-xll font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+              className={`text-xl font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
             >
               Filters
             </h2>
@@ -555,7 +729,7 @@ export default function FilterComponent<T extends Record<string, any>>({
                     : 'bg-blue-500 hover:bg-blue-600 text-white'
                     }`}
                 >
-                  <svg className="w-3 h-3g  " fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -572,7 +746,7 @@ export default function FilterComponent<T extends Record<string, any>>({
           {/* Add Filter Dropdown */}
           {showAddFilter && availableFiltersToAdd.length > 0 && (
             <div
-              className={`mb-4 p-3 rounded-lg border ${isDarkMode ? 'bg-gray-900 border-gray-600' : 'bg-gray-50 border-gray-300'
+              className={`mb-4 p-3 rounded-lg ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
                 }`}
             >
               <div className="flex items-center justify-between mb-2">
