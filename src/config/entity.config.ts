@@ -54,6 +54,9 @@ export type EntityConfig = {
 
     /** Edit item route (use :id for route param) */
     edit: string;
+
+    /** Detail/view item route (use :id for route param) */
+    detail: string;
   };
 
   /** Optional: Enable/disable specific features */
@@ -107,6 +110,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       list: '/users',
       add: '/users/add',
       edit: '/users/edit/:id',
+      detail: '/users/:id',
     },
     features: {
       canCreate: true,
@@ -133,6 +137,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       list: '/products',
       add: '/products/add',
       edit: '/products/edit/:id',
+      detail: '/products/:id',
     },
     features: {
       canCreate: true,
@@ -158,6 +163,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       list: '/work-orders',
       add: '/work-orders/add',
       edit: '/work-orders/edit/:id',
+      detail: '/work-orders/:id',
     },
     features: {
       canCreate: true,
@@ -188,6 +194,7 @@ export function getEntityConfig(entityName: string): EntityConfig {
         list: `/${entityName}s `,
         add: `/${entityName}s/add`,
         edit: `/${entityName}s/edit/:id`,
+        detail: `/${entityName}s/:id`,
       },
       features: {
         canCreate: true,

@@ -10,6 +10,10 @@ function metadataKey(entityName: string): string {
   return `${CACHE_PREFIX}metadata-${entityName}`;
 }
 
+function formMetadataKey(entityName: string): string {
+  return `${CACHE_PREFIX}form-metadata-${entityName}`;
+}
+
 export type CachedEntityMetadata = {
   display_name: string;
   fields: Array<{ name: string; label: string; type: string; visible_in_list: boolean }>;
@@ -17,6 +21,29 @@ export type CachedEntityMetadata = {
     default_visible: Array<{ field: string; label: string; type: string; operators: string[] }>;
     additional: Array<{ field: string; label: string; type: string; operators: string[] }>;
   };
+  id_field?: string;
+  detail_link_field?: string;
+  fetchedAt: number;
+};
+
+export type CachedFormMetadata = {
+  entity_name: string;
+  display_name: string;
+  field_groups: Array<{
+    id: string;
+    label: string;
+    fields: string[];
+    collapsible: boolean;
+  }>;
+  fields: Record<string, {
+    name: string;
+    label: string;
+    type: string;
+    required: boolean;
+    read_only: boolean;
+    nullable: boolean;
+  }>;
+  actions?: Record<string, unknown>;
   fetchedAt: number;
 };
 
@@ -55,6 +82,32 @@ export function clearEntityCache(): void {
       if (key?.startsWith(CACHE_PREFIX)) keys.push(key);
     }
     keys.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+}
+
+/** Get cached form metadata if present. Returns null on miss or parse error. */
+export function getEntityFormMetadataCache(entityName: string): CachedFormMetadata | null {
+  try {
+    const raw = sessionStorage.getItem(formMetadataKey(entityName));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedFormMetadata;
+    if (!parsed?.display_name && !parsed?.field_groups?.length) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Store form metadata in cache. */
+export function setEntityFormMetadataCache(
+  entityName: string,
+  data: Omit<CachedFormMetadata, 'fetchedAt'>
+): void {
+  try {
+    const entry: CachedFormMetadata = { ...data, fetchedAt: Date.now() };
+    sessionStorage.setItem(formMetadataKey(entityName), JSON.stringify(entry));
   } catch {
     // ignore
   }
