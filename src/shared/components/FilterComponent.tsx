@@ -1,30 +1,34 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
-import { useUIStore } from '../../stores/ui.store'
-import type { TableColumn } from './DataTable'
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useUIStore } from '../../stores/ui.store';
+import type { TableColumn } from './DataTable';
 
-export type FilterValue = string | string[] | null | { operator: string; value: string | string[] | null }
+export type FilterValue =
+  | string
+  | string[]
+  | null
+  | { operator: string; value: string | string[] | null };
 
 export type FilterConfig = {
-  key: string
-  label: string
-  dataType: 'string' | 'number' | 'select' | 'multi-select'
-  fetchFrom?: string // API route for fetching options (for "in" operator multi-select options)
-  options?: Array<{ label: string; value: string }> // Static options
-  operators?: string[] // e.g. ["=", "≠", "contains", "in", ...]; when set, show operator dropdown
-  defaultOperator?: string // default "contains"
-}
+  key: string;
+  label: string;
+  dataType: 'string' | 'number' | 'select' | 'multi-select';
+  fetchFrom?: string; // API route for fetching options (for "in" operator multi-select options)
+  options?: Array<{ label: string; value: string }>; // Static options
+  operators?: string[]; // e.g. ["=", "≠", "contains", "in", ...]; when set, show operator dropdown
+  defaultOperator?: string; // default "contains"
+};
 
 export type FilterComponentConfig = {
-  default: Record<string, FilterConfig>
-  addable?: Record<string, FilterConfig>
-}
+  default: Record<string, FilterConfig>;
+  addable?: Record<string, FilterConfig>;
+};
 
 export interface FilterComponentProps<T> {
-  columns: TableColumn<T>[]
-  config: FilterComponentConfig
-  onFilterChange: (filters: Record<string, FilterValue>) => void
-  initialFilters?: Record<string, FilterValue>
-  className?: string
+  columns: TableColumn<T>[];
+  config: FilterComponentConfig;
+  onFilterChange: (filters: Record<string, FilterValue>) => void;
+  initialFilters?: Record<string, FilterValue>;
+  className?: string;
 }
 
 export default function FilterComponent<T extends Record<string, any>>({
@@ -34,39 +38,40 @@ export default function FilterComponent<T extends Record<string, any>>({
   initialFilters,
   className = '',
 }: FilterComponentProps<T>) {
-  const isDarkMode = useUIStore((state) => state.isDarkMode)
-  const [activeFilters, setActiveFilters] = useState<Record<string, FilterValue>>({})
-  const [addableFilters, setAddableFilters] = useState<Record<string, FilterValue>>({})
-  const [showAddFilter, setShowAddFilter] = useState(false)
-  const [openSelectKey, setOpenSelectKey] = useState<string | null>(null)
-  const [openOperatorKey, setOpenOperatorKey] = useState<string | null>(null)
-  const selectDropdownRef = useRef<HTMLDivElement>(null)
-  const operatorDropdownRef = useRef<HTMLDivElement>(null)
-  const [apiOptions, setApiOptions] = useState<Record<string, Array<{ label: string; value: string }>>>({})
+  const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const [activeFilters, setActiveFilters] = useState<Record<string, FilterValue>>({});
+  const [addableFilters, setAddableFilters] = useState<Record<string, FilterValue>>({});
+  const [showAddFilter, setShowAddFilter] = useState(false);
+  const [openSelectKey, setOpenSelectKey] = useState<string | null>(null);
+  const [openOperatorKey, setOpenOperatorKey] = useState<string | null>(null);
+  const selectDropdownRef = useRef<HTMLDivElement>(null);
+  const operatorDropdownRef = useRef<HTMLDivElement>(null);
+  const [apiOptions, setApiOptions] = useState<
+    Record<string, Array<{ label: string; value: string }>>
+  >({});
 
   // Get available column keys from table headers
   const availableColumnKeys = useMemo(() => {
-    return columns.map((col) => col.key)
-  }, [columns])
+    return columns.map((col) => col.key);
+  }, [columns]);
 
   // Filter addable config to only include columns that exist in table headers
   const validAddableFilters = useMemo(() => {
-    if (!config.addable) return {}
+    if (!config.addable) return {};
 
-    const valid: Record<string, FilterConfig> = {}
+    const valid: Record<string, FilterConfig> = {};
     Object.entries(config.addable).forEach(([key, filterConfig]) => {
       if (availableColumnKeys.includes(key)) {
-        valid[key] = filterConfig
+        valid[key] = filterConfig;
       }
-    })
-    return valid
-  }, [config.addable, availableColumnKeys])
-
+    });
+    return valid;
+  }, [config.addable, availableColumnKeys]);
 
   // Fetch API options for filters that need them
   useEffect(() => {
     const fetchApiOptions = async () => {
-      const fetchPromises: Promise<void>[] = []
+      const fetchPromises: Promise<void>[] = [];
 
       // Fetch for default filters
       Object.entries(config.default).forEach(([key, filterConfig]) => {
@@ -82,16 +87,16 @@ export default function FilterComponent<T extends Record<string, any>>({
                     label: item.name || item.label || String(item),
                     value: item.id || item.value || String(item),
                   }))
-                  : []
-                setApiOptions((prev) => ({ ...prev, [key]: options }))
+                  : [];
+                setApiOptions((prev) => ({ ...prev, [key]: options }));
               })
               .catch((err) => {
-                console.error(`Error fetching options for ${key}:`, err)
-                setApiOptions((prev) => ({ ...prev, [key]: [] }))
+                console.error(`Error fetching options for ${key}:`, err);
+                setApiOptions((prev) => ({ ...prev, [key]: [] }));
               })
-          )
+          );
         }
-      })
+      });
 
       // Fetch for addable filters
       Object.entries(validAddableFilters).forEach(([key, filterConfig]) => {
@@ -105,185 +110,183 @@ export default function FilterComponent<T extends Record<string, any>>({
                     label: item.name || item.label || String(item),
                     value: item.id || item.value || String(item),
                   }))
-                  : []
-                setApiOptions((prev) => ({ ...prev, [key]: options }))
+                  : [];
+                setApiOptions((prev) => ({ ...prev, [key]: options }));
               })
               .catch((err) => {
-                console.error(`Error fetching options for ${key}:`, err)
-                setApiOptions((prev) => ({ ...prev, [key]: [] }))
+                console.error(`Error fetching options for ${key}:`, err);
+                setApiOptions((prev) => ({ ...prev, [key]: [] }));
               })
-          )
+          );
         }
-      })
+      });
 
-      await Promise.all(fetchPromises)
-    }
+      await Promise.all(fetchPromises);
+    };
 
-    fetchApiOptions()
-  }, [config.default, validAddableFilters])
+    fetchApiOptions();
+  }, [config.default, validAddableFilters]);
 
   // Initialize filters with initial values or defaults
   useEffect(() => {
-    const defaultFilters: Record<string, FilterValue> = {}
-    const addableFiltersInit: Record<string, FilterValue> = {}
+    const defaultFilters: Record<string, FilterValue> = {};
+    const addableFiltersInit: Record<string, FilterValue> = {};
 
     // Initialize default filters from initialFilters or set to null / { operator, value }
     Object.entries(config.default).forEach(([key, filterConfig]) => {
-      const initial = initialFilters?.[key]
+      const initial = initialFilters?.[key];
       if (filterConfig.operators?.length) {
         defaultFilters[key] =
           initial !== null && typeof initial === 'object' && 'operator' in (initial as object)
             ? (initial as { operator: string; value: string | string[] | null })
-            : { operator: filterConfig.defaultOperator ?? 'contains', value: null }
+            : { operator: filterConfig.defaultOperator ?? 'contains', value: null };
       } else {
-        defaultFilters[key] = initial ?? null
+        defaultFilters[key] = initial ?? null;
       }
-    })
+    });
 
     // Initialize addable filters from initialFilters
     if (config.addable && initialFilters) {
       Object.keys(config.addable).forEach((key) => {
         if (initialFilters[key] !== undefined && !config.default[key]) {
-          addableFiltersInit[key] = initialFilters[key]
+          addableFiltersInit[key] = initialFilters[key];
         }
-      })
+      });
     }
 
-    setActiveFilters(defaultFilters)
-    setAddableFilters(addableFiltersInit)
-  }, [config.default, config.addable, initialFilters])
+    setActiveFilters(defaultFilters);
+    setAddableFilters(addableFiltersInit);
+  }, [config.default, config.addable, initialFilters]);
 
   // Close select dropdown when clicking outside
   useEffect(() => {
-    if (!openSelectKey) return
+    if (!openSelectKey) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (selectDropdownRef.current && !selectDropdownRef.current.contains(e.target as Node)) {
-        setOpenSelectKey(null)
+        setOpenSelectKey(null);
       }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [openSelectKey])
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openSelectKey]);
 
   // Close operator dropdown when clicking outside
   useEffect(() => {
-    if (!openOperatorKey) return
+    if (!openOperatorKey) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (operatorDropdownRef.current && !operatorDropdownRef.current.contains(e.target as Node)) {
-        setOpenOperatorKey(null)
+        setOpenOperatorKey(null);
       }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [openOperatorKey])
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openOperatorKey]);
 
   // Handle submit - apply filters (only include filters that have a value; skip null/empty)
   const handleSubmit = () => {
-    const allFilters = { ...activeFilters, ...addableFilters }
-    const onlyWithValues: Record<string, FilterValue> = {}
+    const allFilters = { ...activeFilters, ...addableFilters };
+    const onlyWithValues: Record<string, FilterValue> = {};
     Object.entries(allFilters).forEach(([k, val]) => {
-      if (hasFilterValue(val)) onlyWithValues[k] = val
-    })
+      if (hasFilterValue(val)) onlyWithValues[k] = val;
+    });
     if (Object.keys(onlyWithValues).length > 0) {
     }
-    console.log('[GoldFlow] [FilterComponent] handleSubmit', { onlyWithValues })
-    onFilterChange(onlyWithValues)
-  }
+    console.log('[GoldFlow] [FilterComponent] handleSubmit', { onlyWithValues });
+    onFilterChange(onlyWithValues);
+  };
 
   // Handle clear all filters (pass empty so no filter keys with null are sent)
   const handleClearAll = () => {
-    const clearedDefaults: Record<string, FilterValue> = {}
+    const clearedDefaults: Record<string, FilterValue> = {};
     Object.entries(config.default).forEach(([key, filterConfig]) => {
-      clearedDefaults[key] =
-        filterConfig.operators?.length
-          ? { operator: filterConfig.defaultOperator ?? 'contains', value: null }
-          : null
-    })
-    setActiveFilters(clearedDefaults)
-    setAddableFilters({})
-    onFilterChange({})
-  }
+      clearedDefaults[key] = filterConfig.operators?.length
+        ? { operator: filterConfig.defaultOperator ?? 'contains', value: null }
+        : null;
+    });
+    setActiveFilters(clearedDefaults);
+    setAddableFilters({});
+    onFilterChange({});
+  };
 
   const handleFilterChange = (key: string, value: FilterValue, isAddable = false) => {
     if (isAddable) {
-      setAddableFilters((prev) => ({ ...prev, [key]: value }))
+      setAddableFilters((prev) => ({ ...prev, [key]: value }));
     } else {
-      setActiveFilters((prev) => ({ ...prev, [key]: value }))
+      setActiveFilters((prev) => ({ ...prev, [key]: value }));
     }
-  }
+  };
 
   const removeFilter = (key: string, isAddable = false) => {
     if (isAddable) {
       setAddableFilters((prev) => {
-        const newFilters = { ...prev }
-        delete newFilters[key]
-        return newFilters
-      })
+        const newFilters = { ...prev };
+        delete newFilters[key];
+        return newFilters;
+      });
     } else {
-      setActiveFilters((prev) => ({ ...prev, [key]: null }))
+      setActiveFilters((prev) => ({ ...prev, [key]: null }));
     }
-  }
+  };
 
   const addFilter = (key: string) => {
-    const filterConfig = validAddableFilters[key]
+    const filterConfig = validAddableFilters[key];
     if (filterConfig) {
-      const initial: FilterValue =
-        filterConfig.operators?.length
-          ? { operator: filterConfig.defaultOperator ?? 'contains', value: null }
-          : null
-      setAddableFilters((prev) => ({ ...prev, [key]: initial }))
+      const initial: FilterValue = filterConfig.operators?.length
+        ? { operator: filterConfig.defaultOperator ?? 'contains', value: null }
+        : null;
+      setAddableFilters((prev) => ({ ...prev, [key]: initial }));
     }
-  }
+  };
 
   const getFilterOptions = (filterConfig: FilterConfig, key: string) => {
     if (filterConfig.options) {
-      return filterConfig.options
+      return filterConfig.options;
     }
     if (filterConfig.fetchFrom && apiOptions[key]) {
-      return apiOptions[key]
+      return apiOptions[key];
     }
-    return []
-  }
+    return [];
+  };
 
   const hasFilterValue = (val: FilterValue): boolean => {
-    if (val === null || val === '') return false
-    if (Array.isArray(val)) return val.length > 0
+    if (val === null || val === '') return false;
+    if (Array.isArray(val)) return val.length > 0;
     if (typeof val === 'object' && val !== null && 'value' in val)
-      return hasFilterValue((val as { value: FilterValue }).value)
-    return true
-  }
+      return hasFilterValue((val as { value: FilterValue }).value);
+    return true;
+  };
 
   const getOperatorAndValue = (
     val: FilterValue,
     defaultOp: string
   ): { operator: string; value: string | string[] | null } => {
     if (val !== null && typeof val === 'object' && 'operator' in val && 'value' in val) {
-      const o = val as { operator: string; value: string | string[] | null }
-      return { operator: o.operator, value: o.value }
+      const o = val as { operator: string; value: string | string[] | null };
+      return { operator: o.operator, value: o.value };
     }
-    return { operator: defaultOp, value: val as string | string[] | null }
-  }
+    return { operator: defaultOp, value: val as string | string[] | null };
+  };
 
   const renderFilterInput = (key: string, filterConfig: FilterConfig, isAddable = false) => {
-    const rawValue = isAddable ? addableFilters[key] : activeFilters[key]
-    const options = getFilterOptions(filterConfig, key)
+    const rawValue = isAddable ? addableFilters[key] : activeFilters[key];
+    const options = getFilterOptions(filterConfig, key);
 
     // When filter has operators: render operator dropdown (left) + value input (right) in one bordered box
     if (filterConfig.operators?.length) {
-      const defaultOp = filterConfig.defaultOperator ?? 'contains'
-      const { operator, value } = getOperatorAndValue(rawValue, defaultOp)
+      const defaultOp = filterConfig.defaultOperator ?? 'contains';
+      const { operator, value } = getOperatorAndValue(rawValue, defaultOp);
       const inputBaseClasses = `px-3 py-2 text-sm border-0 focus:outline-none focus:ring-0 ${isDarkMode
         ? 'bg-transparent text-white placeholder-gray-500'
         : 'bg-transparent text-gray-900 placeholder-gray-400'
-        }`
-      const borderClasses = `rounded-lg border flex ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`
+        }`;
+      const borderClasses = `rounded-lg border flex ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`;
 
       const updateFilter = (newOperator: string, newValue: string | string[] | null) => {
-        handleFilterChange(key, { operator: newOperator, value: newValue }, isAddable)
-      }
+        handleFilterChange(key, { operator: newOperator, value: newValue }, isAddable);
+      };
 
-      const operatorSelectId = `op-${isAddable ? 'addable-' : ''}${key}`
-      const isOperatorOpen = openOperatorKey === operatorSelectId
+      const operatorSelectId = `op-${isAddable ? 'addable-' : ''}${key}`;
+      const isOperatorOpen = openOperatorKey === operatorSelectId;
 
       return (
         <div className={borderClasses}>
@@ -309,14 +312,17 @@ export default function FilterComponent<T extends Record<string, any>>({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {isOperatorOpen && (
               <div
-                className={`absolute left-0 top-full z-50 mt-1 min-w-full py-1 rounded-lg border shadow-xl ${isDarkMode
-                  ? 'bg-gray-800 border-gray-600'
-                  : 'bg-white border-gray-200'
+                className={`absolute left-0 top-full z-50 mt-1 min-w-full py-1 rounded-lg border shadow-xl ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
                   }`}
               >
                 {filterConfig.operators.map((op) => (
@@ -324,8 +330,8 @@ export default function FilterComponent<T extends Record<string, any>>({
                     key={op}
                     type="button"
                     onClick={() => {
-                      updateFilter(op, value)
-                      setOpenOperatorKey(null)
+                      updateFilter(op, value);
+                      setOpenOperatorKey(null);
                     }}
                     className={`w-full px-3 py-2 text-left text-sm truncate transition-colors ${operator === op
                       ? isDarkMode
@@ -350,8 +356,8 @@ export default function FilterComponent<T extends Record<string, any>>({
                   multiple
                   value={Array.isArray(value) ? value : []}
                   onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions, (o) => o.value)
-                    updateFilter(operator, selected.length > 0 ? selected : null)
+                    const selected = Array.from(e.target.selectedOptions, (o) => o.value);
+                    updateFilter(operator, selected.length > 0 ? selected : null);
                   }}
                   className={`w-full min-h-[2.5rem] ${inputBaseClasses}`}
                   size={Math.min(Math.max(options.length, 1) + 1, 5)}
@@ -374,8 +380,8 @@ export default function FilterComponent<T extends Record<string, any>>({
                 type="text"
                 value={(value as string) ?? ''}
                 onChange={(e) => {
-                  const v = e.target.value
-                  updateFilter(operator, v === '' ? null : v)
+                  const v = e.target.value;
+                  updateFilter(operator, v === '' ? null : v);
                 }}
                 placeholder={`Value for ${filterConfig.label}...`}
                 className={`w-full h-full ${inputBaseClasses}`}
@@ -383,30 +389,30 @@ export default function FilterComponent<T extends Record<string, any>>({
             )}
           </div>
         </div>
-      )
+      );
     }
 
-    const value = rawValue
+    const value = rawValue;
 
     // Close dropdown when input is clicked
     const handleInputClick = () => {
       if (showAddFilter) {
-        setShowAddFilter(false)
+        setShowAddFilter(false);
       }
-    }
+    };
 
-    const selectId = isAddable ? `addable-${key}` : key
-    const isSelectOpen = openSelectKey === selectId
+    const selectId = isAddable ? `addable-${key}` : key;
+    const isSelectOpen = openSelectKey === selectId;
     const inputBaseClasses = `w-full px-3 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${isDarkMode
       ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
       : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
-      }`
+      }`;
 
     switch (filterConfig.dataType) {
       case 'select': {
         const currentLabel = (value as string)
-          ? options.find((o) => o.value === value)?.label ?? (value as string)
-          : `All ${filterConfig.label}`
+          ? (options.find((o) => o.value === value)?.label ?? (value as string))
+          : `All ${filterConfig.label}`;
         return (
           <div
             ref={isSelectOpen ? selectDropdownRef : undefined}
@@ -426,7 +432,12 @@ export default function FilterComponent<T extends Record<string, any>>({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {isSelectOpen && (
@@ -436,8 +447,8 @@ export default function FilterComponent<T extends Record<string, any>>({
                 <button
                   type="button"
                   onClick={() => {
-                    handleFilterChange(key, null, isAddable)
-                    setOpenSelectKey(null)
+                    handleFilterChange(key, null, isAddable);
+                    setOpenSelectKey(null);
                   }}
                   className={`w-full px-3 py-2 text-left text-sm ${isDarkMode
                     ? 'text-gray-300 hover:bg-gray-700'
@@ -451,8 +462,8 @@ export default function FilterComponent<T extends Record<string, any>>({
                     key={option.value}
                     type="button"
                     onClick={() => {
-                      handleFilterChange(key, option.value, isAddable)
-                      setOpenSelectKey(null)
+                      handleFilterChange(key, option.value, isAddable);
+                      setOpenSelectKey(null);
                     }}
                     className={`w-full px-3 py-2 text-left text-sm ${isDarkMode
                       ? 'text-gray-300 hover:bg-gray-700'
@@ -465,18 +476,18 @@ export default function FilterComponent<T extends Record<string, any>>({
               </div>
             )}
           </div>
-        )
+        );
       }
 
       case 'multi-select':
-        const selectedValues = (value as string[]) || []
+        const selectedValues = (value as string[]) || [];
         return (
           <select
             multiple
             value={selectedValues}
             onChange={(e) => {
-              const selected = Array.from(e.target.selectedOptions, (option) => option.value)
-              handleFilterChange(key, selected.length > 0 ? selected : null, isAddable)
+              const selected = Array.from(e.target.selectedOptions, (option) => option.value);
+              handleFilterChange(key, selected.length > 0 ? selected : null, isAddable);
             }}
             onClick={handleInputClick}
             className={`w-full px-3 py-2 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${isDarkMode
@@ -491,7 +502,7 @@ export default function FilterComponent<T extends Record<string, any>>({
               </option>
             ))}
           </select>
-        )
+        );
 
       case 'string':
       default:
@@ -500,8 +511,8 @@ export default function FilterComponent<T extends Record<string, any>>({
             type="text"
             value={(value as string) ?? ''}
             onChange={(e) => {
-              const newValue = e.target.value
-              handleFilterChange(key, newValue === '' ? null : newValue, isAddable)
+              const newValue = e.target.value;
+              handleFilterChange(key, newValue === '' ? null : newValue, isAddable);
             }}
             onClick={handleInputClick}
             onFocus={handleInputClick}
@@ -511,16 +522,16 @@ export default function FilterComponent<T extends Record<string, any>>({
               : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
               }`}
           />
-        )
+        );
     }
-  }
+  };
 
   // Get available filters to add (excluding already added ones)
   const availableFiltersToAdd = useMemo(() => {
     return Object.entries(validAddableFilters).filter(
       ([key]) => !addableFilters.hasOwnProperty(key)
-    )
-  }, [validAddableFilters, addableFilters])
+    );
+  }, [validAddableFilters, addableFilters]);
 
   return (
     <div className={`w-full ${className}`}>
@@ -530,7 +541,9 @@ export default function FilterComponent<T extends Record<string, any>>({
         {/* Default Filters */}
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            <h2
+              className={`text-xl font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+            >
               Filters
             </h2>
             <div className="flex items-center gap-2">
@@ -596,13 +609,15 @@ export default function FilterComponent<T extends Record<string, any>>({
           {/* Default Filters Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(config.default).map(([key, filterConfig]) => {
-              const value = activeFilters[key]
-              const hasValue = hasFilterValue(value)
+              const value = activeFilters[key];
+              const hasValue = hasFilterValue(value);
 
               return (
                 <div key={key} className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <label
+                      className={`block text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                    >
                       {filterConfig.label}
                     </label>
                     {hasValue && (
@@ -616,18 +631,20 @@ export default function FilterComponent<T extends Record<string, any>>({
                   </div>
                   {renderFilterInput(key, filterConfig, false)}
                 </div>
-              )
+              );
             })}
 
             {/* Addable Filters */}
             {Object.entries(addableFilters).map(([key]) => {
-              const filterConfig = validAddableFilters[key]
-              if (!filterConfig) return null
+              const filterConfig = validAddableFilters[key];
+              if (!filterConfig) return null;
 
               return (
                 <div key={key} className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <label
+                      className={`block text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                    >
                       {filterConfig.label}
                     </label>
                     <button
@@ -639,12 +656,14 @@ export default function FilterComponent<T extends Record<string, any>>({
                   </div>
                   {renderFilterInput(key, filterConfig, true)}
                 </div>
-              )
+              );
             })}
           </div>
 
           {/* Action Buttons (same size as Add Filter: px-3 py-1.5 text-xs) */}
-          <div className={`pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-end gap-2`}>
+          <div
+            className={`pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-end gap-2`}
+          >
             <button
               onClick={handleClearAll}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${isDarkMode
@@ -667,5 +686,5 @@ export default function FilterComponent<T extends Record<string, any>>({
         </div>
       </div>
     </div>
-  )
+  );
 }

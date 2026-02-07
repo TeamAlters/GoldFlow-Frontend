@@ -2,31 +2,31 @@
 // This config is used by both Navbar and Sidebar
 
 export type NavItem = {
-  name: string
-  path: string
-  icon?: string // Icon name reference
-  entityName?: string // Entity for metadata API (e.g. "user" for All Users)
-}
+  name: string;
+  path: string;
+  icon?: string; // Icon name reference
+  entityName?: string; // Entity for metadata API (e.g. "user" for All Users)
+};
 
 export type NavCategory = {
-  id: string
-  category: string
-  icon: string
-  items: NavItem[]
-  defaultOpen?: boolean
-}
+  id: string;
+  category: string;
+  icon: string;
+  items: NavItem[];
+  defaultOpen?: boolean;
+};
 
 export type NavbarMenuItem = {
-  name: string
-  path: string
-}
+  name: string;
+  path: string;
+};
 
 // Top Navbar Menu Items
 export const navbarMenuItems: NavbarMenuItem[] = [
   { name: 'Dashboard', path: '/dashboard' },
   { name: 'Reports', path: '/reports' },
   { name: 'Settings', path: '/settings' },
-]
+];
 
 // Sidebar Navigation Configuration
 export const sidebarNavConfig: NavCategory[] = [
@@ -78,9 +78,7 @@ export const sidebarNavConfig: NavCategory[] = [
     id: 'users',
     category: 'Users',
     icon: 'user',
-    items: [
-      { name: 'All Users', path: '/users', icon: 'list', entityName: 'user' },
-    ],
+    items: [{ name: 'All Users', path: '/users', icon: 'list', entityName: 'user' }],
   },
   {
     id: 'quality',
@@ -102,7 +100,7 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Stock Management', path: '/reports/stock-management', icon: 'archive' },
     ],
   },
-]
+];
 
 // User Management (for admin users)
 export const adminNavConfig: NavCategory = {
@@ -114,4 +112,4 @@ export const adminNavConfig: NavCategory = {
     { name: 'Roles', path: '/users/roles', icon: 'key' },
     { name: 'Permissions', path: '/users/permissions', icon: 'lock' },
   ],
-}
+};

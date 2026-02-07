@@ -1,17 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
-import LoginPage from '../auth/LoginPage'
-import SignUp from '../auth/SignUp'
-import RequireAuth from '../auth/RequireAuth'
-import DashboardIndex from '../modules/dashboard/DashboardPage'
-import UsersPage from '../modules/admin/UsersPage'
-import UserFormPage from '../modules/admin/UserFormPage'
-import MainLayout from '../layout/MainLayout'
-import { useAuthStore } from '../auth/auth.store'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import LoginPage from '../auth/LoginPage';
+import SignUp from '../auth/SignUp';
+import RequireAuth from '../auth/RequireAuth';
+import DashboardIndex from '../modules/dashboard/DashboardPage';
+import UsersPage from '../modules/admin/UsersPage';
+import UserFormPage from '../modules/admin/UserFormPage';
+import MainLayout from '../layout/MainLayout';
+import { useAuthStore } from '../auth/auth.store';
 
 /** Redirects / to /dashboard when logged in, otherwise to /login */
 function RootRedirect() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated())
-  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
+  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
 }
 
 /** Layout for all routes that require login: auth check + main app shell */
@@ -22,7 +22,7 @@ function ProtectedLayout() {
         <Outlet />
       </MainLayout>
     </RequireAuth>
-  )
+  );
 }
 
 export default function AppRouter() {
@@ -58,5 +58,5 @@ export default function AppRouter() {
         </Route>
       </Routes>
     </BrowserRouter>
-  )
+  );
 }

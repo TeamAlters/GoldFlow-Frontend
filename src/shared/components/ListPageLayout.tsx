@@ -1,19 +1,19 @@
-import { useUIStore } from '../../stores/ui.store'
+import { useUIStore } from '../../stores/ui.store';
 
 export interface ListPageLayoutProps {
   /** Page title (e.g. "User Management") */
-  title: string
+  title: string;
   /** Optional subtitle below the title */
-  description?: string
+  description?: string;
   /** Left side of toolbar (e.g. "Total Users: 42") */
-  toolbarLeft?: React.ReactNode
+  toolbarLeft?: React.ReactNode;
   /** Right side of toolbar (e.g. Add button) */
-  toolbarRight?: React.ReactNode
+  toolbarRight?: React.ReactNode;
   /** Optional filters row (e.g. FilterComponent) */
-  filters?: React.ReactNode
+  filters?: React.ReactNode;
   /** Main content: DataTable, pagination, etc. */
-  children: React.ReactNode
-  className?: string
+  children: React.ReactNode;
+  className?: string;
 }
 
 /**
@@ -29,7 +29,7 @@ export default function ListPageLayout({
   children,
   className = '',
 }: ListPageLayoutProps) {
-  const isDarkMode = useUIStore((state) => state.isDarkMode)
+  const isDarkMode = useUIStore((state) => state.isDarkMode);
 
   return (
     <div className={`w-full ${className}`}>
@@ -65,5 +65,5 @@ export default function ListPageLayout({
       {/* Main content: pagination + DataTable or custom content */}
       {children}
     </div>
-  )
+  );
 }
