@@ -9,6 +9,7 @@ import { toast } from '../../stores/toast.store'
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../utils/entityCache'
 import { getEntityMetadata, getEntityList, type EntityListFilter } from './admin.api'
 import type { EntityField, EntityFilterField } from './admin.api'
+import { getEntityConfig } from '../../config/entity.config'
 
 /** Format ISO date-time string for UI (e.g. "31 Jan 2026, 12:37 pm") */
 function formatDateTime(isoOrValue: string | number | null | undefined): string {
@@ -86,19 +87,15 @@ function metadataToFilterConfig(f: EntityFilterField): FilterConfig {
   }
 }
 
-/** Entity name from .env (e.g. VITE_ENTITY_NAME=user). Used for metadata and list API. */
-const getEntityName = (): string => {
-  const v = import.meta.env.VITE_ENTITY_NAME
-  return typeof v === 'string' && v.trim() ? v.trim() : 'user'
-}
-
 // Module-level in-flight flag so it survives Strict Mode unmount/remount (avoids duplicate API calls)
 let metadataFetchInFlight = false
 
 export default function UsersPage() {
   const navigate = useNavigate()
   const isDarkMode = useUIStore((state) => state.isDarkMode)
-  const entityName = getEntityName()
+  // Explicitly specify entity name for this page
+  const entityName = 'user'
+  const entityConfig = getEntityConfig(entityName)
   const [filters, setFilters] = useState<Record<string, FilterValue>>({})
   const [entityMetadata, setEntityMetadata] = useState<{
     display_name: string
@@ -107,7 +104,6 @@ export default function UsersPage() {
   } | null>(null)
   const [metadataLoading, setMetadataLoading] = useState(true)
   const [metadataError, setMetadataError] = useState<string | null>(null)
-  const [metadataSource, setMetadataSource] = useState<'cache' | 'api' | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [listLoading, setListLoading] = useState(false)
   const [page, setPage] = useState(1)
@@ -164,7 +160,6 @@ export default function UsersPage() {
           console.log('[GoldFlow] [UsersPage] Metadata: from database (API)', { entityName })
           setEntityMetadata(meta)
           setEntityMetadataCache(entityName, meta)
-          setMetadataSource('api')
         } else {
           const msg = 'Metadata response had no fields or filters.'
           setMetadataError(msg)
@@ -207,7 +202,6 @@ export default function UsersPage() {
         fields: cached.fields,
         filters: cached.filters,
       })
-      setMetadataSource('cache')
       setMetadataLoading(false)
       setMetadataError(null)
       return
@@ -293,9 +287,9 @@ export default function UsersPage() {
     }))
   }, [entityMetadata, isDarkMode])
 
-  // Handle add user - navigate to add page
-  const handleAddUser = () => {
-    navigate('/users/add')
+  // Handle add entity - navigate to add page
+  const handleAddEntity = () => {
+    navigate(entityConfig.routes.add)
   }
 
   // Define table actions
@@ -303,7 +297,7 @@ export default function UsersPage() {
     {
       label: 'Edit',
       onClick: (row) => {
-        navigate(`/users/edit/${row.id}`)
+        navigate(`${entityConfig.routes.edit.replace(':id', String(row.id))}`)
       },
       variant: 'primary',
       icon: (
@@ -322,7 +316,8 @@ export default function UsersPage() {
       onClick: (row) => {
         const displayName = (row.name ?? row.username ?? 'this user') as string
         if (window.confirm(`Are you sure you want to delete ${displayName}?`)) {
-          // TODO: call your delete API then refetch list
+          // TODO: Implement delete functionality
+          toast.info('Delete functionality to be implemented')
         }
       },
       variant: 'danger',
@@ -365,42 +360,42 @@ export default function UsersPage() {
       {/* Page Header */}
       <div className="mb-6">
         <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-          {metadataLoading ? '...' : (entityMetadata?.display_name ?? 'Users Management')}
+          {metadataLoading ? '...' : (entityMetadata?.display_name ?? `${entityConfig.displayNamePlural} Management`)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Manage all users and their permissions
+          Manage all {entityConfig.displayNamePlural.toLowerCase()} and their permissions
         </p>
       </div>
 
-      {/* Toolbar - Search, Total Users, and Add Button */}
+      {/* Toolbar - Search, Total Items, and Add Button */}
       <div className={`mb-4 p-4`}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           {/* Left Side - Search and Total */}
           <div className="flex-1 w-full sm:w-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
 
 
-            {/* Total Users (from API) */}
+            {/* Total Items (from API) */}
             <div className={`text-sm flex items-center gap-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              <span>Total Users:</span>
+              <span>Total {entityConfig.displayNamePlural}:</span>
               <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 {listLoading ? '...' : totalItems}
               </span>
             </div>
           </div>
 
-          {/* Right Side - Add User Button (matches Add Filter: height, padding, font) */}
+          {/* Right Side - Add Button (matches Add Filter: height, padding, font) */}
           <div className="w-full sm:w-auto">
             <button
               className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
-              onClick={handleAddUser}
+              onClick={handleAddEntity}
             >
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span>Add User</span>
+              <span>Add {entityConfig.displayName}</span>
             </button>
           </div>
         </div>
@@ -458,7 +453,7 @@ export default function UsersPage() {
         pageSize={pageSize}
         loading={listLoading}
         onRowClick={handleRowClick}
-        emptyMessage="No users found"
+        emptyMessage={`No ${entityConfig.displayNamePlural.toLowerCase()} found`}
       />
     </div>
   )
