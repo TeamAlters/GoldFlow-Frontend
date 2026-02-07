@@ -5,8 +5,7 @@
  */
 
 import { useAuthStore } from '../../auth/auth.store'
-
-const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL ?? ''
+import { buildEntityUrl, getEntityConfig } from '../../config/entity.config'
 
 /** Build headers with Bearer token for authenticated API calls. Backend must accept "Authorization: Bearer <token>". */
 function getAuthHeaders(): HeadersInit {
@@ -50,23 +49,13 @@ export type EntityMetadataResponse = {
   status_code?: number
 }
 
-/** Metadata path template from env; {entity_name} is replaced at runtime. Default: /api/v1/entities/{entity_name}/listing-metadata */
-const getEntityMetadataPath = (entityName: string): string => {
-  const template =
-    (typeof import.meta.env.VITE_ENTITY_METADATA_PATH === 'string' &&
-      import.meta.env.VITE_ENTITY_METADATA_PATH.trim()) ||
-    '/api/v1/entities/{entity_name}/listing-metadata'
-  return template.replace(/\{entity_name\}/g, encodeURIComponent(entityName))
-}
-
 /**
  * GET /api/v1/entities/{entity_name}/listing-metadata
- * Path comes from VITE_ENTITY_METADATA_PATH in .env (default: /api/v1/entities/{entity_name}/listing-metadata).
+ * Uses entity config to build the URL dynamically.
  */
 export async function getEntityMetadata(entityName: string): Promise<EntityMetadataResponse> {
-  const baseUrl = getBaseUrl()
-  const path = getEntityMetadataPath(entityName)
-  const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
+  const config = getEntityConfig(entityName)
+  const url = buildEntityUrl(config.api.metadata, entityName)
   const headers = getAuthHeaders()
   const hasToken = !!(headers as Record<string, string>).Authorization
   console.log('[GoldFlow] [admin.api] getEntityMetadata: request', { entityName, url: url.replace(/\?.*/, ''), hasToken })
@@ -149,14 +138,6 @@ export type EntityListResponse = {
   status_code?: number
 }
 
-const getEntityListPath = (entityName: string): string => {
-  const template =
-    (typeof import.meta.env.VITE_ENTITY_LIST_PATH === 'string' &&
-      import.meta.env.VITE_ENTITY_LIST_PATH.trim()) ||
-    '/api/v1/entities/{entity_name}/list'
-  return template.replace(/\{entity_name\}/g, encodeURIComponent(entityName))
-}
-
 /**
  * GET /api/v1/entities/{entity_name}/list?page=1&page_size=20&filters=...
  * Fetches paginated list with optional filters. Filters are sent as JSON array of { field, operator, value }.
@@ -165,8 +146,8 @@ export async function getEntityList(
   entityName: string,
   params: EntityListParams = {}
 ): Promise<EntityListResponse> {
-  const baseUrl = getBaseUrl()
-  const path = getEntityListPath(entityName)
+  const config = getEntityConfig(entityName)
+  const baseUrl = buildEntityUrl(config.api.list, entityName)
   const { page = 1, page_size = 20, filters = [] } = params
   const search = new URLSearchParams()
   search.set('page', String(page))
@@ -174,7 +155,7 @@ export async function getEntityList(
   if (filters.length > 0) {
     search.set('filters', JSON.stringify(filters))
   }
-  const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}?${search.toString()}`
+  const url = `${baseUrl}?${search.toString()}`
   const headers = getAuthHeaders()
   console.log('[GoldFlow] [admin.api] getEntityList: request', { entityName, page, page_size, filtersCount: filters.length })
   const res = await fetch(url, { method: 'GET', headers })
@@ -205,4 +186,159 @@ export async function getEntityList(
   const totalItems = data.data?.pagination?.total_items
   console.log('[GoldFlow] [admin.api] getEntityList: success', { entityName, itemsCount, totalItems })
   return data
+}
+
+/**
+ * POST /api/v1/entities/{entity_name}
+ * Create a new entity item
+ */
+export async function createEntity(
+  entityName: string,
+  data: Record<string, unknown>
+): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
+  const config = getEntityConfig(entityName)
+  const url = buildEntityUrl(config.api.create, entityName)
+  const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' }
+  
+  console.log('[GoldFlow] [admin.api] createEntity: request', { entityName, url })
+  
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(data),
+  })
+  
+  const text = await res.text()
+  let responseData: { success?: boolean; message?: string; data?: Record<string, unknown>; detail?: string } = {}
+  
+  if (text.trim()) {
+    try {
+      responseData = JSON.parse(text)
+    } catch {
+      // ignore
+    }
+  }
+  
+  if (!res.ok) {
+    const errMsg = responseData.detail ?? responseData.message ?? `Failed to create ${entityName} (${res.status})`
+    console.log('[GoldFlow] [admin.api] createEntity: failed', { status: res.status, entityName, errMsg })
+    throw new Error(errMsg)
+  }
+  
+  console.log('[GoldFlow] [admin.api] createEntity: success', { entityName })
+  return responseData
+}
+
+/**
+ * GET /api/v1/entities/{entity_name}/{id}
+ * Get a single entity item by ID
+ */
+export async function getEntity(
+  entityName: string,
+  id: string | number
+): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
+  const config = getEntityConfig(entityName)
+  const url = buildEntityUrl(config.api.get, entityName, { id })
+  const headers = getAuthHeaders()
+  
+  console.log('[GoldFlow] [admin.api] getEntity: request', { entityName, id, url })
+  
+  const res = await fetch(url, { method: 'GET', headers })
+  const text = await res.text()
+  let responseData: { success?: boolean; message?: string; data?: Record<string, unknown>; detail?: string } = {}
+  
+  if (text.trim()) {
+    try {
+      responseData = JSON.parse(text)
+    } catch {
+      // ignore
+    }
+  }
+  
+  if (!res.ok) {
+    const errMsg = responseData.detail ?? responseData.message ?? `Failed to get ${entityName} (${res.status})`
+    console.log('[GoldFlow] [admin.api] getEntity: failed', { status: res.status, entityName, id, errMsg })
+    throw new Error(errMsg)
+  }
+  
+  console.log('[GoldFlow] [admin.api] getEntity: success', { entityName, id })
+  return responseData
+}
+
+/**
+ * PUT/PATCH /api/v1/entities/{entity_name}/{id}
+ * Update an existing entity item
+ */
+export async function updateEntity(
+  entityName: string,
+  id: string | number,
+  data: Record<string, unknown>
+): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
+  const config = getEntityConfig(entityName)
+  const url = buildEntityUrl(config.api.update, entityName, { id })
+  const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' }
+  
+  console.log('[GoldFlow] [admin.api] updateEntity: request', { entityName, id, url })
+  
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(data),
+  })
+  
+  const text = await res.text()
+  let responseData: { success?: boolean; message?: string; data?: Record<string, unknown>; detail?: string } = {}
+  
+  if (text.trim()) {
+    try {
+      responseData = JSON.parse(text)
+    } catch {
+      // ignore
+    }
+  }
+  
+  if (!res.ok) {
+    const errMsg = responseData.detail ?? responseData.message ?? `Failed to update ${entityName} (${res.status})`
+    console.log('[GoldFlow] [admin.api] updateEntity: failed', { status: res.status, entityName, id, errMsg })
+    throw new Error(errMsg)
+  }
+  
+  console.log('[GoldFlow] [admin.api] updateEntity: success', { entityName, id })
+  return responseData
+}
+
+/**
+ * DELETE /api/v1/entities/{entity_name}/{id}
+ * Delete an entity item
+ */
+export async function deleteEntity(
+  entityName: string,
+  id: string | number
+): Promise<{ success?: boolean; message?: string }> {
+  const config = getEntityConfig(entityName)
+  const url = buildEntityUrl(config.api.delete, entityName, { id })
+  const headers = getAuthHeaders()
+  
+  console.log('[GoldFlow] [admin.api] deleteEntity: request', { entityName, id, url })
+  
+  const res = await fetch(url, { method: 'DELETE', headers })
+  const text = await res.text()
+  let responseData: { success?: boolean; message?: string; detail?: string } = {}
+  
+  if (text.trim()) {
+    try {
+      responseData = JSON.parse(text)
+    } catch {
+      // ignore
+    }
+  }
+  
+  if (!res.ok) {
+    const errMsg = responseData.detail ?? responseData.message ?? `Failed to delete ${entityName} (${res.status})`
+    console.log('[GoldFlow] [admin.api] deleteEntity: failed', { status: res.status, entityName, id, errMsg })
+    throw new Error(errMsg)
+  }
+  
+  console.log('[GoldFlow] [admin.api] deleteEntity: success', { entityName, id })
+  return responseData
 }
