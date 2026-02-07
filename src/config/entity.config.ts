@@ -74,7 +74,7 @@ const getBaseUrl = (): string => {
  * These can be customized via environment variables or per-entity config
  */
 const DEFAULT_API_PATHS = {
-  metadata: '/api/v1/entities/{entity_name}/metadata',
+  metadata: '/api/v1/entities/{entity_name}/listing-metadata',
   list: '/api/v1/entities/{entity_name}/list',
   create: '/api/v1/entities/{entity_name}',
   get: '/api/v1/entities/{entity_name}/{id}',
