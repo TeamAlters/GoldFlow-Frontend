@@ -9,6 +9,7 @@ import FilterComponent, {
   type FilterValue,
 } from '../../shared/components/FilterComponent';
 import ListPageLayout from '../../shared/components/ListPageLayout';
+import Pagination from '../../shared/components/Pagination';
 import { useUIStore } from '../../stores/ui.store';
 import { toast } from '../../stores/toast.store';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../utils/entityCache';
@@ -35,6 +36,7 @@ export default function UsersPage() {
     display_name: string;
     fields: EntityField[];
     filters: { default_visible: EntityFilterField[]; additional: EntityFilterField[] };
+    pagination?: { default_page_size?: number; page_sizes?: number[] };
     id_field?: string;
     detail_link_field?: string;
   } | null>(null);
@@ -43,9 +45,9 @@ export default function UsersPage() {
   const [users, setUsers] = useState<EntityRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  const [pageSize, setPageSize] = useState<number | undefined>(20);
+  const [totalItems, setTotalItems] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(0);
   const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
   const lastToastedErrorRef = useRef<string | null>(null);
@@ -94,6 +96,7 @@ export default function UsersPage() {
                 : [],
               additional: Array.isArray(data.filters?.additional) ? data.filters.additional : [],
             },
+            pagination: data.pagination,
             id_field: data.id_field,
             detail_link_field: data.detail_link_field,
           };
@@ -246,7 +249,7 @@ export default function UsersPage() {
         // Support both { data: { items, pagination } } and top-level { items, pagination } / { results }
         type ResShape = typeof res & {
           items?: unknown[];
-          pagination?: { total_items?: number; total_pages?: number };
+          pagination?: { page?: number; page_size?: number; total_items?: number; total_pages?: number };
         };
         type DataShape = { items?: unknown[]; results?: unknown[]; pagination?: ResShape['pagination'] };
         const data: DataShape | undefined = res.data ?? (res as ResShape);
@@ -259,10 +262,12 @@ export default function UsersPage() {
         setUsers(items as EntityRow[]);
         setTotalItems(pag?.total_items ?? 0);
         setTotalPages(pag?.total_pages ?? 0);
+        if (pag?.page_size != null) setPageSize(pag.page_size);
         console.log('[GoldFlow] [UsersPage] fetchList: success', {
           itemCount: items.length,
           totalItems: pag?.total_items,
           totalPages: pag?.total_pages,
+          pageSize: pag?.page_size,
         });
       })
       .catch((err) => {
@@ -279,6 +284,11 @@ export default function UsersPage() {
       })
       .finally(() => setListLoading(false));
   }, [token, entityName, page, pageSize, filtersForApi, showErrorToast, handleAuthError]);
+
+  useEffect(() => {
+    const defaultSize = entityMetadata?.pagination?.default_page_size;
+    if (defaultSize != null && defaultSize > 0) setPageSize(defaultSize);
+  }, [entityMetadata?.pagination?.default_page_size]);
 
   useEffect(() => {
     if (!token || !entityMetadata) return;
@@ -448,31 +458,6 @@ export default function UsersPage() {
         </p>
       )}
 
-      {totalPages > 1 && (
-        <div
-          className={`mb-2 flex items-center gap-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}
-        >
-          <span>
-            Page {page} of {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={page <= 1 || listLoading}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="px-2 py-1 rounded border disabled:opacity-50"
-          >
-            Prev
-          </button>
-          <button
-            type="button"
-            disabled={page >= totalPages || listLoading}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="px-2 py-1 rounded border disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      )}
 
       <DataTable
         data={users}
@@ -484,6 +469,14 @@ export default function UsersPage() {
         loading={listLoading}
         onRowClick={handleRowClick}
         emptyMessage={`No ${entityConfig.displayNamePlural.toLowerCase()} found`}
+      />
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        loading={listLoading}
       />
     </ListPageLayout>
   );
