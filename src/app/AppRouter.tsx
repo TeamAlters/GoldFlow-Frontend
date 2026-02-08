@@ -4,8 +4,9 @@ import SignUp from '../auth/SignUp';
 import RequireAuth from '../auth/RequireAuth';
 import DashboardIndex from '../modules/dashboard/DashboardPage';
 import UsersPage from '../modules/admin/UsersPage';
-import UserFormPage from '../modules/admin/UserFormPage';
-import EntityDetailPage from '../modules/admin/UserDetailPage';
+import AddUserPage from '../modules/admin/AddUserPage';
+import EditUserPage from '../modules/admin/EditUserPage';
+import UserDetailPage from '../modules/admin/UserDetailPage';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -52,9 +53,9 @@ export default function AppRouter() {
           <Route path="issues/*" element={<DashboardIndex />} />
           <Route path="reports/*" element={<DashboardIndex />} />
           <Route path="users" element={<UsersPage />} />
-          <Route path="users/add" element={<UserFormPage />} />
-          <Route path="users/edit/:id" element={<UserFormPage />} />
-          <Route path="users/:id" element={<EntityDetailPage />} />
+          <Route path="users/add" element={<AddUserPage />} />
+          <Route path="users/edit/:id" element={<EditUserPage />} />
+          <Route path="users/:id" element={<UserDetailPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>

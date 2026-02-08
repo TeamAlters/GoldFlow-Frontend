@@ -78,7 +78,10 @@ export const sidebarNavConfig: NavCategory[] = [
     id: 'users',
     category: 'Users',
     icon: 'user',
-    items: [{ name: 'All Users', path: '/users', icon: 'list', entityName: 'user' }],
+    items: [
+      { name: 'All Users', path: '/users', icon: 'list', entityName: 'user' },
+      { name: 'Roles & Permissions', path: '/roles', icon: 'key' },
+    ],
   },
   {
     id: 'quality',
@@ -109,7 +112,6 @@ export const adminNavConfig: NavCategory = {
   icon: 'users-cog',
   items: [
     { name: 'All Users', path: '/users', icon: 'users' },
-    { name: 'Roles', path: '/users/roles', icon: 'key' },
-    { name: 'Permissions', path: '/users/permissions', icon: 'lock' },
+    { name: 'Roles & Permissions', path: '/roles', icon: 'key' },
   ],
 };
