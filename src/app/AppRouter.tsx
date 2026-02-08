@@ -5,7 +5,7 @@ import RequireAuth from '../auth/RequireAuth';
 import DashboardIndex from '../modules/dashboard/DashboardPage';
 import UsersPage from '../modules/admin/UsersPage';
 import UserFormPage from '../modules/admin/UserFormPage';
-import EntityDetailPage from '../modules/admin/EntityDetailPage';
+import EntityDetailPage from '../modules/admin/UserDetailPage';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 

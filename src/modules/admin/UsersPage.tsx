@@ -16,6 +16,7 @@ import { getEntityMetadataCache, setEntityMetadataCache } from '../../utils/enti
 import { getEntityMetadata, getEntityList, type EntityListFilter } from './admin.api';
 import type { EntityField, EntityFilterField } from './admin.api';
 import { getEntityConfig } from '../../config/entity.config';
+import Breadcrumbs from '../../layout/Breadcrumbs';
 import { getRowDisplayValue } from '../../shared/utils/common';
 import { metadataToFilterConfig } from '../../shared/utils/entityFilters';
 
@@ -412,72 +413,81 @@ export default function UsersPage() {
     Object.keys(filterConfig.addable ?? {}).length > 0;
 
   return (
-    <ListPageLayout
-      title={
-        metadataLoading
-          ? '...'
-          : (entityMetadata?.display_name ?? `${entityConfig.displayNamePlural} Management`)
-      }
-      description={`Manage all ${entityConfig.displayNamePlural.toLowerCase()} and their permissions`}
-      toolbarLeft={
-        <h2
-          className={`flex items-center gap-2 flex-nowrap whitespace-nowrap text-xl font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
-        >
-          <span>Total {entityConfig.displayNamePlural}:</span>
-          <span>{listLoading ? '...' : totalItems}</span>
-        </h2>
-      }
-      toolbarRight={
-        <button
-          className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
-            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-            : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
-          onClick={handleAddEntity}
-        >
-          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Add {entityConfig.displayName}</span>
-        </button>
-      }
-      filters={
-        hasFilters ? (
-          <FilterComponent
-            columns={columns}
-            config={filterConfig}
-            onFilterChange={setFilters}
-            initialFilters={filters}
-          />
-        ) : undefined
-      }
-    >
-      {!metadataLoading && !metadataError && columns.length === 0 && (
-        <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Loading table columns and filters…
-        </p>
-      )}
+    <>
+      <Breadcrumbs
+        items={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: entityConfig.displayNamePlural },
+        ]}
+        className="mb-4"
+      />
+      <ListPageLayout
+        title={
+          metadataLoading
+            ? '...'
+            : (entityMetadata?.display_name ?? `${entityConfig.displayNamePlural} Management`)
+        }
+        description={`Manage all ${entityConfig.displayNamePlural.toLowerCase()} and their permissions`}
+        toolbarLeft={
+          <h2
+            className={`flex items-center gap-2 flex-nowrap whitespace-nowrap text-xl font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+          >
+            <span>Total {entityConfig.displayNamePlural}:</span>
+            <span>{listLoading ? '...' : totalItems}</span>
+          </h2>
+        }
+        toolbarRight={
+          <button
+            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
+            onClick={handleAddEntity}
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Add {entityConfig.displayName}</span>
+          </button>
+        }
+        filters={
+          hasFilters ? (
+            <FilterComponent
+              columns={columns}
+              config={filterConfig}
+              onFilterChange={setFilters}
+              initialFilters={filters}
+            />
+          ) : undefined
+        }
+      >
+        {!metadataLoading && !metadataError && columns.length === 0 && (
+          <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Loading table columns and filters…
+          </p>
+        )}
 
 
-      <DataTable
-        data={users}
-        columns={columns}
-        actions={actions}
-        searchable={false}
-        pagination={totalPages <= 1}
-        pageSize={pageSize}
-        loading={listLoading}
-        onRowClick={handleRowClick}
-        emptyMessage={`No ${entityConfig.displayNamePlural.toLowerCase()} found`}
-      />
-      <Pagination
-        page={page}
-        pageSize={pageSize ?? 20}
-        totalItems={totalItems}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        loading={listLoading}
-      />
-    </ListPageLayout>
+        <DataTable
+          data={users}
+          columns={columns}
+          actions={actions}
+          searchable={false}
+          pagination={totalPages <= 1}
+          pageSize={pageSize}
+          loading={listLoading}
+          onRowClick={handleRowClick}
+          emptyMessage={`No ${entityConfig.displayNamePlural.toLowerCase()} found`}
+        />
+        <Pagination
+          page={page}
+          pageSize={pageSize ?? 20}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          loading={listLoading}
+        />
+      </ListPageLayout>
+    </>
   );
 }
