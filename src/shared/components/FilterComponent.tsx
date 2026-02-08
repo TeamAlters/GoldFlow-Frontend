@@ -27,24 +27,22 @@ export type FilterComponentConfig = {
   addable?: Record<string, FilterConfig>;
 };
 
-/** Convert stored value to datetime-local input value (yyyy-MM-ddThh:mm). */
-function toDateTimeLocalValue(s: string | null | undefined): string {
+/** Convert stored value to date input value (yyyy-MM-dd). Accepts date or datetime strings. */
+function toDateLocalValue(s: string | null | undefined): string {
   if (s == null || s === '') return '';
   const trimmed = String(s).trim();
   if (!trimmed) return '';
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) return trimmed.slice(0, 16);
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 10);
   return trimmed;
 }
 
-/** Current date/time in datetime-local format (yyyy-MM-ddThh:mm). Use as max so future dates cannot be selected. */
-function getDateTimeLocalMax(): string {
+/** Today in yyyy-MM-dd. Use as max so future dates cannot be selected. */
+function getDateLocalMax(): string {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
-  const h = String(now.getHours()).padStart(2, '0');
-  const min = String(now.getMinutes()).padStart(2, '0');
-  return `${y}-${m}-${d}T${h}:${min}`;
+  return `${y}-${m}-${d}`;
 }
 
 export interface FilterComponentProps<T> {
@@ -437,9 +435,9 @@ export default function FilterComponent<T extends Record<string, any>>({
                 {filterConfig.dataType === 'datetime' ? (
                   <>
                     <input
-                      type="datetime-local"
-                      max={getDateTimeLocalMax()}
-                      value={toDateTimeLocalValue(Array.isArray(value) ? value[0] : null)}
+                      type="date"
+                      max={getDateLocalMax()}
+                      value={toDateLocalValue(Array.isArray(value) ? value[0] : null)}
                       onChange={(e) => {
                         const v0 = e.target.value;
                         const v1 = Array.isArray(value) ? (value[1] ?? '') : '';
@@ -452,9 +450,9 @@ export default function FilterComponent<T extends Record<string, any>>({
                       }
                     />
                     <input
-                      type="datetime-local"
-                      max={getDateTimeLocalMax()}
-                      value={toDateTimeLocalValue(Array.isArray(value) ? value[1] : null)}
+                      type="date"
+                      max={getDateLocalMax()}
+                      value={toDateLocalValue(Array.isArray(value) ? value[1] : null)}
                       onChange={(e) => {
                         const v0 = Array.isArray(value) ? (value[0] ?? '') : '';
                         const v1 = e.target.value;
@@ -521,9 +519,9 @@ export default function FilterComponent<T extends Record<string, any>>({
               </div>
             ) : filterConfig.dataType === 'datetime' ? (
               <input
-                type="datetime-local"
-                max={getDateTimeLocalMax()}
-                value={toDateTimeLocalValue((value as string) ?? null)}
+                type="date"
+                max={getDateLocalMax()}
+                value={toDateLocalValue((value as string) ?? null)}
                 onChange={(e) => {
                   const v = e.target.value;
                   updateFilter(operator, v === '' ? null : v);
@@ -662,9 +660,9 @@ export default function FilterComponent<T extends Record<string, any>>({
       case 'datetime':
         return (
           <input
-            type="datetime-local"
-            max={getDateTimeLocalMax()}
-            value={toDateTimeLocalValue((value as string) ?? null)}
+            type="date"
+            max={getDateLocalMax()}
+            value={toDateLocalValue((value as string) ?? null)}
             onChange={(e) => {
               const newValue = e.target.value;
               handleFilterChange(key, newValue === '' ? null : newValue, isAddable);

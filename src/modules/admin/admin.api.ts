@@ -126,7 +126,11 @@ export async function getEntityMetadata(entityName: string): Promise<EntityMetad
 }
 
 /** Filter object sent to the list API */
-export type EntityListFilter = { field: string; operator: string; value: string | string[] | null };
+export type EntityListFilter = {
+  field: string;
+  operator: string;
+  value: string | string[] | boolean | null;
+};
 
 export type EntityListParams = {
   page?: number;
@@ -169,6 +173,7 @@ export async function getEntityList(
     page,
     page_size,
     filtersCount: filters.length,
+    filters: filters.length > 0 ? filters : undefined,
   });
   const res = await fetch(url, { method: 'GET', headers });
   const text = await res.text();
