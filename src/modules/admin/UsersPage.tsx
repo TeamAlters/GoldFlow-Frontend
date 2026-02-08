@@ -291,16 +291,41 @@ export default function UsersPage() {
     if (!visibleFields.length) return [];
     const detailLinkField = entityMetadata?.detail_link_field;
     const idField = entityMetadata?.id_field || 'id';
-    
+
     return visibleFields.map((f) => ({
       key: f.name,
       header: f.label,
       sortable: true,
-      accessor: (row: EntityRow) => (
-        <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
-          {getRowDisplayValue(row, f.name, f.type)}
-        </span>
-      ),
+      accessor: (row: EntityRow) => {
+        const value = getRowDisplayValue(row, f.name, f.type);
+        const isDetailLink = f.name === detailLinkField;
+
+        if (isDetailLink) {
+          const rowId = row[idField];
+          return (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
+              }}
+              className={
+                isDarkMode
+                  ? 'text-amber-400 hover:text-amber-300 underline'
+                  : 'text-amber-600 hover:text-amber-700 underline'
+              }
+            >
+              {value}
+            </button>
+          );
+        }
+
+        return (
+          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
+            {value}
+          </span>
+        );
+      },
     }));
   }, [entityMetadata, isDarkMode, navigate, entityConfig]);
 
