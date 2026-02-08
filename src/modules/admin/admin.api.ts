@@ -44,6 +44,44 @@ export type EntityMetadataResponse = {
     };
     actions?: { create_url?: string };
     pagination?: { default_page_size?: number; page_sizes?: number[] };
+    id_field?: string;
+    detail_link_field?: string;
+  };
+  errors?: unknown;
+  status_code?: number;
+};
+
+export type FormFieldMetadata = {
+  name: string;
+  label: string;
+  type: string;
+  required: boolean;
+  read_only: boolean;
+  nullable: boolean;
+};
+
+export type FieldGroup = {
+  id: string;
+  label: string;
+  fields: string[];
+  collapsible: boolean;
+};
+
+export type FormMetadataResponse = {
+  success?: boolean;
+  message?: string;
+  data?: {
+    entity_name: string;
+    display_name: string;
+    field_groups: FieldGroup[];
+    fields: Record<string, FormFieldMetadata>;
+    actions?: Record<string, {
+      label: string;
+      url: string;
+      method: string;
+      type: string;
+      confirmation_required?: boolean;
+    }>;
   };
   errors?: unknown;
   status_code?: number;
@@ -51,11 +89,11 @@ export type EntityMetadataResponse = {
 
 /**
  * GET /api/v1/entities/{entity_name}/listing-metadata
- * Uses entity config to build the URL dynamically.
+ * Fetches metadata for entity list views (columns, filters, etc.)
  */
 export async function getEntityMetadata(entityName: string): Promise<EntityMetadataResponse> {
   const config = getEntityConfig(entityName);
-  const url = buildEntityUrl(config.api.metadata, entityName);
+  const url = buildEntityUrl(config.api.listingMetadata, entityName);
   const headers = getAuthHeaders();
   const hasToken = !!(headers as Record<string, string>).Authorization;
   console.log('[GoldFlow] [admin.api] getEntityMetadata: request', {
@@ -120,8 +158,84 @@ export async function getEntityMetadata(entityName: string): Promise<EntityMetad
       ...(raw.pagination != null && {
         pagination: raw.pagination as { default_page_size?: number; page_sizes?: number[] },
       }),
+      ...(raw.id_field != null && { id_field: raw.id_field as string }),
+      ...(raw.detail_link_field != null && { detail_link_field: raw.detail_link_field as string }),
     },
   } as EntityMetadataResponse;
+  return out;
+}
+
+/**
+ * GET /api/v1/entities/{entity_name}/form-metadata
+ * Fetches metadata for entity forms (fields, validation, etc.)
+ */
+export async function getEntityFormMetadata(entityName: string): Promise<FormMetadataResponse> {
+  const config = getEntityConfig(entityName);
+  const url = buildEntityUrl(config.api.formMetadata, entityName);
+  const headers = getAuthHeaders();
+  const hasToken = !!(headers as Record<string, string>).Authorization;
+  console.log('[GoldFlow] [admin.api] getEntityFormMetadata: request', {
+    entityName,
+    url: url.replace(/\?.*/, ''),
+    hasToken,
+  });
+  if (!hasToken) {
+    console.warn('[GoldFlow] [admin.api] getEntityFormMetadata: no token – backend may return 401');
+  }
+  const res = await fetch(url, { method: 'GET', headers });
+  const text = await res.text();
+  let data: FormMetadataResponse & { detail?: string | string[] } = {};
+  if (text.trim()) {
+    try {
+      data = JSON.parse(text) as FormMetadataResponse & { detail?: string | string[] };
+    } catch {
+      // ignore
+    }
+  }
+  if (!res.ok) {
+    const detail = data.detail;
+    const detailStr =
+      typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.join(', ') : null;
+    const errMsg =
+      detailStr ??
+      (data as { message?: string }).message ??
+      (Array.isArray((data as { errors?: string[] }).errors)
+        ? (data as { errors: string[] }).errors.join(', ')
+        : null) ??
+      `Failed to load form metadata (${res.status})`;
+    console.log('[GoldFlow] [admin.api] getEntityFormMetadata: failed', {
+      status: res.status,
+      entityName,
+      errMsg,
+    });
+    throw new Error(errMsg);
+  }
+  console.log('[GoldFlow] [admin.api] getEntityFormMetadata: success', { entityName });
+
+  // Normalize: accept payload in .data or at top level
+  const payload = (data as { data?: typeof data }).data ?? data;
+  const raw = payload as Record<string, unknown>;
+  const hasData = Array.isArray(raw?.field_groups) || raw?.display_name != null || raw?.fields != null;
+  if (!hasData) return data as FormMetadataResponse;
+
+  const out = {
+    ...data,
+    data: {
+      entity_name: (raw.entity_name as string) ?? entityName,
+      display_name: (raw.display_name as string) ?? '',
+      field_groups: (Array.isArray(raw.field_groups) ? raw.field_groups : []) as FieldGroup[],
+      fields: (raw.fields as Record<string, FormFieldMetadata>) ?? {},
+      ...(raw.actions != null && { 
+        actions: raw.actions as Record<string, {
+          label: string;
+          url: string;
+          method: string;
+          type: string;
+          confirmation_required?: boolean;
+        }> 
+      }),
+    },
+  } as FormMetadataResponse;
   return out;
 }
 

@@ -35,6 +35,8 @@ export default function UsersPage() {
     display_name: string;
     fields: EntityField[];
     filters: { default_visible: EntityFilterField[]; additional: EntityFilterField[] };
+    id_field?: string;
+    detail_link_field?: string;
   } | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(true);
   const [metadataError, setMetadataError] = useState<string | null>(null);
@@ -92,6 +94,8 @@ export default function UsersPage() {
                 : [],
               additional: Array.isArray(data.filters?.additional) ? data.filters.additional : [],
             },
+            id_field: data.id_field,
+            detail_link_field: data.detail_link_field,
           };
           console.log('[GoldFlow] [UsersPage] Metadata: from database (API)', { entityName });
           setEntityMetadata(meta);
@@ -142,6 +146,8 @@ export default function UsersPage() {
         display_name: cached.display_name,
         fields: cached.fields,
         filters: cached.filters,
+        id_field: cached.id_field,
+        detail_link_field: cached.detail_link_field,
       });
       setMetadataLoading(false);
       setMetadataError(null);
@@ -283,6 +289,9 @@ export default function UsersPage() {
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
     if (!visibleFields.length) return [];
+    const detailLinkField = entityMetadata?.detail_link_field;
+    const idField = entityMetadata?.id_field || 'id';
+    
     return visibleFields.map((f) => ({
       key: f.name,
       header: f.label,
@@ -293,7 +302,7 @@ export default function UsersPage() {
         </span>
       ),
     }));
-  }, [entityMetadata, isDarkMode]);
+  }, [entityMetadata, isDarkMode, navigate, entityConfig]);
 
   // Handle add entity - navigate to add page
   const handleAddEntity = () => {

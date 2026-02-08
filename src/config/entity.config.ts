@@ -22,8 +22,11 @@ export type EntityConfig = {
 
   /** API endpoint paths - can use {entity_name} placeholder which will be replaced with entity name */
   api: {
-    /** GET metadata endpoint */
-    metadata: string;
+    /** GET listing metadata endpoint (for table columns and filters) */
+    listingMetadata: string;
+
+    /** GET form metadata endpoint (for form fields and validation) */
+    formMetadata: string;
 
     /** GET list endpoint */
     list: string;
@@ -51,6 +54,9 @@ export type EntityConfig = {
 
     /** Edit item route (use :id for route param) */
     edit: string;
+
+    /** Detail/view item route (use :id for route param) */
+    detail: string;
   };
 
   /** Optional: Enable/disable specific features */
@@ -74,7 +80,8 @@ const getBaseUrl = (): string => {
  * These can be customized via environment variables or per-entity config
  */
 const DEFAULT_API_PATHS = {
-  metadata: '/api/v1/entities/{entity_name}/listing-metadata',
+  listingMetadata: '/api/v1/entities/{entity_name}/listing-metadata',
+  formMetadata: '/api/v1/entities/{entity_name}/form-metadata',
   list: '/api/v1/entities/{entity_name}/list',
   create: '/api/v1/entities/{entity_name}',
   get: '/api/v1/entities/{entity_name}/{id}',
@@ -91,7 +98,8 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     displayName: 'User',
     displayNamePlural: 'Users',
     api: {
-      metadata: DEFAULT_API_PATHS.metadata,
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
       list: DEFAULT_API_PATHS.list,
       create: DEFAULT_API_PATHS.create,
       get: DEFAULT_API_PATHS.get,
@@ -102,6 +110,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       list: '/users',
       add: '/users/add',
       edit: '/users/edit/:id',
+      detail: '/users/:id',
     },
     features: {
       canCreate: true,
@@ -116,7 +125,8 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     displayName: 'Product',
     displayNamePlural: 'Products',
     api: {
-      metadata: DEFAULT_API_PATHS.metadata,
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
       list: DEFAULT_API_PATHS.list,
       create: DEFAULT_API_PATHS.create,
       get: DEFAULT_API_PATHS.get,
@@ -127,6 +137,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       list: '/products',
       add: '/products/add',
       edit: '/products/edit/:id',
+      detail: '/products/:id',
     },
     features: {
       canCreate: true,
@@ -140,7 +151,8 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     displayName: 'Work Order',
     displayNamePlural: 'Work Orders',
     api: {
-      metadata: DEFAULT_API_PATHS.metadata,
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
       list: DEFAULT_API_PATHS.list,
       create: DEFAULT_API_PATHS.create,
       get: DEFAULT_API_PATHS.get,
@@ -151,6 +163,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       list: '/work-orders',
       add: '/work-orders/add',
       edit: '/work-orders/edit/:id',
+      detail: '/work-orders/:id',
     },
     features: {
       canCreate: true,
@@ -181,6 +194,7 @@ export function getEntityConfig(entityName: string): EntityConfig {
         list: `/${entityName}s `,
         add: `/${entityName}s/add`,
         edit: `/${entityName}s/edit/:id`,
+        detail: `/${entityName}s/:id`,
       },
       features: {
         canCreate: true,
@@ -235,7 +249,8 @@ export function getEntityApiUrls(entityName: string) {
   const config = getEntityConfig(entityName);
 
   return {
-    metadata: buildEntityUrl(config.api.metadata, entityName),
+    listingMetadata: buildEntityUrl(config.api.listingMetadata, entityName),
+    formMetadata: buildEntityUrl(config.api.formMetadata, entityName),
     list: buildEntityUrl(config.api.list, entityName),
     create: buildEntityUrl(config.api.create, entityName),
     get: (id: string | number) => buildEntityUrl(config.api.get, entityName, { id }),
