@@ -472,7 +472,7 @@ export default function UsersPage() {
       />
       <Pagination
         page={page}
-        pageSize={pageSize}
+        pageSize={pageSize ?? 20}
         totalItems={totalItems}
         totalPages={totalPages}
         onPageChange={setPage}
