@@ -15,97 +15,11 @@ import { getEntityMetadataCache, setEntityMetadataCache } from '../../utils/enti
 import { getEntityMetadata, getEntityList, type EntityListFilter } from './admin.api';
 import type { EntityField, EntityFilterField } from './admin.api';
 import { getEntityConfig } from '../../config/entity.config';
-import { getOperatorsForType } from '../../shared/constants/filterOperators';
+import { getRowDisplayValue } from '../../shared/utils/common';
+import { metadataToFilterConfig } from '../../shared/utils/entityFilters';
 
-/** Format ISO date-time string for UI (e.g. "31 Jan 2026, 12:37 pm") */
-function formatDateTime(isoOrValue: string | number | null | undefined): string {
-  if (isoOrValue === null || isoOrValue === undefined) return '—';
-  const s = String(isoOrValue).trim();
-  if (!s) return '—';
-  const date = new Date(s);
-  if (Number.isNaN(date.getTime())) return s;
-  return date.toLocaleString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
-
-const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
-
-function isDateTimeValue(val: unknown): boolean {
-  if (val === null || val === undefined) return false;
-  return ISO_DATE_REGEX.test(String(val));
-}
-
-// Map metadata field names to row keys (for mock/API compatibility: username→name, status→role, etc.)
-function getRowDisplayValue(
-  row: Record<string, unknown>,
-  fieldKey: string,
-  fieldType?: string
-): string {
-  const val = row[fieldKey];
-  const resolved =
-    val !== undefined && val !== null
-      ? val
-      : (() => {
-        const aliases: Record<string, string> = {
-          username: 'name',
-          status: 'role',
-          mobile_number: 'mobileNo',
-        };
-        const mapped = aliases[fieldKey] ? row[aliases[fieldKey]] : undefined;
-        return mapped;
-      })();
-  if (resolved === undefined || resolved === null) return '—';
-  if (fieldType === 'DateTime' || isDateTimeValue(resolved))
-    return formatDateTime(resolved as string | number);
-  return String(resolved);
-}
-
-// User type: API can return id as string, and fields like username, status, mobile_number, etc.
-type User = Record<string, unknown> & {
-  id: string | number;
-  username?: string;
-  name?: string;
-  email?: string;
-  role?: string;
-  status?: string;
-  mobileNo?: string;
-  mobile_number?: string;
-};
-
-function mapFieldTypeToDataType(
-  apiType: string
-): 'string' | 'number' | 'select' | 'multi-select' | 'datetime' {
-  if (apiType === 'Boolean') return 'select';
-  if (apiType === 'DateTime') return 'datetime';
-  return 'string';
-}
-
-function defaultOperatorForType(apiType: string, operators: string[]): string {
-  if (apiType === 'DateTime' && operators.includes('=')) return '=';
-  if (apiType === 'Boolean' && operators.includes('=')) return '=';
-  if (operators.includes('contains')) return 'contains';
-  return operators[0] ?? '=';
-}
-
-function metadataToFilterConfig(f: EntityFilterField): FilterConfig {
-  const dataType = mapFieldTypeToDataType(f.type);
-  const operatorOptions = getOperatorsForType(f.type);
-  const operators = operatorOptions.map((o) => o.value);
-  return {
-    key: f.field,
-    label: f.label,
-    dataType,
-    operatorOptions,
-    operators,
-    defaultOperator: defaultOperatorForType(f.type, operators),
-  };
-}
+// Row shape comes from the API; we use a generic type so we stay in sync with metadata/API.
+type EntityRow = Record<string, unknown>;
 
 // Module-level in-flight flag so it survives Strict Mode unmount/remount (avoids duplicate API calls)
 let metadataFetchInFlight = false;
@@ -126,7 +40,7 @@ export default function UsersPage() {
   } | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(true);
   const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<EntityRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -342,7 +256,7 @@ export default function UsersPage() {
           (Array.isArray(data?.results) ? data.results : null) ??
           [];
         const pag = data?.pagination ?? (res as ResShape).pagination;
-        setUsers(items as User[]);
+        setUsers(items as EntityRow[]);
         setTotalItems(pag?.total_items ?? 0);
         setTotalPages(pag?.total_pages ?? 0);
         console.log('[GoldFlow] [UsersPage] fetchList: success', {
@@ -372,7 +286,7 @@ export default function UsersPage() {
   }, [token, entityMetadata, fetchList]);
 
   // Table columns from metadata fields (visible_in_list only)
-  const columns: TableColumn<User>[] = useMemo(() => {
+  const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
     if (!visibleFields.length) return [];
     const detailLinkField = entityMetadata?.detail_link_field;
@@ -382,35 +296,11 @@ export default function UsersPage() {
       key: f.name,
       header: f.label,
       sortable: true,
-      accessor: (row: User) => {
-        const value = getRowDisplayValue(row as Record<string, unknown>, f.name, f.type);
-        const isDetailLink = f.name === detailLinkField;
-        
-        if (isDetailLink) {
-          const rowId = (row as Record<string, unknown>)[idField];
-          return (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
-              }}
-              className={`underline ${
-                isDarkMode 
-                  ? 'text-amber-400 hover:text-amber-300' 
-                  : 'text-amber-600 hover:text-amber-700'
-              }`}
-            >
-              {value}
-            </button>
-          );
-        }
-        
-        return (
-          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
-            {value}
-          </span>
-        );
-      },
+      accessor: (row: EntityRow) => (
+        <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
+          {getRowDisplayValue(row, f.name, f.type)}
+        </span>
+      ),
     }));
   }, [entityMetadata, isDarkMode, navigate, entityConfig]);
 
@@ -420,7 +310,7 @@ export default function UsersPage() {
   };
 
   // Define table actions
-  const actions: TableAction<User>[] = [
+  const actions: TableAction<EntityRow>[] = [
     {
       label: 'Edit',
       onClick: (row) => {
@@ -477,7 +367,7 @@ export default function UsersPage() {
     return { default: defaultConfig, addable: addableConfig };
   }, [entityMetadata]);
 
-  const handleRowClick = (row: User) => {
+  const handleRowClick = (row: EntityRow) => {
     console.log('Row clicked:', row);
     // Navigate to user detail page or open modal
   };

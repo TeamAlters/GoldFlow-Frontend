@@ -354,7 +354,7 @@ export default function FilterComponent<T extends Record<string, any>>({
         : `bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500`
         }`;
       const borderClasses = (isSingleFieldLook || isSingleInputLook)
-        ? `overflow-hidden rounded-lg flex border-2 ${isDarkMode ? 'border-gray-400' : 'border-gray-300'}`
+        ? `rounded-lg flex border-2 ${isDarkMode ? 'border-gray-400' : 'border-gray-300'}`
         : 'rounded-lg flex';
       const betweenDatetimeInputClasses = `px-3 py-2 text-sm min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset border-0 rounded-none ${isDarkMode
         ? 'bg-gray-800 text-white placeholder-gray-400 focus:border-blue-500'
