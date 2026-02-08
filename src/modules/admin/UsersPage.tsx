@@ -242,7 +242,22 @@ export default function UsersPage() {
     fetchMetadata();
   }, [token, entityName, fetchMetadata, showErrorToast]);
 
+  // Build map of filter field name -> type from metadata (DateTime, String, etc.)
+  const filterFieldTypeMap = useMemo((): Record<string, string> => {
+    const map: Record<string, string> = {};
+    if (!entityMetadata?.filters) return map;
+    const all = [
+      ...(entityMetadata.filters.default_visible ?? []),
+      ...(entityMetadata.filters.additional ?? []),
+    ];
+    all.forEach((f) => {
+      map[f.field] = f.type ?? '';
+    });
+    return map;
+  }, [entityMetadata]);
+
   // Convert UI filters to API format: [{ field, operator, value }]. Include "is not set" / "is set" with value null.
+  // For Created At (datetime) "Equals" with a date-only value, send as "between" that day's start and end so backend matches any time on that day.
   const filtersForApi = useMemo((): EntityListFilter[] => {
     const trimValue = (v: string | string[] | null): string | string[] | null => {
       if (v === null || v === undefined) return v;
@@ -251,6 +266,7 @@ export default function UsersPage() {
         return v.map((s) => (typeof s === 'string' ? s.trim() : s)).filter((s) => s !== '');
       return v;
     };
+    const isDateOnly = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(String(s).trim());
     const out: EntityListFilter[] = [];
     Object.entries(filters).forEach(([field, filterVal]) => {
       if (filterVal === null || filterVal === undefined) return;
@@ -264,9 +280,13 @@ export default function UsersPage() {
         ? (filterVal as { value: string | string[] | null }).value
         : (filterVal as string);
       const value = trimValue(raw);
-      const noValueOperators = ['is not set', 'is set'];
-      if (noValueOperators.includes(operator)) {
-        out.push({ field, operator, value: null });
+      // Send "is not set" / "is set" with value true (backend expects these exact operator names)
+      if (operator === 'is not set') {
+        out.push({ field, operator: 'is not set', value: true });
+        return;
+      }
+      if (operator === 'is set') {
+        out.push({ field, operator: 'is set', value: true });
         return;
       }
       const isEmpty =
@@ -275,10 +295,22 @@ export default function UsersPage() {
         value === '' ||
         (Array.isArray(value) && value.length === 0);
       if (isEmpty) return;
+      const fieldType = filterFieldTypeMap[field]?.toLowerCase() ?? '';
+      const isDateTimeField = fieldType === 'datetime' || fieldType === 'date' || fieldType === 'date_time';
+      // DateTime "Equals" with a single date (yyyy-MM-dd): send as "between" start and end of that day so backend matches any time on that date
+      if (isDateTimeField && operator === '=' && typeof value === 'string' && isDateOnly(value)) {
+        const dateStr = value.trim();
+        out.push({
+          field,
+          operator: 'between',
+          value: [`${dateStr}T00:00:00`, `${dateStr}T23:59:59`],
+        });
+        return;
+      }
       out.push({ field, operator, value });
     });
     return out;
-  }, [filters]);
+  }, [filters, filterFieldTypeMap]);
 
   const fetchList = useCallback(() => {
     if (!token || !entityName) {
@@ -297,8 +329,19 @@ export default function UsersPage() {
     setListLoading(true);
     getEntityList(entityName, { page, page_size: pageSize, filters: filtersForApi })
       .then((res) => {
-        const items = res.data?.items ?? [];
-        const pag = res.data?.pagination;
+        // Support both { data: { items, pagination } } and top-level { items, pagination } / { results }
+        type ResShape = typeof res & {
+          items?: unknown[];
+          pagination?: { total_items?: number; total_pages?: number };
+        };
+        type DataShape = { items?: unknown[]; results?: unknown[]; pagination?: ResShape['pagination'] };
+        const data: DataShape | undefined = res.data ?? (res as ResShape);
+        const items: unknown[] =
+          (Array.isArray(data?.items) ? data.items : null) ??
+          (Array.isArray((res as ResShape).items) ? (res as ResShape).items : null) ??
+          (Array.isArray(data?.results) ? data.results : null) ??
+          [];
+        const pag = data?.pagination ?? (res as ResShape).pagination;
         setUsers(items as User[]);
         setTotalItems(pag?.total_items ?? 0);
         setTotalPages(pag?.total_pages ?? 0);

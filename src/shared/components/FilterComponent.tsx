@@ -27,24 +27,22 @@ export type FilterComponentConfig = {
   addable?: Record<string, FilterConfig>;
 };
 
-/** Convert stored value to datetime-local input value (yyyy-MM-ddThh:mm). */
-function toDateTimeLocalValue(s: string | null | undefined): string {
+/** Convert stored value to date input value (yyyy-MM-dd). Accepts date or datetime strings. */
+function toDateLocalValue(s: string | null | undefined): string {
   if (s == null || s === '') return '';
   const trimmed = String(s).trim();
   if (!trimmed) return '';
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) return trimmed.slice(0, 16);
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 10);
   return trimmed;
 }
 
-/** Current date/time in datetime-local format (yyyy-MM-ddThh:mm). Use as max so future dates cannot be selected. */
-function getDateTimeLocalMax(): string {
+/** Today in yyyy-MM-dd. Use as max so future dates cannot be selected. */
+function getDateLocalMax(): string {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
-  const h = String(now.getHours()).padStart(2, '0');
-  const min = String(now.getMinutes()).padStart(2, '0');
-  return `${y}-${m}-${d}T${h}:${min}`;
+  return `${y}-${m}-${d}`;
 }
 
 export interface FilterComponentProps<T> {
@@ -329,6 +327,7 @@ export default function FilterComponent<T extends Record<string, any>>({
         (currentOpOption?.isArray && currentOpOption?.arrayLength === 2) || operator === 'between';
       const isInList = currentOpOption?.isArray && operator === 'in';
       const isSingleFieldLook = isBetween && filterConfig.dataType === 'datetime';
+      const isSingleInputLook = requiresValue && !isBetween && !isInList;
       const inputBaseClasses = `px-3 py-2 text-sm rounded-r-lg border border-l-0 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset ${isDarkMode
         ? `bg-gray-800 ${inputBorderClasses} text-white placeholder-gray-500 focus:border-blue-500`
         : `bg-white ${inputBorderClasses} text-gray-900 placeholder-gray-400 focus:border-blue-500`
@@ -345,7 +344,16 @@ export default function FilterComponent<T extends Record<string, any>>({
         ? `bg-gray-800 text-white placeholder-gray-400 focus:border-blue-500`
         : `bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500`
         }`;
-      const borderClasses = isSingleFieldLook
+      const singleInputValueClasses = `px-3 py-2 text-sm rounded-r-lg border-0 min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset ${isDarkMode
+        ? `bg-gray-800 text-white placeholder-gray-500 focus:border-blue-500`
+        : `bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500`
+        }`;
+      /* No filter-datetime-input class so globals.css doesn't add 2px border; keeps single bar seamless */
+      const singleInputDatetimeClasses = `px-3 py-2 text-sm rounded-r-lg border-0 min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset ${isDarkMode
+        ? `bg-gray-800 text-white placeholder-gray-400 focus:border-blue-500`
+        : `bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500`
+        }`;
+      const borderClasses = (isSingleFieldLook || isSingleInputLook)
         ? `overflow-hidden rounded-lg flex border-2 ${isDarkMode ? 'border-gray-400' : 'border-gray-300'}`
         : 'rounded-lg flex';
       const betweenDatetimeInputClasses = `px-3 py-2 text-sm min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset border-0 rounded-none ${isDarkMode
@@ -374,10 +382,7 @@ export default function FilterComponent<T extends Record<string, any>>({
             <button
               type="button"
               onClick={() => setOpenOperatorKey(isOperatorOpen ? null : operatorSelectId)}
-              className={`w-full h-full min-h-[2.5rem] px-3 py-2 text-left text-sm flex items-center justify-between gap-1 transition-colors rounded-l-lg ${isSingleFieldLook ? 'border-0' : `border border-r-0 ${inputBorderClasses}`} ${isDarkMode
-                ? 'bg-gray-700 text-white hover:bg-gray-600'
-                : 'bg-white text-gray-900 hover:bg-gray-50'
-                } ${isOperatorOpen ? (isDarkMode ? 'ring-inset ring-2 ring-blue-500/60 bg-gray-600 border-blue-500/50' : 'ring-inset ring-2 ring-blue-400 bg-gray-50 border-blue-400') : ''}`}
+              className={`w-full h-full min-h-[2.5rem] px-3 py-2 text-left text-sm flex items-center justify-between gap-1 transition-colors rounded-l-lg ${(isSingleFieldLook || isSingleInputLook) ? 'border-0' : `border border-r-0 ${inputBorderClasses}`} ${(isSingleFieldLook || isSingleInputLook) ? (isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-gray-900 hover:bg-gray-50') : (isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-white text-gray-900 hover:bg-gray-50')} ${isOperatorOpen ? (isDarkMode ? 'ring-inset ring-2 ring-blue-500/60 bg-gray-600 border-blue-500/50' : 'ring-inset ring-2 ring-blue-400 bg-gray-50 border-blue-400') : ''}`}
               aria-label={`Operator for ${filterConfig.label}`}
               aria-expanded={isOperatorOpen}
             >
@@ -426,7 +431,7 @@ export default function FilterComponent<T extends Record<string, any>>({
             )}
           </div>
           <div
-            className={`flex-1 min-w-0 rounded-r-lg ${!isSingleFieldLook && !requiresValue ? `border border-l-0 ${inputBorderClasses} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}` : ''}`}
+            className={`flex-1 min-w-0 rounded-r-lg ${isSingleInputLook ? (isDarkMode ? 'border-l border-gray-500' : 'border-l border-gray-300') : ''} ${!isSingleFieldLook && !isSingleInputLook && !requiresValue ? `border border-l-0 ${inputBorderClasses} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}` : ''}`}
           >
             {!requiresValue ? (
               <span className={`inline-flex items-center min-h-[2.5rem] px-3 py-2 text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -437,9 +442,9 @@ export default function FilterComponent<T extends Record<string, any>>({
                 {filterConfig.dataType === 'datetime' ? (
                   <>
                     <input
-                      type="datetime-local"
-                      max={getDateTimeLocalMax()}
-                      value={toDateTimeLocalValue(Array.isArray(value) ? value[0] : null)}
+                      type="date"
+                      max={getDateLocalMax()}
+                      value={toDateLocalValue(Array.isArray(value) ? value[0] : null)}
                       onChange={(e) => {
                         const v0 = e.target.value;
                         const v1 = Array.isArray(value) ? (value[1] ?? '') : '';
@@ -452,9 +457,9 @@ export default function FilterComponent<T extends Record<string, any>>({
                       }
                     />
                     <input
-                      type="datetime-local"
-                      max={getDateTimeLocalMax()}
-                      value={toDateTimeLocalValue(Array.isArray(value) ? value[1] : null)}
+                      type="date"
+                      max={getDateLocalMax()}
+                      value={toDateLocalValue(Array.isArray(value) ? value[1] : null)}
                       onChange={(e) => {
                         const v0 = Array.isArray(value) ? (value[0] ?? '') : '';
                         const v1 = e.target.value;
@@ -521,14 +526,14 @@ export default function FilterComponent<T extends Record<string, any>>({
               </div>
             ) : filterConfig.dataType === 'datetime' ? (
               <input
-                type="datetime-local"
-                max={getDateTimeLocalMax()}
-                value={toDateTimeLocalValue((value as string) ?? null)}
+                type="date"
+                max={getDateLocalMax()}
+                value={toDateLocalValue((value as string) ?? null)}
                 onChange={(e) => {
                   const v = e.target.value;
                   updateFilter(operator, v === '' ? null : v);
                 }}
-                className={`w-full ${inputBaseClassesDatetime}`}
+                className={`w-full ${isSingleInputLook ? singleInputDatetimeClasses : inputBaseClassesDatetime}`}
               />
             ) : (
               <input
@@ -539,7 +544,7 @@ export default function FilterComponent<T extends Record<string, any>>({
                   updateFilter(operator, v === '' ? null : v);
                 }}
                 placeholder={`Value for ${filterConfig.label}...`}
-                className={`w-full h-full ${inputBaseClasses}`}
+                className={`w-full ${isSingleInputLook ? singleInputValueClasses : `h-full ${inputBaseClasses}`}`}
               />
             )}
           </div>
@@ -576,9 +581,9 @@ export default function FilterComponent<T extends Record<string, any>>({
             <button
               type="button"
               onClick={() => setOpenSelectKey(isSelectOpen ? null : selectId)}
-              className={`${inputBaseClasses} flex items-center justify-between text-left appearance-none cursor-pointer ${isSelectOpen ? 'ring-2 ring-blue-500/30' : ''}`}
+              className={`${inputBaseClasses} min-h-[2.5rem] flex items-center justify-between text-left appearance-none cursor-pointer ${isSelectOpen ? 'ring-2 ring-blue-500/30' : ''}`}
             >
-              <span className={!value ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}>
+              <span className={`truncate ${!value ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}`}>
                 {currentLabel}
               </span>
               <svg
@@ -662,9 +667,9 @@ export default function FilterComponent<T extends Record<string, any>>({
       case 'datetime':
         return (
           <input
-            type="datetime-local"
-            max={getDateTimeLocalMax()}
-            value={toDateTimeLocalValue((value as string) ?? null)}
+            type="date"
+            max={getDateLocalMax()}
+            value={toDateLocalValue((value as string) ?? null)}
             onChange={(e) => {
               const newValue = e.target.value;
               handleFilterChange(key, newValue === '' ? null : newValue, isAddable);

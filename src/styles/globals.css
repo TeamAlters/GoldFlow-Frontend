@@ -77,17 +77,20 @@
   animation: signup-fade-in 0.35s ease-out forwards;
 }
 
-/* Filter date-time inputs: force visible border (native datetime-local can hide it) */
+/* Filter date inputs: force visible border (native date/datetime can hide it) */
+input.filter-datetime-input[type='date'],
 input.filter-datetime-input[type='datetime-local'] {
   border-width: 2px;
   border-style: solid;
   box-sizing: border-box;
 }
 
+input.filter-datetime-input[type='date'],
 input.filter-datetime-input[type='datetime-local'] {
   border-color: #d1d5db;
 }
 
+html.dark input.filter-datetime-input[type='date'],
 html.dark input.filter-datetime-input[type='datetime-local'] {
   border-color: #9ca3af;
 }
