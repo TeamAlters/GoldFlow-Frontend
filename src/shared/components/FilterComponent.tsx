@@ -327,6 +327,7 @@ export default function FilterComponent<T extends Record<string, any>>({
         (currentOpOption?.isArray && currentOpOption?.arrayLength === 2) || operator === 'between';
       const isInList = currentOpOption?.isArray && operator === 'in';
       const isSingleFieldLook = isBetween && filterConfig.dataType === 'datetime';
+      const isSingleInputLook = requiresValue && !isBetween && !isInList;
       const inputBaseClasses = `px-3 py-2 text-sm rounded-r-lg border border-l-0 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset ${isDarkMode
         ? `bg-gray-800 ${inputBorderClasses} text-white placeholder-gray-500 focus:border-blue-500`
         : `bg-white ${inputBorderClasses} text-gray-900 placeholder-gray-400 focus:border-blue-500`
@@ -343,7 +344,16 @@ export default function FilterComponent<T extends Record<string, any>>({
         ? `bg-gray-800 text-white placeholder-gray-400 focus:border-blue-500`
         : `bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500`
         }`;
-      const borderClasses = isSingleFieldLook
+      const singleInputValueClasses = `px-3 py-2 text-sm rounded-r-lg border-0 min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset ${isDarkMode
+        ? `bg-gray-800 text-white placeholder-gray-500 focus:border-blue-500`
+        : `bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500`
+        }`;
+      /* No filter-datetime-input class so globals.css doesn't add 2px border; keeps single bar seamless */
+      const singleInputDatetimeClasses = `px-3 py-2 text-sm rounded-r-lg border-0 min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset ${isDarkMode
+        ? `bg-gray-800 text-white placeholder-gray-400 focus:border-blue-500`
+        : `bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500`
+        }`;
+      const borderClasses = (isSingleFieldLook || isSingleInputLook)
         ? `overflow-hidden rounded-lg flex border-2 ${isDarkMode ? 'border-gray-400' : 'border-gray-300'}`
         : 'rounded-lg flex';
       const betweenDatetimeInputClasses = `px-3 py-2 text-sm min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-inset border-0 rounded-none ${isDarkMode
@@ -372,10 +382,7 @@ export default function FilterComponent<T extends Record<string, any>>({
             <button
               type="button"
               onClick={() => setOpenOperatorKey(isOperatorOpen ? null : operatorSelectId)}
-              className={`w-full h-full min-h-[2.5rem] px-3 py-2 text-left text-sm flex items-center justify-between gap-1 transition-colors rounded-l-lg ${isSingleFieldLook ? 'border-0' : `border border-r-0 ${inputBorderClasses}`} ${isDarkMode
-                ? 'bg-gray-700 text-white hover:bg-gray-600'
-                : 'bg-white text-gray-900 hover:bg-gray-50'
-                } ${isOperatorOpen ? (isDarkMode ? 'ring-inset ring-2 ring-blue-500/60 bg-gray-600 border-blue-500/50' : 'ring-inset ring-2 ring-blue-400 bg-gray-50 border-blue-400') : ''}`}
+              className={`w-full h-full min-h-[2.5rem] px-3 py-2 text-left text-sm flex items-center justify-between gap-1 transition-colors rounded-l-lg ${(isSingleFieldLook || isSingleInputLook) ? 'border-0' : `border border-r-0 ${inputBorderClasses}`} ${(isSingleFieldLook || isSingleInputLook) ? (isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-gray-900 hover:bg-gray-50') : (isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-white text-gray-900 hover:bg-gray-50')} ${isOperatorOpen ? (isDarkMode ? 'ring-inset ring-2 ring-blue-500/60 bg-gray-600 border-blue-500/50' : 'ring-inset ring-2 ring-blue-400 bg-gray-50 border-blue-400') : ''}`}
               aria-label={`Operator for ${filterConfig.label}`}
               aria-expanded={isOperatorOpen}
             >
@@ -424,7 +431,7 @@ export default function FilterComponent<T extends Record<string, any>>({
             )}
           </div>
           <div
-            className={`flex-1 min-w-0 rounded-r-lg ${!isSingleFieldLook && !requiresValue ? `border border-l-0 ${inputBorderClasses} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}` : ''}`}
+            className={`flex-1 min-w-0 rounded-r-lg ${isSingleInputLook ? (isDarkMode ? 'border-l border-gray-500' : 'border-l border-gray-300') : ''} ${!isSingleFieldLook && !isSingleInputLook && !requiresValue ? `border border-l-0 ${inputBorderClasses} ${isDarkMode ? 'bg-gray-800' : 'bg-white'}` : ''}`}
           >
             {!requiresValue ? (
               <span className={`inline-flex items-center min-h-[2.5rem] px-3 py-2 text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -526,7 +533,7 @@ export default function FilterComponent<T extends Record<string, any>>({
                   const v = e.target.value;
                   updateFilter(operator, v === '' ? null : v);
                 }}
-                className={`w-full ${inputBaseClassesDatetime}`}
+                className={`w-full ${isSingleInputLook ? singleInputDatetimeClasses : inputBaseClassesDatetime}`}
               />
             ) : (
               <input
@@ -537,7 +544,7 @@ export default function FilterComponent<T extends Record<string, any>>({
                   updateFilter(operator, v === '' ? null : v);
                 }}
                 placeholder={`Value for ${filterConfig.label}...`}
-                className={`w-full h-full ${inputBaseClasses}`}
+                className={`w-full ${isSingleInputLook ? singleInputValueClasses : `h-full ${inputBaseClasses}`}`}
               />
             )}
           </div>
@@ -574,9 +581,9 @@ export default function FilterComponent<T extends Record<string, any>>({
             <button
               type="button"
               onClick={() => setOpenSelectKey(isSelectOpen ? null : selectId)}
-              className={`${inputBaseClasses} flex items-center justify-between text-left appearance-none cursor-pointer ${isSelectOpen ? 'ring-2 ring-blue-500/30' : ''}`}
+              className={`${inputBaseClasses} min-h-[2.5rem] flex items-center justify-between text-left appearance-none cursor-pointer ${isSelectOpen ? 'ring-2 ring-blue-500/30' : ''}`}
             >
-              <span className={!value ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}>
+              <span className={`truncate ${!value ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}`}>
                 {currentLabel}
               </span>
               <svg
