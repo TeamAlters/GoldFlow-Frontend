@@ -27,12 +27,14 @@ export function buildInitialMatrix(entityNames: string[]): PermissionsMatrix {
 export interface RolesPermissionsTableProps {
     matrix: PermissionsMatrix;
     onToggle: (tableKey: string, permission: Permission) => void;
+    /** When true, checkboxes are disabled (read-only view). */
+    readOnly?: boolean;
 }
 
 const checkboxClass =
     'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 dark:border-gray-500 dark:bg-gray-700 dark:checked:bg-blue-600 dark:focus:ring-offset-gray-900';
 
-export function RolesPermissionsTable({ matrix, onToggle }: RolesPermissionsTableProps) {
+export function RolesPermissionsTable({ matrix, onToggle, readOnly = false }: RolesPermissionsTableProps) {
     const isDarkMode = useUIStore((state) => state.isDarkMode);
     const entityNames = useMemo(() => getEntityNamesForRolesTable(), []);
     const tableRows = useMemo(() => {
@@ -51,6 +53,7 @@ export function RolesPermissionsTable({ matrix, onToggle }: RolesPermissionsTabl
     const tbodyBg = isDarkMode ? 'bg-gray-900/30' : 'bg-white';
 
     const handleHeaderToggle = (perm: Permission) => {
+        if (readOnly) return;
         tableRows.forEach((row) => onToggle(row.key, perm));
     };
 
@@ -80,7 +83,7 @@ export function RolesPermissionsTable({ matrix, onToggle }: RolesPermissionsTabl
                                     scope="col"
                                     className={`${thClass} text-center w-[20%] ${thText}`}
                                 >
-                                    <label className="inline-flex items-center justify-center gap-2 cursor-pointer select-none">
+                                        <label className={`inline-flex items-center justify-center gap-2 select-none ${readOnly ? '' : 'cursor-pointer'}`}>
                                         <input
                                             type="checkbox"
                                             checked={allChecked}
@@ -90,6 +93,7 @@ export function RolesPermissionsTable({ matrix, onToggle }: RolesPermissionsTabl
                                             onChange={() => handleHeaderToggle(perm)}
                                             className={checkboxClass}
                                             aria-label={`Select all ${perm}`}
+                                            disabled={readOnly}
                                         />
                                         <span className="capitalize">{perm}</span>
                                     </label>
@@ -110,13 +114,14 @@ export function RolesPermissionsTable({ matrix, onToggle }: RolesPermissionsTabl
                                         key={perm}
                                         className={`${tdClass} text-center align-middle`}
                                     >
-                                        <label className="inline-flex items-center justify-center cursor-pointer select-none min-h-[2rem]">
+                                        <label className={`inline-flex items-center justify-center select-none min-h-[2rem] ${readOnly ? '' : 'cursor-pointer'}`}>
                                             <input
                                                 type="checkbox"
                                                 checked={checked}
-                                                onChange={() => onToggle(row.key, perm)}
+                                                onChange={() => !readOnly && onToggle(row.key, perm)}
                                                 className={checkboxClass}
                                                 aria-label={`${row.label} - ${perm}`}
+                                                disabled={readOnly}
                                             />
                                         </label>
                                     </td>
