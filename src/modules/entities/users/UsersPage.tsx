@@ -1,24 +1,24 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../auth/auth.store';
-import DataTable from '../../shared/components/DataTable';
-import type { TableColumn, TableAction } from '../../shared/components/DataTable';
+import { useAuthStore } from '../../../auth/auth.store';
+import DataTable from '../../../shared/components/DataTable';
+import type { TableColumn, TableAction } from '../../../shared/components/DataTable';
 import FilterComponent, {
   type FilterComponentConfig,
   type FilterConfig,
   type FilterValue,
-} from '../../shared/components/FilterComponent';
-import ListPageLayout from '../../shared/components/ListPageLayout';
-import Pagination from '../../shared/components/Pagination';
-import { useUIStore } from '../../stores/ui.store';
-import { toast } from '../../stores/toast.store';
-import { getEntityMetadataCache, setEntityMetadataCache } from '../../utils/entityCache';
-import { getEntityMetadata, getEntityList, deleteEntity, type EntityListFilter } from './admin.api';
-import type { EntityField, EntityFilterField } from './admin.api';
-import { getEntityConfig } from '../../config/entity.config';
-import Breadcrumbs from '../../layout/Breadcrumbs';
-import { getRowDisplayValue } from '../../shared/utils/common';
-import { metadataToFilterConfig } from '../../shared/utils/entityFilters';
+} from '../../../shared/components/FilterComponent';
+import ListPageLayout from '../../../shared/components/ListPageLayout';
+import Pagination from '../../../shared/components/Pagination';
+import { useUIStore } from '../../../stores/ui.store';
+import { toast } from '../../../stores/toast.store';
+import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
+import { getEntityMetadata, getEntityList, deleteEntity, type EntityListFilter } from '../../admin/admin.api';
+import type { EntityField, EntityFilterField } from '../../admin/admin.api';
+import { getEntityConfig } from '../../../config/entity.config';
+import Breadcrumbs from '../../../layout/Breadcrumbs';
+import { getRowDisplayValue } from '../../../shared/utils/common';
+import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 
 // Row shape comes from the API; we use a generic type so we stay in sync with metadata/API.
 type EntityRow = Record<string, unknown>;
