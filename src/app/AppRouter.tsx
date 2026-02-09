@@ -7,6 +7,10 @@ import UsersPage from '../modules/entities/users/UsersPage';
 import UserCreatePage from '../modules/entities/users/userCreate';
 import UserEditPage from '../modules/entities/users/userEdit';
 import UserViewPage from '../modules/entities/users/userView';
+import ProductsPage from '../modules/entities/products/ProductsPage';
+import ProductCreatePage from '../modules/entities/products/productCreate';
+import ProductEditPage from '../modules/entities/products/productEdit';
+import ProductViewPage from '../modules/entities/products/productView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -56,6 +60,10 @@ export default function AppRouter() {
           <Route path="users/add" element={<UserCreatePage />} />
           <Route path="users/edit/:id" element={<UserEditPage />} />
           <Route path="users/:id" element={<UserViewPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="products/add" element={<ProductCreatePage />} />
+          <Route path="products/edit/:id" element={<ProductEditPage />} />
+          <Route path="products/:id" element={<ProductViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>
