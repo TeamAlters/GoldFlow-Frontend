@@ -3,7 +3,7 @@ import LoginPage from '../auth/LoginPage';
 import SignUp from '../auth/SignUp';
 import RequireAuth from '../auth/RequireAuth';
 import DashboardIndex from '../modules/dashboard/DashboardPage';
-import UsersPage from '../modules/admin/UsersPage';
+import UsersPage from '../modules/entities/users/UsersPage';
 import UserCreatePage from '../modules/entities/users/userCreate';
 import UserEditPage from '../modules/entities/users/userEdit';
 import UserViewPage from '../modules/entities/users/userView';
