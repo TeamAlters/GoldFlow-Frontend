@@ -53,6 +53,7 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Vendor', path: '/masters/vendors', icon: 'store' },
       { name: 'Material Type', path: '/masters/material-types', icon: 'cube' },
       { name: 'Customer', path: '/masters/customers', icon: 'user' },
+      { name: 'Product', path: '/products', icon: 'box', entityName: 'product' },
     ],
   },
   {
