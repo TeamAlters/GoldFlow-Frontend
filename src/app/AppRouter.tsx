@@ -11,6 +11,10 @@ import ProductsPage from '../modules/entities/products/ProductsPage';
 import ProductCreatePage from '../modules/entities/products/productCreate';
 import ProductEditPage from '../modules/entities/products/productEdit';
 import ProductViewPage from '../modules/entities/products/productView';
+import PuritiesPage from '../modules/entities/purity/purityPage';
+import PurityCreatePage from '../modules/entities/purity/purityCreate';
+import PurityEditPage from '../modules/entities/purity/purityEdit';
+import PurityViewPage from '../modules/entities/purity/purityView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -64,6 +68,10 @@ export default function AppRouter() {
           <Route path="products/add" element={<ProductCreatePage />} />
           <Route path="products/edit/:id" element={<ProductEditPage />} />
           <Route path="products/:id" element={<ProductViewPage />} />
+          <Route path="purities" element={<PuritiesPage />} />
+          <Route path="purities/add" element={<PurityCreatePage />} />
+          <Route path="purities/edit/:id" element={<PurityEditPage />} />
+          <Route path="purities/:id" element={<PurityViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>

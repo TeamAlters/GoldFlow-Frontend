@@ -49,7 +49,7 @@ export const sidebarNavConfig: NavCategory[] = [
     items: [
       { name: 'Stone', path: '/masters/stones', icon: 'gem' },
       { name: 'Source Type', path: '/masters/source-types', icon: 'layers' },
-      { name: 'Purities', path: '/masters/purities', icon: 'sparkles' },
+        { name: 'Purities', path: '/purities', icon: 'sparkles', entityName: 'purity' },
       { name: 'Vendor', path: '/masters/vendors', icon: 'store' },
       { name: 'Material Type', path: '/masters/material-types', icon: 'cube' },
       { name: 'Customer', path: '/masters/customers', icon: 'user' },
