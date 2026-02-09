@@ -140,12 +140,20 @@ export async function getEntityMetadata(entityName: string): Promise<EntityMetad
   const hasData = Array.isArray(raw?.fields) || raw?.display_name != null || raw?.filters != null;
   if (!hasData) return data as EntityMetadataResponse;
 
+  const rawFields = Array.isArray(raw.fields) ? raw.fields : [];
+  const fields: EntityField[] = rawFields.map((f: Record<string, unknown>) => ({
+    name: (f.name as string) ?? (f.field as string) ?? '',
+    label: (f.label as string) ?? '',
+    type: (f.type as string) ?? 'String',
+    visible_in_list: (f.visible_in_list as boolean) ?? true,
+  }));
+
   const out = {
     ...data,
     data: {
       entity_name: (raw.entity_name as string) ?? entityName,
       display_name: (raw.display_name as string) ?? '',
-      fields: (Array.isArray(raw.fields) ? raw.fields : []) as EntityField[],
+      fields,
       filters: {
         default_visible: Array.isArray((raw.filters as Record<string, unknown>)?.default_visible)
           ? (raw.filters as { default_visible: EntityFilterField[] }).default_visible
@@ -225,14 +233,14 @@ export async function getEntityFormMetadata(entityName: string): Promise<FormMet
       display_name: (raw.display_name as string) ?? '',
       field_groups: (Array.isArray(raw.field_groups) ? raw.field_groups : []) as FieldGroup[],
       fields: (raw.fields as Record<string, FormFieldMetadata>) ?? {},
-      ...(raw.actions != null && { 
+      ...(raw.actions != null && {
         actions: raw.actions as Record<string, {
           label: string;
           url: string;
           method: string;
           type: string;
           confirmation_required?: boolean;
-        }> 
+        }>
       }),
     },
   } as FormMetadataResponse;
@@ -428,7 +436,7 @@ export async function getEntity(
 }
 
 /**
- * PUT/PATCH /api/v1/entities/{entity_name}/{id}
+ * PUT /api/v1/entities/{entity_name}/{entity_id}
  * Update an existing entity item
  */
 export async function updateEntity(
@@ -483,8 +491,8 @@ export async function updateEntity(
 }
 
 /**
- * DELETE /api/v1/entities/{entity_name}/{id}
- * Delete an entity item
+ * DELETE /api/v1/entities/{entity_name}/{entity_id}
+ * Delete an entity item (e.g. product). Uses id_field from listing metadata (e.g. product_name).
  */
 export async function deleteEntity(
   entityName: string,

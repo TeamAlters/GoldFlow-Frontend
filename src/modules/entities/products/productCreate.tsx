@@ -16,17 +16,18 @@ const ENTITY_NAME = 'product';
 export function toInitialProductData(
   entity: Record<string, unknown>
 ): Partial<StaticProductFormData> {
+  const abbrev =
+    entity.product_abbreviation ?? entity.product_abbrevation;
   return {
     product_name: entity.product_name != null ? String(entity.product_name) : '',
-    product_abbrevation:
-      entity.product_abbrevation != null ? String(entity.product_abbrevation) : '',
+    product_abbrevation: abbrev != null ? String(abbrev) : '',
   };
 }
 
 export function toProductPayload(data: StaticProductFormData): Record<string, unknown> {
   return {
     product_name: data.product_name.trim(),
-    product_abbrevation: data.product_abbrevation.trim(),
+    product_abbreviation: data.product_abbrevation.trim(),
   };
 }
 
@@ -46,6 +47,7 @@ export default function ProductCreatePage() {
     async (formData: StaticProductFormData) => {
       setSubmitLoading(true);
       try {
+        // POST /api/v1/entities/product (via createEntity)
         await createEntity(ENTITY_NAME, toProductPayload(formData));
         toast.success(`${entityConfig.displayName} created successfully.`);
         navigate(entityConfig.routes.list);
@@ -111,22 +113,20 @@ export default function ProductCreatePage() {
           <button
             type="button"
             onClick={handleCancel}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode
-                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
+              ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+              : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              }`}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitLoading}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            } disabled:opacity-60`}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              } disabled:opacity-60`}
           >
             {submitLoading ? 'Saving...' : 'Create Product'}
           </button>

@@ -34,13 +34,13 @@ export type EntityConfig = {
     /** POST create endpoint */
     create: string;
 
-    /** GET single item endpoint (use {id} placeholder) */
+    /** GET single item endpoint (use {id} or {entity_id} placeholder) */
     get: string;
 
-    /** PUT/PATCH update endpoint (use {id} placeholder) */
+    /** PUT/PATCH update endpoint (use {id} or {entity_id} placeholder) */
     update: string;
 
-    /** DELETE endpoint (use {id} placeholder) */
+    /** DELETE endpoint (use {id} or {entity_id} placeholder) */
     delete: string;
   };
 
@@ -84,9 +84,9 @@ const DEFAULT_API_PATHS = {
   formMetadata: '/api/v1/entities/{entity_name}/form-metadata',
   list: '/api/v1/entities/{entity_name}/list',
   create: '/api/v1/entities/{entity_name}',
-  get: '/api/v1/entities/{entity_name}/{id}',
-  update: '/api/v1/entities/{entity_name}/{id}',
-  delete: '/api/v1/entities/{entity_name}/{id}',
+  get: '/api/v1/entities/{entity_name}/{entity_id}',
+  update: '/api/v1/entities/{entity_name}/{entity_id}',
+  delete: '/api/v1/entities/{entity_name}/{entity_id}',
 };
 
 /**
@@ -227,7 +227,7 @@ export function getEntityNamesForRolesTable(): string[] {
 
 /**
  * Build full API URL for an entity endpoint
- * Replaces {entity_name} and {id} placeholders
+ * Replaces {entity_name}, {id}, and {entity_id} placeholders
  */
 export function buildEntityUrl(
   endpoint: string,
@@ -237,8 +237,9 @@ export function buildEntityUrl(
   const baseUrl = getBaseUrl();
   let url = endpoint.replace(/\{entity_name\}/g, encodeURIComponent(entityName));
 
-  if (params?.id) {
-    url = url.replace(/\{id\}/g, encodeURIComponent(String(params.id)));
+  const idStr = params?.id != null ? encodeURIComponent(String(params.id)) : '';
+  if (idStr) {
+    url = url.replace(/\{id\}/g, idStr).replace(/\{entity_id\}/g, idStr);
   }
 
   // Ensure path starts with /
