@@ -218,6 +218,13 @@ export function getAllEntityNames(): string[] {
   return Object.keys(ENTITY_CONFIG);
 }
 
+/** Entity names to show in Roles/Permissions table (excludes work order) */
+const ROLES_TABLE_ENTITY_NAMES = ['user', 'product'] as const;
+
+export function getEntityNamesForRolesTable(): string[] {
+  return [...ROLES_TABLE_ENTITY_NAMES];
+}
+
 /**
  * Build full API URL for an entity endpoint
  * Replaces {entity_name} and {id} placeholders

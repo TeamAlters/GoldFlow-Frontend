@@ -13,7 +13,7 @@ import Pagination from '../../shared/components/Pagination';
 import { useUIStore } from '../../stores/ui.store';
 import { toast } from '../../stores/toast.store';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../utils/entityCache';
-import { getEntityMetadata, getEntityList, type EntityListFilter } from './admin.api';
+import { getEntityMetadata, getEntityList, deleteEntity, type EntityListFilter } from './admin.api';
 import type { EntityField, EntityFilterField } from './admin.api';
 import { getEntityConfig } from '../../config/entity.config';
 import Breadcrumbs from '../../layout/Breadcrumbs';
@@ -345,47 +345,68 @@ export default function UsersPage() {
     navigate(entityConfig.routes.add);
   };
 
-  // Define table actions
-  const actions: TableAction<EntityRow>[] = [
-    {
-      label: 'Edit',
-      onClick: (row) => {
-        navigate(`${entityConfig.routes.edit.replace(':id', String(row.id))}`);
-      },
-      variant: 'primary',
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-          />
-        </svg>
-      ),
+  const idField = entityMetadata?.id_field ?? 'id';
+
+  const handleDelete = useCallback(
+    async (row: EntityRow) => {
+      const rowId = row[idField];
+      if (rowId === undefined || rowId === null) return;
+      const displayName = String(row.username ?? row.name ?? 'this user');
+      if (!window.confirm(`Are you sure you want to delete ${displayName}?`)) return;
+      try {
+        await deleteEntity(entityName, String(rowId));
+        toast.success(`${entityConfig.displayName} deleted successfully.`);
+        fetchList();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to delete user';
+        toast.error(msg);
+        if (/401|unauthorized/i.test(msg)) handleAuthError();
+      }
     },
-    {
-      label: 'Delete',
-      onClick: (row) => {
-        const displayName = (row.name ?? row.username ?? 'this user') as string;
-        if (window.confirm(`Are you sure you want to delete ${displayName}?`)) {
-          // TODO: Implement delete functionality
-          toast.info('Delete functionality to be implemented');
-        }
+    [entityName, entityConfig.displayName, idField, fetchList, handleAuthError]
+  );
+
+  // Define table actions: Edit and Delete
+  const actions: TableAction<EntityRow>[] = useMemo(
+    () => [
+      {
+        label: 'Edit',
+        onClick: (row) => {
+          const rowId = row[idField];
+          if (rowId !== undefined && rowId !== null) {
+            navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
+          }
+        },
+        variant: 'primary' as const,
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
+          </svg>
+        ),
       },
-      variant: 'danger',
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-          />
-        </svg>
-      ),
-    },
-  ];
+      {
+        label: 'Delete',
+        onClick: handleDelete,
+        variant: 'danger' as const,
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        ),
+      },
+    ],
+    [idField, navigate, entityConfig.routes.edit, handleDelete]
+  );
 
   // Filter configuration from entity metadata (default_visible + additional)
   const filterConfig: FilterComponentConfig = useMemo(() => {
