@@ -11,7 +11,7 @@ import ProductsPage from '../modules/entities/products/ProductsPage';
 import ProductCreatePage from '../modules/entities/products/productCreate';
 import ProductEditPage from '../modules/entities/products/productEdit';
 import ProductViewPage from '../modules/entities/products/productView';
-import PuritiesPage from '../modules/entities/purity/PuritiesPage';
+import PuritiesPage from '../modules/entities/purity/purityPage';
 import PurityCreatePage from '../modules/entities/purity/purityCreate';
 import PurityEditPage from '../modules/entities/purity/purityEdit';
 import PurityViewPage from '../modules/entities/purity/purityView';
