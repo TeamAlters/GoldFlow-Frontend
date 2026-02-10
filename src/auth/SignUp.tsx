@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/ui.store';
 import { getRegistrationStatus, register as registerApi } from './auth.api';
@@ -18,9 +18,170 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registrationCheck, setRegistrationCheck] = useState<'checking' | 'allowed'>('checking');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const redirectHandledRef = useRef(false);
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+
+  // Validation functions
+  const validateUsername = (value: string): string => {
+    if (!value.trim()) {
+      return 'Username is required';
+    }
+    const trimmed = value.trim();
+    if (trimmed.length < 3 || trimmed.length > 24) {
+      return 'Username must be between 3 and 24 characters';
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+      return 'Username can only contain letters, numbers, and underscores';
+    }
+    return '';
+  };
+
+  const validateName = (value: string): string => {
+    if (!value.trim()) {
+      return 'Full name is required';
+    }
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
+      return 'Full name must be at least 2 characters';
+    }
+    if (trimmed.length > 24) {
+      return 'Full name must not exceed 24 characters';
+    }
+    return '';
+  };
+
+  const validateEmail = (value: string): string => {
+    if (!value.trim()) {
+      return 'Email is required';
+    }
+    const trimmed = value.trim();
+    if (trimmed.length > 36) {
+      return 'Email must not exceed 36 characters';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmed)) {
+      return 'Please enter a valid email address';
+    }
+    return '';
+  };
+
+  const validatePhoneNumber = (value: string): string => {
+    // Phone number is optional, but if provided, must be valid
+    if (!value.trim()) {
+      return ''; // Empty is valid (optional field)
+    }
+    // Only allow digits
+    const digitsOnly = value.replace(/\D/g, '');
+    if (digitsOnly.length !== 10) {
+      return 'Phone number must be exactly 10 digits';
+    }
+    return '';
+  };
+
+  const validatePassword = (value: string): string => {
+    if (!value) {
+      return 'Password is required';
+    }
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    if (value[0] !== value[0]?.toUpperCase()) {
+      return 'Password must start with a capital letter';
+    }
+    if (!/[a-zA-Z]/.test(value)) {
+      return 'Password must contain at least one letter';
+    }
+    if (!/\d/.test(value)) {
+      return 'Password must contain at least one number';
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value)) {
+      return 'Password must contain at least one symbol';
+    }
+    return '';
+  };
+
+  const validateConfirmPassword = (value: string, password: string): string => {
+    if (!value) {
+      return 'Please confirm your password';
+    }
+    if (value !== password) {
+      return 'Passwords do not match';
+    }
+    return '';
+  };
+
+  const validateField = (name: string, value: string): string => {
+    switch (name) {
+      case 'username':
+        return validateUsername(value);
+      case 'name':
+        return validateName(value);
+      case 'email':
+        return validateEmail(value);
+      case 'phoneNumber':
+        return validatePhoneNumber(value);
+      case 'password':
+        return validatePassword(value);
+      case 'confirmPassword':
+        return validateConfirmPassword(value, formData.password);
+      default:
+        return '';
+    }
+  };
+
+  // Handle blur - mark field as touched and validate
+  const handleBlur = (fieldName: string) => {
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
+    const value = formData[fieldName as keyof typeof formData];
+    const error = validateField(fieldName, value);
+    setErrors((prev) => ({ ...prev, [fieldName]: error }));
+  };
+
+  // Handle change - validate if field is already touched
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    // For phone number, only allow digits and limit to 10
+    if (name === 'phoneNumber') {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length > 10) {
+        return; // Don't update if exceeds 10 digits
+      }
+      setFormData((prev) => ({ ...prev, [name]: digitsOnly }));
+      if (touched[name]) {
+        const error = validateField(name, digitsOnly);
+        setErrors((prev) => ({ ...prev, [name]: error }));
+      }
+      return;
+    }
+    
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (touched[name]) {
+      const error = validateField(name, value);
+      setErrors((prev) => ({ ...prev, [name]: error }));
+    }
+
+    // If password changes, re-validate confirmPassword if it's been touched
+    if (name === 'password' && touched.confirmPassword) {
+      const confirmError = validateConfirmPassword(formData.confirmPassword, value);
+      setErrors((prev) => ({ ...prev, confirmPassword: confirmError }));
+    }
+  };
+
+  // Check if form is valid
+  const isFormValid = useMemo(() => {
+    const usernameError = validateUsername(formData.username);
+    const nameError = validateName(formData.name);
+    const emailError = validateEmail(formData.email);
+    const phoneError = validatePhoneNumber(formData.phoneNumber);
+    const passwordError = validatePassword(formData.password);
+    const confirmPasswordError = validateConfirmPassword(formData.confirmPassword, formData.password);
+    return !usernameError && !nameError && !emailError && !phoneError && !passwordError && !confirmPasswordError;
+  }, [formData]);
 
   useEffect(() => {
     getRegistrationStatus()
@@ -47,12 +208,33 @@ export default function SignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (formData.password !== formData.confirmPassword) {
-      const msg = 'Passwords do not match';
-      setError(msg);
-      toast.error(msg);
+    
+    // Mark all fields as touched before validation
+    const allFields = ['username', 'name', 'email', 'phoneNumber', 'password', 'confirmPassword'];
+    const newTouched: Record<string, boolean> = {};
+    const newErrors: Record<string, string> = {};
+    
+    allFields.forEach((field) => {
+      newTouched[field] = true;
+      const value = formData[field as keyof typeof formData];
+      const error = validateField(field, value);
+      if (error) {
+        newErrors[field] = error;
+      }
+    });
+    
+    setTouched(newTouched);
+    setErrors(newErrors);
+    
+    // Check if form is valid
+    if (!isFormValid) {
+      const firstError = Object.values(newErrors)[0];
+      if (firstError) {
+        toast.error(firstError);
+      }
       return;
     }
+    
     setLoading(true);
     try {
       await registerApi({
@@ -71,10 +253,6 @@ export default function SignUp() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   // Show loading state while checking registration status
@@ -280,7 +458,7 @@ export default function SignUp() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-1">
             {/* Username Field */}
             <div className="space-y-2">
               <label
@@ -308,14 +486,27 @@ export default function SignUp() {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
+                onBlur={() => handleBlur('username')}
                 placeholder="Choose a username"
-                className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                  isDarkMode
+                maxLength={24}
+                className={`w-full px-4 py-2 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
+                  touched.username && errors.username
+                    ? isDarkMode
+                      ? 'bg-slate-800 border-red-500 text-white placeholder-gray-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'bg-gray-50 border-red-500 text-gray-900 placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20'
+                    : isDarkMode
                     ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
                     : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
                 required
               />
+              <div className="min-h-[18px]">
+                {touched.username && errors.username && (
+                  <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    {errors.username}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Name Field */}
@@ -345,14 +536,27 @@ export default function SignUp() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
+                onBlur={() => handleBlur('name')}
                 placeholder="John Doe"
-                className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                  isDarkMode
+                maxLength={24}
+                className={`w-full px-4 py-2 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
+                  touched.name && errors.name
+                    ? isDarkMode
+                      ? 'bg-slate-800 border-red-500 text-white placeholder-gray-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'bg-gray-50 border-red-500 text-gray-900 placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20'
+                    : isDarkMode
                     ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
                     : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
                 required
               />
+              <div className="min-h-[18px]">
+                {touched.name && errors.name && (
+                  <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    {errors.name}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Email Field */}
@@ -382,14 +586,27 @@ export default function SignUp() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                onBlur={() => handleBlur('email')}
                 placeholder="Enter your email"
-                className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                  isDarkMode
+                maxLength={36}
+                className={`w-full px-4 py-2 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
+                  touched.email && errors.email
+                    ? isDarkMode
+                      ? 'bg-slate-800 border-red-500 text-white placeholder-gray-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'bg-gray-50 border-red-500 text-gray-900 placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20'
+                    : isDarkMode
                     ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
                     : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
                 required
               />
+              <div className="min-h-[18px]">
+                {touched.email && errors.email && (
+                  <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    {errors.email}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Phone Number Field */}
@@ -412,21 +629,33 @@ export default function SignUp() {
                     d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
                   />
                 </svg>
-                Phone Number
+                Phone Number <span className="text-gray-400">(optional)</span>
               </label>
               <input
                 type="tel"
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                placeholder="e.g. +1 234 567 8900"
-                className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                  isDarkMode
+                onBlur={() => handleBlur('phoneNumber')}
+                placeholder="Enter 10 digit number (optional)"
+                maxLength={10}
+                className={`w-full px-4 py-2 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
+                  touched.phoneNumber && errors.phoneNumber
+                    ? isDarkMode
+                      ? 'bg-slate-800 border-red-500 text-white placeholder-gray-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'bg-gray-50 border-red-500 text-gray-900 placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20'
+                    : isDarkMode
                     ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
                     : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
-                required
               />
+              <div className="min-h-[18px]">
+                {touched.phoneNumber && errors.phoneNumber && (
+                  <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    {errors.phoneNumber}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Password Field */}
@@ -457,9 +686,14 @@ export default function SignUp() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
+                  onBlur={() => handleBlur('password')}
                   placeholder="Enter your password"
-                  className={`w-full px-4 py-3 pr-12 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                    isDarkMode
+                  className={`w-full px-4 py-2 pr-12 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
+                    touched.password && errors.password
+                      ? isDarkMode
+                        ? 'bg-slate-800 border-red-500 text-white placeholder-gray-500 focus:border-red-500 focus:ring-red-500/20'
+                        : 'bg-gray-50 border-red-500 text-gray-900 placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20'
+                      : isDarkMode
                       ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
                       : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
                   }`}
@@ -501,6 +735,13 @@ export default function SignUp() {
                   )}
                 </button>
               </div>
+              <div className="min-h-[18px]">
+                {touched.password && errors.password && (
+                  <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    {errors.password}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Confirm Password Field */}
@@ -531,9 +772,14 @@ export default function SignUp() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  onBlur={() => handleBlur('confirmPassword')}
                   placeholder="Confirm your password"
-                  className={`w-full px-4 py-3 pr-12 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                    isDarkMode
+                  className={`w-full px-4 py-2 pr-12 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
+                    touched.confirmPassword && errors.confirmPassword
+                      ? isDarkMode
+                        ? 'bg-slate-800 border-red-500 text-white placeholder-gray-500 focus:border-red-500 focus:ring-red-500/20'
+                        : 'bg-gray-50 border-red-500 text-gray-900 placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20'
+                      : isDarkMode
                       ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
                       : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
                   }`}
@@ -575,13 +821,20 @@ export default function SignUp() {
                   )}
                 </button>
               </div>
+              <div className="min-h-[18px]">
+                {touched.confirmPassword && errors.confirmPassword && (
+                  <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    {errors.confirmPassword}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Sign Up Button */}
             <div className="flex gap-3 pt-3">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !isFormValid}
                 className="flex-1 py-3 px-6 rounded-full font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? 'Creating account…' : 'Create Account'}
