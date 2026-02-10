@@ -1,13 +1,13 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
 
-export type StaticThiknessFormData = {
+export type StaticThicknessFormData = {
   thikness: string;
   product_name: string;
 };
 
-export interface StaticThiknessFormRef {
-  getData: () => StaticThiknessFormData;
+export interface StaticThicknessFormRef {
+  getData: () => StaticThicknessFormData;
   validate: () => boolean;
 }
 
@@ -16,10 +16,10 @@ export interface ProductOption {
   label: string;
 }
 
-export interface StaticThiknessFormProps {
-  initialData?: Partial<StaticThiknessFormData>;
+export interface StaticThicknessFormProps {
+  initialData?: Partial<StaticThicknessFormData>;
   productOptions?: ProductOption[];
-  onSubmit?: (data: StaticThiknessFormData) => void;
+  onSubmit?: (data: StaticThicknessFormData) => void;
   onCancel?: () => void;
   isEdit?: boolean;
   readOnly?: boolean;
@@ -28,13 +28,13 @@ export interface StaticThiknessFormProps {
   showActions?: boolean;
 }
 
-const emptyForm: StaticThiknessFormData = {
+const emptyForm: StaticThicknessFormData = {
   thikness: '',
   product_name: '',
 };
 
-const StaticThiknessFormInner = forwardRef<StaticThiknessFormRef, StaticThiknessFormProps>(
-  function StaticThiknessFormInner(
+const StaticThicknessFormInner = forwardRef<StaticThicknessFormRef, StaticThicknessFormProps>(
+  function StaticThicknessFormInner(
     {
       initialData,
       productOptions = [],
@@ -49,7 +49,7 @@ const StaticThiknessFormInner = forwardRef<StaticThiknessFormRef, StaticThikness
     ref
   ) {
     const isDarkMode = useUIStore((state) => state.isDarkMode);
-    const [formData, setFormData] = useState<StaticThiknessFormData>({ ...emptyForm });
+    const [formData, setFormData] = useState<StaticThicknessFormData>({ ...emptyForm });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useImperativeHandle(ref, () => ({
@@ -63,7 +63,7 @@ const StaticThiknessFormInner = forwardRef<StaticThiknessFormRef, StaticThikness
       }
     }, [initialData]);
 
-    const handleChange = (key: keyof StaticThiknessFormData, value: string) => {
+    const handleChange = (key: keyof StaticThicknessFormData, value: string) => {
       setFormData((prev) => ({ ...prev, [key]: value }));
       if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
     };
@@ -189,4 +189,4 @@ const StaticThiknessFormInner = forwardRef<StaticThiknessFormRef, StaticThikness
   }
 );
 
-export default StaticThiknessFormInner;
+export default StaticThicknessFormInner;

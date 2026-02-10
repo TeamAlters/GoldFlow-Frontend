@@ -27,9 +27,9 @@ import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 
 type EntityRow = Record<string, unknown>;
 
-let thiknessMetadataFetchInFlight = false;
+let thicknessMetadataFetchInFlight = false;
 
-export default function ThiknessPage() {
+export default function ThicknessPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const entityName = 'thikness';
@@ -73,8 +73,8 @@ export default function ThiknessPage() {
       setMetadataLoading(false);
       return;
     }
-    if (thiknessMetadataFetchInFlight) return;
-    thiknessMetadataFetchInFlight = true;
+    if (thicknessMetadataFetchInFlight) return;
+    thicknessMetadataFetchInFlight = true;
     setMetadataLoading(true);
     setMetadataError(null);
     lastToastedErrorRef.current = null;
@@ -115,7 +115,7 @@ export default function ThiknessPage() {
         showErrorToast(msg);
       })
       .finally(() => {
-        thiknessMetadataFetchInFlight = false;
+        thicknessMetadataFetchInFlight = false;
         setMetadataLoading(false);
       });
   }, [token, entityName, showErrorToast, handleAuthError]);

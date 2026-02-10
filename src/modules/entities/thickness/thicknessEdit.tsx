@@ -1,42 +1,33 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { createEntity, getEntityList } from '../../admin/admin.api';
+import { getEntity, updateEntity, getEntityList } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { useAuthStore } from '../../../auth/auth.store';
 import { useUIStore } from '../../../stores/ui.store';
-import StaticThiknessForm, {
-  type StaticThiknessFormData,
-  type StaticThiknessFormRef,
+import StaticThicknessForm, {
+  type StaticThicknessFormData,
+  type StaticThicknessFormRef,
   type ProductOption,
-} from './thiknessForm';
+} from './thicknessForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
+import { toInitialThicknessData, toThicknessPayload } from './thicknessCreate';
 
 const ENTITY_NAME = 'thikness';
 
-export function toInitialThiknessData(
-  entity: Record<string, unknown>
-): Partial<StaticThiknessFormData> {
-  return {
-    thikness: entity.thikness != null ? String(entity.thikness) : '',
-    product_name: entity.product_name != null ? String(entity.product_name) : '',
-  };
-}
-
-export function toThiknessPayload(data: StaticThiknessFormData): Record<string, unknown> {
-  return {
-    thikness: data.thikness.trim(),
-    product_name: data.product_name.trim(),
-  };
-}
-
-export default function ThiknessCreatePage() {
+export default function ThicknessEditPage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
   const logout = useAuthStore((state) => state.logout);
-  const [submitLoading, setSubmitLoading] = useState(false);
+
+  const [initialData, setInitialData] = useState<Partial<StaticThicknessFormData> | undefined>(
+    undefined
+  );
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
-  const formRef = useRef<StaticThiknessFormRef>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const formRef = useRef<StaticThicknessFormRef>(null);
 
   const handleAuthError = useCallback(() => {
     logout();
@@ -58,12 +49,31 @@ export default function ThiknessCreatePage() {
       .catch(() => setProductOptions([]));
   }, []);
 
+  useEffect(() => {
+    if (!id) return;
+    setDataLoading(true);
+    getEntity(ENTITY_NAME, decodeURIComponent(id))
+      .then((res) => {
+        if (res.data && typeof res.data === 'object') {
+          const entity = res.data as Record<string, unknown>;
+                    setInitialData(toInitialThicknessData(entity));
+        }
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : 'Failed to load thickness';
+        toast.error(msg);
+        if (/401|unauthorized/i.test(msg)) handleAuthError();
+      })
+      .finally(() => setDataLoading(false));
+  }, [id, handleAuthError]);
+
   const handleSubmit = useCallback(
-    async (formData: StaticThiknessFormData) => {
+    async (formData: StaticThicknessFormData) => {
+      if (!id) return;
       setSubmitLoading(true);
       try {
-        await createEntity(ENTITY_NAME, toThiknessPayload(formData));
-        toast.success(`${entityConfig.displayName} created successfully.`);
+        await updateEntity(ENTITY_NAME, decodeURIComponent(id), toThicknessPayload(formData));
+        toast.success(`${entityConfig.displayName} updated successfully.`);
         navigate(entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
@@ -73,7 +83,7 @@ export default function ThiknessCreatePage() {
         setSubmitLoading(false);
       }
     },
-    [navigate, entityConfig, handleAuthError]
+    [id, navigate, entityConfig, handleAuthError]
   );
 
   const handleCancel = useCallback(() => {
@@ -92,13 +102,32 @@ export default function ThiknessCreatePage() {
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
+  if (!id) {
+    return <Navigate to={entityConfig.routes.list} replace />;
+  }
+
+  if (dataLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Loading thickness...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const breadcrumbLabel = initialData?.thikness ?? 'Edit Thickness';
+
   return (
     <div className="w-full">
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },
           { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
-          { label: `Add ${entityConfig.displayName}` },
+          { label: breadcrumbLabel },
         ]}
         className="mb-4"
       />
@@ -106,21 +135,21 @@ export default function ThiknessCreatePage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Add {entityConfig.displayName}
+          Edit {entityConfig.displayName}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Create a new thickness linked to a product.
+          Update thickness information.
         </p>
       </div>
       <form
         onSubmit={handleFormSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
-        <StaticThiknessForm
+        <StaticThicknessForm
           ref={formRef}
-          initialData={undefined}
+          initialData={initialData}
           productOptions={productOptions}
-          isEdit={false}
+          isEdit={true}
           wrapInForm={false}
           showActions={false}
         />
@@ -128,24 +157,22 @@ export default function ThiknessCreatePage() {
           <button
             type="button"
             onClick={handleCancel}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode
-                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
+              ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+              : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              }`}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitLoading}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            } disabled:opacity-60`}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : 'Create Thickness'}
+            {submitLoading ? 'Saving...' : 'Update Thickness'}
           </button>
         </div>
       </form>

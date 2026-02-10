@@ -212,10 +212,10 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       delete: DEFAULT_API_PATHS.delete,
     },
     routes: {
-      list: '/thikness',
-      add: '/thikness/add',
-      edit: '/thikness/edit/:id',
-      detail: '/thikness/:id',
+      list: '/thickness',
+      add: '/thickness/add',
+      edit: '/thickness/edit/:id',
+      detail: '/thickness/:id',
     },
     features: {
       canCreate: true,

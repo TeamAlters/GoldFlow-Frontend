@@ -19,10 +19,10 @@ import DesignsPage from '../modules/entities/design/DesignsPage';
 import DesignCreatePage from '../modules/entities/design/designCreate';
 import DesignEditPage from '../modules/entities/design/designEdit';
 import DesignViewPage from '../modules/entities/design/designView';
-import ThiknessPage from '../modules/entities/thikness/thiknessPage';
-import ThiknessCreatePage from '../modules/entities/thikness/thiknessCreate';
-import ThiknessEditPage from '../modules/entities/thikness/thiknessEdit';
-import ThiknessViewPage from '../modules/entities/thikness/thiknessView';
+import ThicknessPage from '../modules/entities/thickness/ThicknessPage';
+import ThicknessCreatePage from '../modules/entities/thickness/thicknessCreate';
+import ThicknessEditPage from '../modules/entities/thickness/thicknessEdit';
+import ThicknessViewPage from '../modules/entities/thickness/thicknessView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -84,10 +84,10 @@ export default function AppRouter() {
           <Route path="designs/add" element={<DesignCreatePage />} />
           <Route path="designs/edit/:id" element={<DesignEditPage />} />
           <Route path="designs/:id" element={<DesignViewPage />} />
-          <Route path="thikness" element={<ThiknessPage />} />
-          <Route path="thikness/add" element={<ThiknessCreatePage />} />
-          <Route path="thikness/edit/:id" element={<ThiknessEditPage />} />
-          <Route path="thikness/:id" element={<ThiknessViewPage />} />
+          <Route path="thickness" element={<ThicknessPage />} />
+          <Route path="thickness/add" element={<ThicknessCreatePage />} />
+          <Route path="thickness/edit/:id" element={<ThicknessEditPage />} />
+          <Route path="thickness/:id" element={<ThicknessViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>

@@ -5,19 +5,19 @@ import { getEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { useAuthStore } from '../../../auth/auth.store';
 import { useUIStore } from '../../../stores/ui.store';
-import StaticThiknessForm, { type StaticThiknessFormData } from './thiknessForm';
+import StaticThicknessForm, { type StaticThicknessFormData } from './thicknessForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toInitialThiknessData } from './thiknessCreate';
+import { toInitialThicknessData } from './thicknessCreate';
 
 const ENTITY_NAME = 'thikness';
 
-export default function ThiknessViewPage() {
+export default function ThicknessViewPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
   const logout = useAuthStore((state) => state.logout);
 
-  const [initialData, setInitialData] = useState<Partial<StaticThiknessFormData> | undefined>(
+  const [initialData, setInitialData] = useState<Partial<StaticThicknessFormData> | undefined>(
     undefined
   );
   const [dataLoading, setDataLoading] = useState(true);
@@ -34,7 +34,7 @@ export default function ThiknessViewPage() {
       .then((res) => {
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
-          setInitialData(toInitialThiknessData(entity));
+          setInitialData(toInitialThicknessData(entity));
         }
       })
       .catch((err) => {
@@ -94,7 +94,7 @@ export default function ThiknessViewPage() {
       <div
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
-        <StaticThiknessForm
+        <StaticThicknessForm
           initialData={initialData}
           productOptions={[]}
           isEdit={true}
@@ -106,21 +106,19 @@ export default function ThiknessViewPage() {
           <button
             type="button"
             onClick={handleBack}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode
-                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
+              ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+              : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              }`}
           >
             Back
           </button>
           <Link
             to={editUrl}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
           >
             Edit Thickness
           </Link>
