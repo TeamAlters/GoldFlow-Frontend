@@ -19,6 +19,10 @@ import DesignsPage from '../modules/entities/design/DesignsPage';
 import DesignCreatePage from '../modules/entities/design/designCreate';
 import DesignEditPage from '../modules/entities/design/designEdit';
 import DesignViewPage from '../modules/entities/design/designView';
+import ThicknessPage from '../modules/entities/thickness/ThicknessPage';
+import ThicknessCreatePage from '../modules/entities/thickness/thicknessCreate';
+import ThicknessEditPage from '../modules/entities/thickness/thicknessEdit';
+import ThicknessViewPage from '../modules/entities/thickness/thicknessView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -80,6 +84,10 @@ export default function AppRouter() {
           <Route path="designs/add" element={<DesignCreatePage />} />
           <Route path="designs/edit/:id" element={<DesignEditPage />} />
           <Route path="designs/:id" element={<DesignViewPage />} />
+          <Route path="thickness" element={<ThicknessPage />} />
+          <Route path="thickness/add" element={<ThicknessCreatePage />} />
+          <Route path="thickness/edit/:id" element={<ThicknessEditPage />} />
+          <Route path="thickness/:id" element={<ThicknessViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>
