@@ -411,7 +411,7 @@ export default function SignUp() {
 
       {/* Right Side - Sign Up Form */}
       <div
-        className={`w-full lg:w-1/2 min-h-0 flex flex-col items-center justify-start py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto ${
+        className={`w-full lg:w-1/2 min-h-0 flex flex-col items-center justify-center py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto ${
           isDarkMode ? 'bg-slate-900' : 'bg-white'
         }`}
       >
