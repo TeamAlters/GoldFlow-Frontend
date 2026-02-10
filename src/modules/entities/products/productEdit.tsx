@@ -34,15 +34,18 @@ export default function ProductEditPage() {
 
     useEffect(() => {
         if (!id) return;
+        const controller = new AbortController();
         setDataLoading(true);
-        getEntity(ENTITY_NAME, id)
+        getEntity(ENTITY_NAME, id, { signal: controller.signal })
             .then((res) => {
+                if (controller.signal.aborted) return;
                 if (res.data && typeof res.data === 'object') {
                     const entity = res.data as Record<string, unknown>;
                     setInitialData(toInitialProductData(entity));
                 }
             })
             .catch((err) => {
+                if (controller.signal.aborted) return;
                 const msg = err instanceof Error ? err.message : 'Failed to load product';
                 if (/credentials|401|validate|unauthorized/i.test(msg)) {
                     toast.error('Session expired. Please sign in again.');
@@ -51,7 +54,10 @@ export default function ProductEditPage() {
                     toast.error(msg);
                 }
             })
-            .finally(() => setDataLoading(false));
+            .finally(() => {
+                if (!controller.signal.aborted) setDataLoading(false);
+            });
+        return () => controller.abort();
     }, [id, handleAuthError]);
 
     const handleSubmit = useCallback(

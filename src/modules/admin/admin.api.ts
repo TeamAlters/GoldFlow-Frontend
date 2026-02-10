@@ -390,11 +390,12 @@ export async function createEntity(
 
 /**
  * GET /api/v1/entities/{entity_name}/{id}
- * Get a single entity item by ID
+ * Get a single entity item by ID. Pass options.signal to abort the request (e.g. on effect cleanup).
  */
 export async function getEntity(
   entityName: string,
-  id: string | number
+  id: string | number,
+  options?: { signal?: AbortSignal }
 ): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
   const config = getEntityConfig(entityName);
   const url = buildEntityUrl(config.api.get, entityName, { id });
@@ -402,7 +403,7 @@ export async function getEntity(
 
   console.log('[GoldFlow] [admin.api] getEntity: request', { entityName, id, url });
 
-  const res = await fetch(url, { method: 'GET', headers });
+  const res = await fetch(url, { method: 'GET', headers, signal: options?.signal });
   const text = await res.text();
   let responseData: {
     success?: boolean;
