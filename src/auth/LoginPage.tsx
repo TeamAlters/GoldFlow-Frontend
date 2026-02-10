@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/ui.store';
 import { useAuthStore } from './auth.store';
@@ -13,9 +13,95 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const setAuth = useAuthStore((state) => state.setAuth);
+
+  // Validation functions
+  const validateUsernameOrEmail = (value: string): string => {
+    if (!value.trim()) {
+      return 'Email or username is required';
+    }
+    const trimmed = value.trim();
+    // Check if it's a valid email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isEmail = emailRegex.test(trimmed);
+    
+    if (isEmail) {
+      // Email can be up to 36 characters
+      if (trimmed.length > 36) {
+        return 'Email must not exceed 36 characters';
+      }
+    } else {
+      // Username can be up to 24 characters
+      if (trimmed.length > 24) {
+        return 'Username must not exceed 24 characters';
+      }
+      // Check if it's a valid username (alphanumeric, 3+ chars)
+      const usernameRegex = /^[a-zA-Z0-9]{3,}$/;
+      if (!usernameRegex.test(trimmed)) {
+        return 'Please enter a valid email or username (minimum 3 characters)';
+      }
+    }
+    return '';
+  };
+
+  const validatePassword = (value: string): string => {
+    if (!value) {
+      return 'Password is required';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return '';
+  };
+
+  const validateField = (name: string, value: string): string => {
+    switch (name) {
+      case 'usernameOrEmail':
+        return validateUsernameOrEmail(value);
+      case 'password':
+        return validatePassword(value);
+      default:
+        return '';
+    }
+  };
+
+  // Handle blur - mark field as touched and validate
+  const handleBlur = (fieldName: string) => {
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
+    const value = fieldName === 'usernameOrEmail' ? usernameOrEmail : password;
+    const error = validateField(fieldName, value);
+    setErrors((prev) => ({ ...prev, [fieldName]: error }));
+  };
+
+  // Handle change - validate if field is already touched
+  const handleUsernameOrEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setUsernameOrEmail(value);
+    if (touched.usernameOrEmail) {
+      const error = validateField('usernameOrEmail', value);
+      setErrors((prev) => ({ ...prev, usernameOrEmail: error }));
+    }
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPassword(value);
+    if (touched.password) {
+      const error = validateField('password', value);
+      setErrors((prev) => ({ ...prev, password: error }));
+    }
+  };
+
+  // Check if form is valid
+  const isFormValid = useMemo(() => {
+    const usernameOrEmailError = validateUsernameOrEmail(usernameOrEmail);
+    const passwordError = validatePassword(password);
+    return !usernameOrEmailError && !passwordError;
+  }, [usernameOrEmail, password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,7 +308,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-2">
             {/* Email or Username Field */}
             <div className="space-y-2">
               <label
@@ -249,15 +335,28 @@ export default function LoginPage() {
                 type="text"
                 autoComplete="username"
                 value={usernameOrEmail}
-                onChange={(e) => setUsernameOrEmail(e.target.value)}
+                onChange={handleUsernameOrEmailChange}
+                onBlur={() => handleBlur('usernameOrEmail')}
                 placeholder="Enter your email or username"
-                className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                  isDarkMode
+                maxLength={36}
+                className={`w-full px-4 py-2 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
+                  touched.usernameOrEmail && errors.usernameOrEmail
+                    ? isDarkMode
+                      ? 'bg-slate-800 border-red-500 text-white placeholder-gray-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'bg-gray-50 border-red-500 text-gray-900 placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20'
+                    : isDarkMode
                     ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
                     : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
                 required
               />
+              <div className="min-h-[18px]">
+                {touched.usernameOrEmail && errors.usernameOrEmail && (
+                  <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    {errors.usernameOrEmail}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Password Field */}
@@ -286,10 +385,15 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
+                  onBlur={() => handleBlur('password')}
                   placeholder="Enter your password"
                   className={`w-full px-4 py-3 pr-12 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                    isDarkMode
+                    touched.password && errors.password
+                      ? isDarkMode
+                        ? 'bg-slate-800 border-red-500 text-white placeholder-gray-500 focus:border-red-500 focus:ring-red-500/20'
+                        : 'bg-gray-50 border-red-500 text-gray-900 placeholder-gray-400 focus:border-red-500 focus:ring-red-500/20'
+                      : isDarkMode
                       ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
                       : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
                   }`}
@@ -331,6 +435,13 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+              <div className="min-h-[18px]">
+                {touched.password && errors.password && (
+                  <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    {errors.password}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Remember Me & Forgot Password */}
@@ -362,7 +473,7 @@ export default function LoginPage() {
             <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !isFormValid}
                 className="flex-1 py-3 px-6 rounded-full font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? 'Signing in…' : 'Sign In'}
