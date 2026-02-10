@@ -1,20 +1,16 @@
 /**
  * Admin / entity APIs
  * Base URL: VITE_API_BASE_URL from .env
- * Authenticated requests use Bearer token from auth store.
+` * Authenticated requests use Bearer token from auth store (via apiClient interceptor).
  */
 
+import { apiClient, messageFromAxiosError } from '../../api/axios';
 import { useAuthStore } from '../../auth/auth.store';
 import { buildEntityUrl, getEntityConfig } from '../../config/entity.config';
 
-/** Build headers with Bearer token for authenticated API calls. Backend must accept "Authorization: Bearer <token>". */
-function getAuthHeaders(): HeadersInit {
+function hasAuthToken(): boolean {
   const token = useAuthStore.getState().token;
-  const headers: HeadersInit = { Accept: 'application/json' };
-  if (token && typeof token === 'string') {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${token.trim()}`;
-  }
-  return headers;
+  return !!(token && typeof token === 'string');
 }
 
 export type EntityField = {
@@ -94,8 +90,7 @@ export type FormMetadataResponse = {
 export async function getEntityMetadata(entityName: string): Promise<EntityMetadataResponse> {
   const config = getEntityConfig(entityName);
   const url = buildEntityUrl(config.api.listingMetadata, entityName);
-  const headers = getAuthHeaders();
-  const hasToken = !!(headers as Record<string, string>).Authorization;
+  const hasToken = hasAuthToken();
   console.log('[GoldFlow] [admin.api] getEntityMetadata: request', {
     entityName,
     url: url.replace(/\?.*/, ''),
@@ -104,29 +99,13 @@ export async function getEntityMetadata(entityName: string): Promise<EntityMetad
   if (!hasToken) {
     console.warn('[GoldFlow] [admin.api] getEntityMetadata: no token – backend may return 401');
   }
-  const res = await fetch(url, { method: 'GET', headers });
-  const text = await res.text();
-  let data: EntityMetadataResponse & { detail?: string | string[] } = {};
-  if (text.trim()) {
-    try {
-      data = JSON.parse(text) as EntityMetadataResponse & { detail?: string | string[] };
-    } catch {
-      // ignore
-    }
-  }
-  if (!res.ok) {
-    const detail = data.detail;
-    const detailStr =
-      typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.join(', ') : null;
-    const errMsg =
-      detailStr ??
-      (data as { message?: string }).message ??
-      (Array.isArray((data as { errors?: string[] }).errors)
-        ? (data as { errors: string[] }).errors.join(', ')
-        : null) ??
-      `Failed to load metadata (${res.status})`;
+  let data: EntityMetadataResponse & { detail?: string | string[] };
+  try {
+    const res = await apiClient.get<EntityMetadataResponse & { detail?: string | string[] }>(url);
+    data = res.data ?? {};
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, 'Failed to load metadata');
     console.log('[GoldFlow] [admin.api] getEntityMetadata: failed', {
-      status: res.status,
       entityName,
       errMsg,
     });
@@ -180,8 +159,7 @@ export async function getEntityMetadata(entityName: string): Promise<EntityMetad
 export async function getEntityFormMetadata(entityName: string): Promise<FormMetadataResponse> {
   const config = getEntityConfig(entityName);
   const url = buildEntityUrl(config.api.formMetadata, entityName);
-  const headers = getAuthHeaders();
-  const hasToken = !!(headers as Record<string, string>).Authorization;
+  const hasToken = hasAuthToken();
   console.log('[GoldFlow] [admin.api] getEntityFormMetadata: request', {
     entityName,
     url: url.replace(/\?.*/, ''),
@@ -190,29 +168,13 @@ export async function getEntityFormMetadata(entityName: string): Promise<FormMet
   if (!hasToken) {
     console.warn('[GoldFlow] [admin.api] getEntityFormMetadata: no token – backend may return 401');
   }
-  const res = await fetch(url, { method: 'GET', headers });
-  const text = await res.text();
-  let data: FormMetadataResponse & { detail?: string | string[] } = {};
-  if (text.trim()) {
-    try {
-      data = JSON.parse(text) as FormMetadataResponse & { detail?: string | string[] };
-    } catch {
-      // ignore
-    }
-  }
-  if (!res.ok) {
-    const detail = data.detail;
-    const detailStr =
-      typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.join(', ') : null;
-    const errMsg =
-      detailStr ??
-      (data as { message?: string }).message ??
-      (Array.isArray((data as { errors?: string[] }).errors)
-        ? (data as { errors: string[] }).errors.join(', ')
-        : null) ??
-      `Failed to load form metadata (${res.status})`;
+  let data: FormMetadataResponse & { detail?: string | string[] };
+  try {
+    const res = await apiClient.get<FormMetadataResponse & { detail?: string | string[] }>(url);
+    data = res.data ?? {};
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, 'Failed to load form metadata');
     console.log('[GoldFlow] [admin.api] getEntityFormMetadata: failed', {
-      status: res.status,
       entityName,
       errMsg,
     });
@@ -289,7 +251,6 @@ export async function getEntityList(
     search.set('filters', JSON.stringify(filters));
   }
   const url = `${baseUrl}?${search.toString()}`;
-  const headers = getAuthHeaders();
   console.log('[GoldFlow] [admin.api] getEntityList: request', {
     entityName,
     page,
@@ -297,32 +258,13 @@ export async function getEntityList(
     filtersCount: filters.length,
     filters: filters.length > 0 ? filters : undefined,
   });
-  const res = await fetch(url, { method: 'GET', headers });
-  const text = await res.text();
-  let data: EntityListResponse & { detail?: string } = {};
-  if (text.trim()) {
-    try {
-      data = JSON.parse(text) as EntityListResponse & { detail?: string };
-    } catch {
-      // ignore
-    }
-  }
-  if (!res.ok) {
-    const detail = (data as { detail?: string | string[] }).detail;
-    const detailStr =
-      typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.join(', ') : null;
-    const errMsg =
-      detailStr ??
-      (data as { message?: string }).message ??
-      (Array.isArray((data as { errors?: string[] }).errors)
-        ? (data as { errors: string[] }).errors.join(', ')
-        : null) ??
-      `Failed to load list (${res.status})`;
-    console.log('[GoldFlow] [admin.api] getEntityList: failed', {
-      status: res.status,
-      entityName,
-      errMsg,
-    });
+  let data: EntityListResponse;
+  try {
+    const res = await apiClient.get<EntityListResponse>(url);
+    data = res.data ?? ({} as EntityListResponse);
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, 'Failed to load list');
+    console.log('[GoldFlow] [admin.api] getEntityList: failed', { entityName, errMsg });
     throw new Error(errMsg);
   }
   const itemsCount = data.data?.items?.length ?? 0;
@@ -345,47 +287,22 @@ export async function createEntity(
 ): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
   const config = getEntityConfig(entityName);
   const url = buildEntityUrl(config.api.create, entityName);
-  const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
 
   console.log('[GoldFlow] [admin.api] createEntity: request', { entityName, url });
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(data),
-  });
-
-  const text = await res.text();
-  let responseData: {
-    success?: boolean;
-    message?: string;
-    data?: Record<string, unknown>;
-    detail?: string;
-  } = {};
-
-  if (text.trim()) {
-    try {
-      responseData = JSON.parse(text);
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!res.ok) {
-    const errMsg =
-      responseData.detail ??
-      responseData.message ??
-      `Failed to create ${entityName} (${res.status})`;
-    console.log('[GoldFlow] [admin.api] createEntity: failed', {
-      status: res.status,
-      entityName,
-      errMsg,
-    });
+  try {
+    const res = await apiClient.post<{
+      success?: boolean;
+      message?: string;
+      data?: Record<string, unknown>;
+    }>(url, data);
+    console.log('[GoldFlow] [admin.api] createEntity: success', { entityName });
+    return res.data ?? {};
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, `Failed to create ${entityName}`);
+    console.log('[GoldFlow] [admin.api] createEntity: failed', { entityName, errMsg });
     throw new Error(errMsg);
   }
-
-  console.log('[GoldFlow] [admin.api] createEntity: success', { entityName });
-  return responseData;
 }
 
 /**
@@ -399,41 +316,22 @@ export async function getEntity(
 ): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
   const config = getEntityConfig(entityName);
   const url = buildEntityUrl(config.api.get, entityName, { id });
-  const headers = getAuthHeaders();
 
   console.log('[GoldFlow] [admin.api] getEntity: request', { entityName, id, url });
 
-  const res = await fetch(url, { method: 'GET', headers, signal: options?.signal });
-  const text = await res.text();
-  let responseData: {
-    success?: boolean;
-    message?: string;
-    data?: Record<string, unknown>;
-    detail?: string;
-  } = {};
-
-  if (text.trim()) {
-    try {
-      responseData = JSON.parse(text);
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!res.ok) {
-    const errMsg =
-      responseData.detail ?? responseData.message ?? `Failed to get ${entityName} (${res.status})`;
-    console.log('[GoldFlow] [admin.api] getEntity: failed', {
-      status: res.status,
-      entityName,
-      id,
-      errMsg,
-    });
+  try {
+    const res = await apiClient.get<{
+      success?: boolean;
+      message?: string;
+      data?: Record<string, unknown>;
+    }>(url, { signal: options?.signal });
+    console.log('[GoldFlow] [admin.api] getEntity: success', { entityName, id });
+    return res.data ?? {};
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, `Failed to get ${entityName}`);
+    console.log('[GoldFlow] [admin.api] getEntity: failed', { entityName, id, errMsg });
     throw new Error(errMsg);
   }
-
-  console.log('[GoldFlow] [admin.api] getEntity: success', { entityName, id });
-  return responseData;
 }
 
 /**
@@ -447,48 +345,22 @@ export async function updateEntity(
 ): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
   const config = getEntityConfig(entityName);
   const url = buildEntityUrl(config.api.update, entityName, { id });
-  const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
 
   console.log('[GoldFlow] [admin.api] updateEntity: request', { entityName, id, url });
 
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(data),
-  });
-
-  const text = await res.text();
-  let responseData: {
-    success?: boolean;
-    message?: string;
-    data?: Record<string, unknown>;
-    detail?: string;
-  } = {};
-
-  if (text.trim()) {
-    try {
-      responseData = JSON.parse(text);
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!res.ok) {
-    const errMsg =
-      responseData.detail ??
-      responseData.message ??
-      `Failed to update ${entityName} (${res.status})`;
-    console.log('[GoldFlow] [admin.api] updateEntity: failed', {
-      status: res.status,
-      entityName,
-      id,
-      errMsg,
-    });
+  try {
+    const res = await apiClient.put<{
+      success?: boolean;
+      message?: string;
+      data?: Record<string, unknown>;
+    }>(url, data);
+    console.log('[GoldFlow] [admin.api] updateEntity: success', { entityName, id });
+    return res.data ?? {};
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, `Failed to update ${entityName}`);
+    console.log('[GoldFlow] [admin.api] updateEntity: failed', { entityName, id, errMsg });
     throw new Error(errMsg);
   }
-
-  console.log('[GoldFlow] [admin.api] updateEntity: success', { entityName, id });
-  return responseData;
 }
 
 /**
@@ -501,36 +373,16 @@ export async function deleteEntity(
 ): Promise<{ success?: boolean; message?: string }> {
   const config = getEntityConfig(entityName);
   const url = buildEntityUrl(config.api.delete, entityName, { id });
-  const headers = getAuthHeaders();
 
   console.log('[GoldFlow] [admin.api] deleteEntity: request', { entityName, id, url });
 
-  const res = await fetch(url, { method: 'DELETE', headers });
-  const text = await res.text();
-  let responseData: { success?: boolean; message?: string; detail?: string } = {};
-
-  if (text.trim()) {
-    try {
-      responseData = JSON.parse(text);
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!res.ok) {
-    const errMsg =
-      responseData.detail ??
-      responseData.message ??
-      `Failed to delete ${entityName} (${res.status})`;
-    console.log('[GoldFlow] [admin.api] deleteEntity: failed', {
-      status: res.status,
-      entityName,
-      id,
-      errMsg,
-    });
+  try {
+    const res = await apiClient.delete<{ success?: boolean; message?: string }>(url);
+    console.log('[GoldFlow] [admin.api] deleteEntity: success', { entityName, id });
+    return res.data ?? {};
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, `Failed to delete ${entityName}`);
+    console.log('[GoldFlow] [admin.api] deleteEntity: failed', { entityName, id, errMsg });
     throw new Error(errMsg);
   }
-
-  console.log('[GoldFlow] [admin.api] deleteEntity: success', { entityName, id });
-  return responseData;
 }

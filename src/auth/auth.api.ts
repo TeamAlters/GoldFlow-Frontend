@@ -1,9 +1,10 @@
 /**
- * Auth API – register (POST /api/v1/auth/register)
- * Base URL: set VITE_API_BASE_URL in .env (e.g. https://your-api.com)
+ * Auth API – login, register, registration-status, logout
+ * Uses shared apiClient (axios) with VITE_API_BASE_URL.
  */
 
-const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL ?? '';
+import axios from 'axios';
+import { apiClient, messageFromAxiosError } from '../api/axios';
 
 /** User-friendly messages when the API doesn't return a message */
 function getFriendlyMessage(status: number): string {
@@ -21,6 +22,11 @@ function getFriendlyMessage(status: number): string {
   return messages[status] ?? 'Something went wrong. Please try again.';
 }
 
+function authErrorFallback(err: unknown): string {
+  const status = axios.isAxiosError(err) && err.response?.status != null ? err.response.status : 500;
+  return getFriendlyMessage(status);
+}
+
 export type RegisterPayload = {
   username: string;
   name: string;
@@ -35,73 +41,19 @@ export type RegisterResponse = {
   [key: string]: unknown;
 };
 
-type AuthFetchOptions = Omit<RequestInit, 'body'> & { body?: object };
-
-async function authFetch<T>(path: string, options: AuthFetchOptions = {}): Promise<T> {
-  const { body, ...rest } = options;
-  const url = `${getBaseUrl()}${path}`;
-  const res = await fetch(url, {
-    ...rest,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    },
-    body: body != null ? JSON.stringify(body) : undefined,
-  });
-
-  const text = await res.text();
-  let data: Record<string, unknown> = {};
-  if (text.trim()) {
-    try {
-      data = JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      // non-JSON body, keep data as {}
-    }
+async function authFetch<T>(path: string, method: string, body?: object): Promise<T> {
+  try {
+    const res = await apiClient.request<T>({
+      url: path,
+      method: method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+      data: body,
+    });
+    return res.data as T;
+  } catch (err) {
+    const fallback = authErrorFallback(err);
+    const msg = messageFromAxiosError(err, fallback);
+    throw new Error(msg);
   }
-
-  if (!res.ok) {
-    // API shape: { success, message, errors: string[], status_code } or message/error/detail (string or array)
-    const detail = data?.detail;
-    const detailStr = typeof detail === 'string' ? detail : undefined;
-    const detailArr = Array.isArray(detail)
-      ? (detail as Array<{ loc?: unknown[]; msg?: string }>)
-      : undefined;
-    const errorsArr = Array.isArray(data?.errors) ? data.errors : undefined;
-    const errorsStr =
-      errorsArr && errorsArr.length > 0
-        ? errorsArr
-            .map((e) =>
-              typeof e === 'string'
-                ? e
-                : ((e as { message?: string; msg?: string })?.message ??
-                  (e as { message?: string; msg?: string })?.msg ??
-                  String(e))
-            )
-            .join(', ')
-        : undefined;
-    const messageStr = typeof data?.message === 'string' ? data.message : undefined;
-    const messageArr = Array.isArray(data?.message)
-      ? (data.message as string[]).join(', ')
-      : undefined;
-    const message =
-      (errorsStr && errorsStr.length > 0 ? errorsStr : null) ??
-      messageStr ??
-      messageArr ??
-      (data?.error as string) ??
-      detailStr ??
-      (detailArr && detailArr.length > 0
-        ? detailArr
-            .map(
-              (d) =>
-                d.msg ??
-                (Array.isArray(d.loc) ? d.loc.join('.') + ': required' : 'Please check this field.')
-            )
-            .join(', ')
-        : getFriendlyMessage(res.status));
-    throw new Error(message);
-  }
-
-  return data as T;
 }
 
 /** GET /api/v1/auth/registration-status – check if registration is allowed */
@@ -111,24 +63,17 @@ export type RegistrationStatusResponse = {
 };
 
 export async function getRegistrationStatus(): Promise<RegistrationStatusResponse> {
-  const url = `${getBaseUrl()}/api/v1/auth/registration-status`;
-  const res = await fetch(url, { method: 'GET' });
-  const text = await res.text();
-  let body: {
-    success?: boolean;
-    data?: { registration_allowed?: boolean; reason?: string };
-    [key: string]: unknown;
-  } = {};
-  if (text.trim()) {
-    try {
-      body = JSON.parse(text) as typeof body;
-    } catch {
-      // ignore
-    }
+  try {
+    const res = await apiClient.get<{
+      success?: boolean;
+      data?: { registration_allowed?: boolean; reason?: string };
+    }>('/api/v1/auth/registration-status');
+    const body = res.data ?? {};
+    const allowed = body?.data?.registration_allowed ?? false;
+    return { registration_allowed: allowed, reason: body?.data?.reason };
+  } catch {
+    return { registration_allowed: false };
   }
-  if (!res.ok) return { registration_allowed: false };
-  const allowed = body?.data?.registration_allowed ?? false;
-  return { registration_allowed: allowed, reason: body?.data?.reason };
 }
 
 /** POST /api/v1/auth/login – login and get token (username_or_email accepts email or username) */
@@ -146,76 +91,33 @@ export type LoginResponse = {
 };
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  const data = await authFetch<LoginResponse>('/api/v1/auth/login', {
-    method: 'POST',
-    body: { username_or_email: payload.usernameOrEmail, password: payload.password },
+  return authFetch<LoginResponse>('/api/v1/auth/login', 'POST', {
+    username_or_email: payload.usernameOrEmail,
+    password: payload.password,
   });
-  return data;
 }
 
 /** POST /api/v1/auth/register – register a new user */
 export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
-  return authFetch<RegisterResponse>('/api/v1/auth/register', {
-    method: 'POST',
-    body: {
-      username: payload.username,
-      name: payload.name,
-      email: payload.email,
-      mobile_number: payload.phoneNumber,
-      password: payload.password,
-    },
+  return authFetch<RegisterResponse>('/api/v1/auth/register', 'POST', {
+    username: payload.username,
+    name: payload.name,
+    email: payload.email,
+    mobile_number: payload.phoneNumber,
+    password: payload.password,
   });
 }
 
 /** POST /api/v1/auth/logout – invalidate session on server (call with current token) */
 export async function logout(token: string): Promise<void> {
-  const url = `${getBaseUrl()}/api/v1/auth/logout`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({}),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    let data: Record<string, unknown> = {};
-    if (text.trim()) {
-      try {
-        data = JSON.parse(text) as Record<string, unknown>;
-      } catch {
-        // ignore
-      }
-    }
-    const errorsArr = Array.isArray(data?.errors) ? data.errors : undefined;
-    const errorsStr =
-      errorsArr && errorsArr.length > 0
-        ? errorsArr
-            .map((e) =>
-              typeof e === 'string'
-                ? e
-                : ((e as { message?: string; msg?: string })?.message ??
-                  (e as { message?: string; msg?: string })?.msg ??
-                  String(e))
-            )
-            .join(', ')
-        : undefined;
-    const detailArr = Array.isArray(data?.detail)
-      ? (data.detail as Array<{ msg?: string; loc?: unknown[] }>)
-      : undefined;
-    const detailStr =
-      detailArr && detailArr.length > 0
-        ? detailArr
-            .map((d) => d.msg ?? (Array.isArray(d.loc) ? d.loc.join('.') + ': required' : ''))
-            .join(', ')
-        : undefined;
-    const message =
-      errorsStr ??
-      detailStr ??
-      (typeof data?.message === 'string' ? data.message : undefined) ??
-      (data?.error as string) ??
-      getFriendlyMessage(res.status);
-    throw new Error(message);
+  try {
+    await apiClient.post(
+      '/api/v1/auth/logout',
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  } catch (err) {
+    const msg = messageFromAxiosError(err, authErrorFallback(err));
+    throw new Error(msg);
   }
 }
