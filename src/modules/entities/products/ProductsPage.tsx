@@ -25,6 +25,11 @@ import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { getRowDisplayValue } from '../../../shared/utils/common';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 
+/**
+ * Products list page. Uses the same pattern as UsersPage:
+ * - GET /api/v1/entities/product/listing-metadata (via getEntityMetadata) for columns, filters, id_field, detail_link_field
+ * - GET /api/v1/entities/product/list (via getEntityList) for table rows
+ */
 type EntityRow = Record<string, unknown>;
 
 let productMetadataFetchInFlight = false;
@@ -120,9 +125,12 @@ export default function ProductsPage() {
       });
   }, [token, entityName, showErrorToast, handleAuthError]);
 
+  // Load listing-metadata (columns, filters, id_field, detail_link_field); use cache when available
   useEffect(() => {
     if (!token) {
-      setMetadataError('Not logged in. Sign in and try again.');
+      const msg = 'Not logged in. Sign in and try again.';
+      setMetadataError(msg);
+      showErrorToast(msg);
       setMetadataLoading(false);
       return;
     }
@@ -140,7 +148,7 @@ export default function ProductsPage() {
       return;
     }
     fetchMetadata();
-  }, [token, entityName, fetchMetadata]);
+  }, [token, entityName, fetchMetadata, showErrorToast]);
 
   const filterFieldTypeMap = useMemo((): Record<string, string> => {
     const map: Record<string, string> = {};
@@ -241,7 +249,7 @@ export default function ProductsPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (/401|unauthorized/i.test(msg)) {
+        if (/credentials|401|validate|unauthorized/i.test(msg)) {
           showErrorToast('Session expired. Please sign in again.');
           handleAuthError();
           return;
@@ -264,20 +272,22 @@ export default function ProductsPage() {
 
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
-    if (!visibleFields.length) return [];
+    const idField = entityMetadata?.id_field ?? 'id';
     const detailLinkField = entityMetadata?.detail_link_field;
-    const idField = entityMetadata?.id_field ?? 'product_name';
 
-    return visibleFields.map((f) => ({
-      key: f.name,
-      header: f.label,
-      sortable: true,
-      accessor: (row: EntityRow) => {
-        const value = getRowDisplayValue(row, f.name, f.type);
-        const isDetailLink = f.name === detailLinkField;
+    const getRowId = (row: EntityRow) =>
+      row[idField] ?? row['id'] ?? row['product_name'];
 
+    const makeAccessor = (fieldKey: string, fieldType: string, isDetailLink: boolean) => {
+      return (row: EntityRow) => {
+        const value = getRowDisplayValue(row, fieldKey, fieldType);
         if (isDetailLink) {
-          const rowId = row[idField];
+          const rowId = getRowId(row);
+          if (rowId === undefined || rowId === null) {
+            return (
+              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>
+            );
+          }
           return (
             <button
               type="button"
@@ -295,23 +305,40 @@ export default function ProductsPage() {
             </button>
           );
         }
-
         return (
           <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>
         );
-      },
-    }));
+      };
+    };
+
+    return visibleFields
+      .map((f) => {
+        const fieldKey = f.name || (f as { field?: string }).field || '';
+        if (!fieldKey) return null;
+        return {
+          key: fieldKey,
+          header: f.label,
+          sortable: true,
+          accessor: makeAccessor(fieldKey, f.type, fieldKey === detailLinkField),
+        };
+      })
+      .filter((col): col is NonNullable<typeof col> => col != null) as TableColumn<EntityRow>[];
   }, [entityMetadata, isDarkMode, navigate, entityConfig]);
 
   const handleAddEntity = () => {
     navigate(entityConfig.routes.add);
   };
 
-  const idField = entityMetadata?.id_field ?? 'product_name';
+  const idField = entityMetadata?.id_field ?? 'id';
+
+  const getRowId = useCallback(
+    (row: EntityRow) => row[idField] ?? row['id'] ?? row['product_name'],
+    [idField]
+  );
 
   const handleDelete = useCallback(
     async (row: EntityRow) => {
-      const rowId = row[idField];
+      const rowId = getRowId(row);
       if (rowId === undefined || rowId === null) return;
       const displayName = String(row.product_name ?? row.name ?? 'this product');
       if (!window.confirm(`Are you sure you want to delete ${displayName}?`)) return;
@@ -321,11 +348,15 @@ export default function ProductsPage() {
         fetchList();
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to delete product';
-        toast.error(msg);
-        if (/401|unauthorized/i.test(msg)) handleAuthError();
+        if (/credentials|401|validate|unauthorized/i.test(msg)) {
+          toast.error('Session expired. Please sign in again.');
+          handleAuthError();
+        } else {
+          toast.error(msg);
+        }
       }
     },
-    [entityName, entityConfig.displayName, idField, fetchList, handleAuthError]
+    [entityName, entityConfig.displayName, getRowId, fetchList, handleAuthError]
   );
 
   const actions: TableAction<EntityRow>[] = useMemo(
@@ -333,7 +364,7 @@ export default function ProductsPage() {
       {
         label: 'Edit',
         onClick: (row) => {
-          const rowId = row[idField];
+          const rowId = getRowId(row);
           if (rowId !== undefined && rowId !== null) {
             navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
           }
@@ -366,7 +397,7 @@ export default function ProductsPage() {
         ),
       },
     ],
-    [idField, navigate, entityConfig.routes.edit, handleDelete]
+    [getRowId, navigate, entityConfig.routes.edit, handleDelete]
   );
 
   const filterConfig: FilterComponentConfig = useMemo(() => {
@@ -384,7 +415,7 @@ export default function ProductsPage() {
     return { default: defaultConfig, addable: addableConfig };
   }, [entityMetadata]);
 
-  const handleRowClick = () => {};
+  const handleRowClick = () => { };
 
   const hasFilters =
     Object.keys(filterConfig.default).length > 0 ||
@@ -416,11 +447,10 @@ export default function ProductsPage() {
         }
         toolbarRight={
           <button
-            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
+            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
             onClick={handleAddEntity}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

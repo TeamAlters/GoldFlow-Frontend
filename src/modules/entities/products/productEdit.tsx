@@ -44,8 +44,12 @@ export default function ProductEditPage() {
             })
             .catch((err) => {
                 const msg = err instanceof Error ? err.message : 'Failed to load product';
-                toast.error(msg);
-                if (/401|unauthorized/i.test(msg)) handleAuthError();
+                if (/credentials|401|validate|unauthorized/i.test(msg)) {
+                    toast.error('Session expired. Please sign in again.');
+                    handleAuthError();
+                } else {
+                    toast.error(msg);
+                }
             })
             .finally(() => setDataLoading(false));
     }, [id, handleAuthError]);
@@ -55,13 +59,18 @@ export default function ProductEditPage() {
             if (!id) return;
             setSubmitLoading(true);
             try {
+                // PUT /api/v1/entities/product/{entity_id} (via updateEntity)
                 await updateEntity(ENTITY_NAME, id, toProductPayload(formData));
                 toast.success(`${entityConfig.displayName} updated successfully.`);
                 navigate(entityConfig.routes.list);
             } catch (err) {
                 const msg = err instanceof Error ? err.message : 'Request failed';
-                toast.error(msg);
-                if (/401|unauthorized/i.test(msg)) handleAuthError();
+                if (/credentials|401|validate|unauthorized/i.test(msg)) {
+                    toast.error('Session expired. Please sign in again.');
+                    handleAuthError();
+                } else {
+                    toast.error(msg);
+                }
             } finally {
                 setSubmitLoading(false);
             }
@@ -140,8 +149,8 @@ export default function ProductEditPage() {
                         type="button"
                         onClick={handleCancel}
                         className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
-                                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                             }`}
                     >
                         Cancel
@@ -150,8 +159,8 @@ export default function ProductEditPage() {
                         type="submit"
                         disabled={submitLoading}
                         className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white'
                             } disabled:opacity-60`}
                     >
                         {submitLoading ? 'Saving...' : 'Update Product'}
