@@ -409,33 +409,31 @@ export default function SignUp() {
         </div>
       </div>
 
-      {/* Right Side - Sign Up Form */}
+      {/* Right Side - Sign Up Form (z-10 so logo stays visible when left panel is shown) */}
       <div
-        className={`w-full lg:w-1/2 min-h-0 flex flex-col items-center justify-center py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto ${
+        className={`relative z-10 w-full lg:w-1/2 min-h-0 py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto ${
           isDarkMode ? 'bg-slate-900' : 'bg-white'
         }`}
       >
-        <div className="w-full max-w-md flex-shrink-0">
-          {/* Logo/Brand */}
-          <div className="flex items-center gap-3 mb-4">
-            {/* Logo Icon */}
-            {/* <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              isDarkMode 
-                ? 'bg-gradient-to-br from-amber-500 to-yellow-600' 
-                : 'bg-gradient-to-br from-amber-400 to-yellow-500'
-            } shadow-lg`}>
-              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
-            </div> */}
-            {/* Brand Name */}
-            {/* <span className={`text-2xl font-bold tracking-tight ${
-              isDarkMode 
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent' 
-                : 'bg-gradient-to-r from-amber-500 to-yellow-600 bg-clip-text text-transparent'
-            }`}>
+        <div className="mx-auto w-full max-w-md min-w-0 py-4">
+          {/* Logo - visible only when left panel is hidden (e.g. mobile) */}
+          <div className="lg:hidden flex items-center justify-start gap-3 mb-6">
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden shadow-lg ${
+                isDarkMode ? 'bg-slate-800/80' : 'bg-slate-200/80'
+              }`}
+            >
+              <img src="/favicon.svg" alt="GoldFlow" className="w-8 h-8 object-contain" />
+            </div>
+            <span
+              className={`text-2xl font-bold tracking-tight ${
+                isDarkMode
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent'
+                  : 'bg-gradient-to-r from-amber-500 to-yellow-600 bg-clip-text text-transparent'
+              }`}
+            >
               GoldFlow
-            </span> */}
+            </span>
           </div>
 
           {/* Welcome Header */}
