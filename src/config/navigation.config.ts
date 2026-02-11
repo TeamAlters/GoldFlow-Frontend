@@ -46,10 +46,11 @@ export const sidebarNavConfig: NavCategory[] = [
     id: 'masters',
     category: 'Masters',
     icon: 'database',
+    defaultOpen: true,
     items: [
       { name: 'Stone', path: '/masters/stones', icon: 'gem' },
       { name: 'Source Type', path: '/masters/source-types', icon: 'layers' },
-        { name: 'Purities', path: '/purities', icon: 'sparkles', entityName: 'purity' },
+      { name: 'Purities', path: '/purities', icon: 'sparkles', entityName: 'purity' },
       { name: 'Thickness', path: '/thickness', icon: 'ruler', entityName: 'thickness' },
       { name: 'Design', path: '/designs', icon: 'pencil', entityName: 'design' },
       { name: 'Vendor', path: '/masters/vendors', icon: 'store' },
@@ -57,6 +58,7 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Customer', path: '/masters/customers', icon: 'user' },
       { name: 'Product', path: '/products', icon: 'box', entityName: 'product' },
       { name: 'Wire Size', path: '/wire-sizes', icon: 'ruler', entityName: 'wire_size' },
+      { name: 'Machine', path: '/machines', icon: 'cog', entityName: 'machine' },
     ],
   },
   {
