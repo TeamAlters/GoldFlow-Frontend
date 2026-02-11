@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticUserFormData = {
     username: string;
@@ -106,11 +107,20 @@ const StaticUserFormInner = forwardRef<StaticUserFormRef, StaticUserFormProps>(
 
         const validate = (): boolean => {
             const next: Record<string, string> = {};
-            if (!formData.username.trim()) next.username = 'Username is required';
-            if (!formData.email.trim()) next.email = 'Email is required';
-            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            const username = formData.username.trim();
+            if (!username) next.username = 'Username is required';
+            else if (username.length > MAX_TEXT_FIELD_LENGTH)
+                next.username = maxLengthError('Username');
+            const email = formData.email.trim();
+            if (!email) next.email = 'Email is required';
+            else if (email.length > MAX_TEXT_FIELD_LENGTH)
+                next.email = maxLengthError('Email');
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 next.email = 'Enter a valid email';
             }
+            const mobile = formData.mobile_number.trim();
+            if (mobile && mobile.length > MAX_TEXT_FIELD_LENGTH)
+                next.mobile_number = maxLengthError('Mobile number');
             if (!isEdit) {
                 if (!formData.password) next.password = 'Password is required';
                 else if (formData.password.length < 8) next.password = 'Password must be at least 8 characters';
@@ -214,6 +224,7 @@ const StaticUserFormInner = forwardRef<StaticUserFormRef, StaticUserFormProps>(
                             value={formData.username}
                             onChange={(e) => handleChange('username', e.target.value)}
                             placeholder="Enter username"
+                            maxLength={MAX_TEXT_FIELD_LENGTH}
                             className={inputClass('username')}
                             disabled={isEdit || readOnly}
                             readOnly={readOnly}
@@ -230,6 +241,7 @@ const StaticUserFormInner = forwardRef<StaticUserFormRef, StaticUserFormProps>(
                             value={formData.email}
                             onChange={(e) => handleChange('email', e.target.value)}
                             placeholder="Enter email"
+                            maxLength={MAX_TEXT_FIELD_LENGTH}
                             className={inputClass('email')}
                             disabled={readOnly}
                             readOnly={readOnly}
@@ -277,10 +289,14 @@ const StaticUserFormInner = forwardRef<StaticUserFormRef, StaticUserFormProps>(
                             value={formData.mobile_number}
                             onChange={(e) => handleChange('mobile_number', e.target.value)}
                             placeholder="Enter mobile number"
+                            maxLength={MAX_TEXT_FIELD_LENGTH}
                             className={inputClass('mobile_number')}
                             disabled={readOnly}
                             readOnly={readOnly}
                         />
+                        {errors.mobile_number && (
+                            <p className={`mt-1 ${errorClass}`}>{errors.mobile_number}</p>
+                        )}
                     </div>
 
                     <div>
