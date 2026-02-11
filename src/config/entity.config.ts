@@ -225,6 +225,32 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     },
   },
 
+  wire_size: {
+    displayName: 'Wire Size',
+    displayNamePlural: 'Wire Sizes',
+    api: {
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
+      list: DEFAULT_API_PATHS.list,
+      create: DEFAULT_API_PATHS.create,
+      get: DEFAULT_API_PATHS.get,
+      update: DEFAULT_API_PATHS.update,
+      delete: DEFAULT_API_PATHS.delete,
+    },
+    routes: {
+      list: '/wire-sizes',
+      add: '/wire-sizes/add',
+      edit: '/wire-sizes/edit/:id',
+      detail: '/wire-sizes/:id',
+    },
+    features: {
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: false,
+    },
+  },
+
   workorder: {
     displayName: 'Work Order',
     displayNamePlural: 'Work Orders',

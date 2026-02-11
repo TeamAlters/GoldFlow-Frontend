@@ -23,6 +23,10 @@ import ThicknessPage from '../modules/entities/thickness/ThicknessPage';
 import ThicknessCreatePage from '../modules/entities/thickness/thicknessCreate';
 import ThicknessEditPage from '../modules/entities/thickness/thicknessEdit';
 import ThicknessViewPage from '../modules/entities/thickness/thicknessView';
+import WireSizePage from '../modules/entities/wireSize/WireSizePage';
+import WireSizeCreatePage from '../modules/entities/wireSize/wireSizeCreate';
+import WireSizeEditPage from '../modules/entities/wireSize/wireSizeEdit';
+import WireSizeViewPage from '../modules/entities/wireSize/wireSizeView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -88,6 +92,10 @@ export default function AppRouter() {
           <Route path="thickness/add" element={<ThicknessCreatePage />} />
           <Route path="thickness/edit/:id" element={<ThicknessEditPage />} />
           <Route path="thickness/:id" element={<ThicknessViewPage />} />
+          <Route path="wire-sizes" element={<WireSizePage />} />
+          <Route path="wire-sizes/add" element={<WireSizeCreatePage />} />
+          <Route path="wire-sizes/edit/:id" element={<WireSizeEditPage />} />
+          <Route path="wire-sizes/:id" element={<WireSizeViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>
