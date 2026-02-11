@@ -13,7 +13,7 @@ import Pagination from '../../../shared/components/Pagination';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
-import { isAuthError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
 import { getEntityMetadata, getEntityList, deleteEntity, type EntityListFilter } from '../../admin/admin.api';
 import type { EntityField, EntityFilterField } from '../../admin/admin.api';
@@ -53,14 +53,7 @@ export default function UsersPage() {
   const [totalPages, setTotalPages] = useState<number>(0);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
   const token = useAuthStore((state) => state.token);
-  const logout = useAuthStore((state) => state.logout);
   const lastToastedErrorRef = useRef<string | null>(null);
-
-  const handleAuthError = useCallback(() => {
-    console.warn('[GoldFlow] [UsersPage] Auth error – clearing session and redirecting to login');
-    logout();
-    navigate('/login', { replace: true });
-  }, [logout, navigate]);
 
   // Show error in toaster once per distinct message (avoids double toast from Strict Mode / duplicate paths)
   const showErrorToast = useCallback((msg: string) => {
@@ -115,20 +108,14 @@ export default function UsersPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load metadata';
-        if (isAuthError(msg)) {
-          showErrorToast('Session expired. Please sign in again.');
-          handleAuthError();
-          return;
-        }
-        console.log('[GoldFlow] [UsersPage] fetchMetadata: error', { msg });
+        showErrorToastUnlessAuth(msg);
         setMetadataError(msg);
-        showErrorToast(msg);
       })
       .finally(() => {
         metadataFetchInFlight = false;
         setMetadataLoading(false);
       });
-  }, [token, entityName, showErrorToast, handleAuthError]);
+  }, [token, entityName, showErrorToast]);
 
   useEffect(() => {
     if (!token) {
@@ -273,17 +260,11 @@ export default function UsersPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (isAuthError(msg)) {
-          showErrorToast('Session expired. Please sign in again.');
-          handleAuthError();
-          return;
-        }
-        console.log('[GoldFlow] [UsersPage] fetchList: error', { msg });
-        showErrorToast(msg);
+        showErrorToastUnlessAuth(msg);
         setUsers([]);
       })
       .finally(() => setListLoading(false));
-  }, [token, entityName, page, pageSize, filtersForApi, showErrorToast, handleAuthError]);
+  }, [token, entityName, page, pageSize, filtersForApi]);
 
   useEffect(() => {
     const defaultSize = entityMetadata?.pagination?.default_page_size;
@@ -360,10 +341,9 @@ export default function UsersPage() {
       fetchList();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete user';
-      toast.error(msg);
-      if (isAuthError(msg)) handleAuthError();
+      showErrorToastUnlessAuth(msg);
     }
-  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList, handleAuthError]);
+  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList]);
 
   // Define table actions: Edit and Delete
   const actions: TableAction<EntityRow>[] = useMemo(

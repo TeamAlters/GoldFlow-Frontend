@@ -3,8 +3,7 @@ import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, updateEntity, getEntityList } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
-import { isAuthError } from '../../../shared/utils/errorHandling';
-import { useAuthStore } from '../../../auth/auth.store';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticThicknessForm, {
   type StaticThicknessFormData,
@@ -20,8 +19,6 @@ export default function ThicknessEditPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const logout = useAuthStore((state) => state.logout);
-
   const [initialData, setInitialData] = useState<Partial<StaticThicknessFormData> | undefined>(
     undefined
   );
@@ -29,11 +26,6 @@ export default function ThicknessEditPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const formRef = useRef<StaticThicknessFormRef>(null);
-
-  const handleAuthError = useCallback(() => {
-    logout();
-    navigate('/login', { replace: true });
-  }, [logout, navigate]);
 
   useEffect(() => {
     getEntityList('product', { page: 1, page_size: 500 })
@@ -62,11 +54,10 @@ export default function ThicknessEditPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load thickness';
-        toast.error(msg);
-        if (isAuthError(msg)) handleAuthError();
+        showErrorToastUnlessAuth(msg);
       })
       .finally(() => setDataLoading(false));
-  }, [id, handleAuthError]);
+  }, [id]);
 
   const handleSubmit = useCallback(
     async (formData: StaticThicknessFormData) => {
@@ -78,13 +69,12 @@ export default function ThicknessEditPage() {
         navigate(entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
-        toast.error(msg);
-        if (isAuthError(msg)) handleAuthError();
+        showErrorToastUnlessAuth(msg);
       } finally {
         setSubmitLoading(false);
       }
     },
-    [id, navigate, entityConfig, handleAuthError]
+    [id, navigate, entityConfig]
   );
 
   const handleCancel = useCallback(() => {

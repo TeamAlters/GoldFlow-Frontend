@@ -1,10 +1,19 @@
 /**
  * Shared axios instance and helpers for API calls.
  * Base URL from VITE_API_BASE_URL. Auth token attached via request interceptor.
+ * 401 / auth errors trigger logout, one toast, and redirect to login (unless request sets skipAuthRedirect).
  */
 
 import axios, { type AxiosError } from 'axios';
 import { useAuthStore } from '../auth/auth.store';
+import { toast } from '../stores/toast.store';
+import { isAuthError } from '../shared/utils/errorHandling';
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipAuthRedirect?: boolean;
+  }
+}
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -23,6 +32,24 @@ apiClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (res) => res,
+  (error: AxiosError<unknown>) => {
+    const config = error.config;
+    if (config?.skipAuthRedirect === true) {
+      return Promise.reject(error);
+    }
+    const status = error.response?.status;
+    const msg = messageFromAxiosError(error, '');
+    if (status === 401 || isAuthError(msg)) {
+      useAuthStore.getState().logout();
+      toast.error('Session expired. Please sign in again.');
+      window.location.assign('/login');
+    }
+    return Promise.reject(error);
+  }
+);
 
 /** Extract user-facing message from API error response body (detail, message, errors array). */
 export function getApiErrorMessage(data: unknown, fallback: string): string {

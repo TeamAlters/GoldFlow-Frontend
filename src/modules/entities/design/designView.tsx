@@ -2,9 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
-import { toast } from '../../../stores/toast.store';
-import { isAuthError } from '../../../shared/utils/errorHandling';
-import { useAuthStore } from '../../../auth/auth.store';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticDesignForm, { type StaticDesignFormData } from './designForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -16,17 +14,10 @@ export default function DesignViewPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const logout = useAuthStore((state) => state.logout);
-
   const [initialData, setInitialData] = useState<Partial<StaticDesignFormData> | undefined>(
     undefined
   );
   const [dataLoading, setDataLoading] = useState(true);
-
-  const handleAuthError = useCallback(() => {
-    logout();
-    navigate('/login', { replace: true });
-  }, [logout, navigate]);
 
   useEffect(() => {
     if (!id) return;
@@ -43,14 +34,13 @@ export default function DesignViewPage() {
       .catch((err) => {
         if (controller.signal.aborted) return;
         const msg = err instanceof Error ? err.message : 'Failed to load design';
-        toast.error(msg);
-        if (isAuthError(msg)) handleAuthError();
+        showErrorToastUnlessAuth(msg);
       })
       .finally(() => {
         if (!controller.signal.aborted) setDataLoading(false);
       });
     return () => controller.abort();
-  }, [id, handleAuthError]);
+  }, [id]);
 
   const handleBack = useCallback(() => {
     navigate(entityConfig.routes.list);

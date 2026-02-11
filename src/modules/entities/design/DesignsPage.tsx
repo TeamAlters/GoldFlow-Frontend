@@ -13,7 +13,7 @@ import Pagination from '../../../shared/components/Pagination';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
-import { isAuthError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
 import {
   getEntityMetadata,
@@ -55,13 +55,7 @@ export default function DesignsPage() {
   const [totalPages, setTotalPages] = useState<number>(0);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
   const token = useAuthStore((state) => state.token);
-  const logout = useAuthStore((state) => state.logout);
   const lastToastedErrorRef = useRef<string | null>(null);
-
-  const handleAuthError = useCallback(() => {
-    logout();
-    navigate('/login', { replace: true });
-  }, [logout, navigate]);
 
   const showErrorToast = useCallback((msg: string) => {
     if (lastToastedErrorRef.current === msg) return;
@@ -109,19 +103,14 @@ export default function DesignsPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load metadata';
-        if (isAuthError(msg)) {
-          showErrorToast('Session expired. Please sign in again.');
-          handleAuthError();
-          return;
-        }
+        showErrorToastUnlessAuth(msg);
         setMetadataError(msg);
-        showErrorToast(msg);
       })
       .finally(() => {
         designMetadataFetchInFlight = false;
         setMetadataLoading(false);
       });
-  }, [token, entityName, showErrorToast, handleAuthError]);
+  }, [token, entityName, showErrorToast]);
 
   useEffect(() => {
     if (!token) {
@@ -244,16 +233,11 @@ export default function DesignsPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (isAuthError(msg)) {
-          showErrorToast('Session expired. Please sign in again.');
-          handleAuthError();
-          return;
-        }
-        showErrorToast(msg);
+        showErrorToastUnlessAuth(msg);
         setDesigns([]);
       })
       .finally(() => setListLoading(false));
-  }, [token, entityName, page, pageSize, filtersForApi, showErrorToast, handleAuthError]);
+  }, [token, entityName, page, pageSize, filtersForApi]);
 
   useEffect(() => {
     const defaultSize = entityMetadata?.pagination?.default_page_size;
@@ -326,10 +310,9 @@ export default function DesignsPage() {
       fetchList();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete design';
-      toast.error(msg);
-      if (isAuthError(msg)) handleAuthError();
+      showErrorToastUnlessAuth(msg);
     }
-  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList, handleAuthError]);
+  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList]);
 
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [

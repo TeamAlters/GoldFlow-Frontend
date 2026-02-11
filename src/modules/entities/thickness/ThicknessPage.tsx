@@ -12,7 +12,7 @@ import ListPageLayout from '../../../shared/components/ListPageLayout';
 import Pagination from '../../../shared/components/Pagination';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
-import { isAuthError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
 import {
   getEntityMetadata,
@@ -53,13 +53,7 @@ export default function ThicknessPage() {
   const [totalItems, setTotalItems] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
   const token = useAuthStore((state) => state.token);
-  const logout = useAuthStore((state) => state.logout);
   const lastToastedErrorRef = useRef<string | null>(null);
-
-  const handleAuthError = useCallback(() => {
-    logout();
-    navigate('/login', { replace: true });
-  }, [logout, navigate]);
 
   const showErrorToast = useCallback((msg: string) => {
     if (lastToastedErrorRef.current === msg) return;
@@ -107,19 +101,14 @@ export default function ThicknessPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load metadata';
-        if (isAuthError(msg)) {
-          showErrorToast('Session expired. Please sign in again.');
-          handleAuthError();
-          return;
-        }
+        showErrorToastUnlessAuth(msg);
         setMetadataError(msg);
-        showErrorToast(msg);
       })
       .finally(() => {
         thicknessMetadataFetchInFlight = false;
         setMetadataLoading(false);
       });
-  }, [token, entityName, showErrorToast, handleAuthError]);
+  }, [token, entityName, showErrorToast]);
 
   useEffect(() => {
     if (!token) {
@@ -242,16 +231,11 @@ export default function ThicknessPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (isAuthError(msg)) {
-          showErrorToast('Session expired. Please sign in again.');
-          handleAuthError();
-          return;
-        }
-        showErrorToast(msg);
+        showErrorToastUnlessAuth(msg);
         setItems([]);
       })
       .finally(() => setListLoading(false));
-  }, [token, entityName, page, pageSize, filtersForApi, showErrorToast, handleAuthError]);
+  }, [token, entityName, page, pageSize, filtersForApi]);
 
   useEffect(() => {
     const defaultSize = entityMetadata?.pagination?.default_page_size;
@@ -322,11 +306,10 @@ export default function ThicknessPage() {
         fetchList();
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to delete thickness';
-        toast.error(msg);
-        if (isAuthError(msg)) handleAuthError();
+        showErrorToastUnlessAuth(msg);
       }
     },
-    [entityName, entityConfig.displayName, idField, fetchList, handleAuthError]
+    [entityName, entityConfig.displayName, idField, fetchList]
   );
 
   const actions: TableAction<EntityRow>[] = useMemo(

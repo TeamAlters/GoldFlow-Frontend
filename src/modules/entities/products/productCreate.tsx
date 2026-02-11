@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
-import { isAuthError } from '../../../shared/utils/errorHandling';
-import { useAuthStore } from '../../../auth/auth.store';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticProductForm, {
   type StaticProductFormData,
@@ -35,14 +34,8 @@ export function toProductPayload(data: StaticProductFormData): Record<string, un
 export default function ProductCreatePage() {
   const navigate = useNavigate();
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const logout = useAuthStore((state) => state.logout);
   const [submitLoading, setSubmitLoading] = useState(false);
   const formRef = useRef<StaticProductFormRef>(null);
-
-  const handleAuthError = useCallback(() => {
-    logout();
-    navigate('/login', { replace: true });
-  }, [logout, navigate]);
 
   const handleSubmit = useCallback(
     async (formData: StaticProductFormData) => {
@@ -54,13 +47,12 @@ export default function ProductCreatePage() {
         navigate(entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
-        toast.error(msg);
-        if (isAuthError(msg)) handleAuthError();
+        showErrorToastUnlessAuth(msg);
       } finally {
         setSubmitLoading(false);
       }
     },
-    [navigate, entityConfig, handleAuthError]
+    [navigate, entityConfig]
   );
 
   const handleCancel = useCallback(() => {
