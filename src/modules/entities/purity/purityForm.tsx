@@ -1,5 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticPurityFormData = {
     purity: string;
@@ -65,7 +66,7 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
             const next: Record<string, string> = {};
             const purityTrimmed = formData.purity.trim();
             if (!purityTrimmed) next.purity = 'Purity is required';
-            else if (purityTrimmed.length > 32) next.purity = 'Purity must be at most 32 characters';
+            else if (purityTrimmed.length > MAX_TEXT_FIELD_LENGTH) next.purity = maxLengthError('Purity');
             const pct = formData.purity_percentage.trim();
             if (!pct) next.purity_percentage = 'Purity percentage is required';
             else if (pct.length < 2) next.purity_percentage = 'Purity % must be at least 2 digits';
@@ -110,7 +111,7 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
                         value={formData.purity}
                         onChange={(e) => handleChange('purity', e.target.value)}
                         placeholder="e.g. 24K, 22K"
-                        maxLength={32}
+                        maxLength={MAX_TEXT_FIELD_LENGTH}
                         className={inputClass('purity')}
                         disabled={readOnly}
                         readOnly={readOnly}

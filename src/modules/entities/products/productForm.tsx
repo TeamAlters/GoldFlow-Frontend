@@ -1,5 +1,6 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticProductFormData = {
     product_name: string;
@@ -50,9 +51,15 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
             validate: () => validate(),
         }));
 
+        const lastAppliedInitialRef = useRef<Partial<StaticProductFormData> | undefined>(undefined);
         useEffect(() => {
             if (initialData) {
-                setFormData((prev) => ({ ...emptyForm, ...prev, ...initialData }));
+                if (lastAppliedInitialRef.current !== initialData) {
+                    lastAppliedInitialRef.current = initialData;
+                    setFormData((prev) => ({ ...emptyForm, ...prev, ...initialData }));
+                }
+            } else {
+                lastAppliedInitialRef.current = undefined;
             }
         }, [initialData]);
 
@@ -63,9 +70,14 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
 
         const validate = (): boolean => {
             const next: Record<string, string> = {};
-            if (!formData.product_name.trim()) next.product_name = 'Product name is required';
-            if (!formData.product_abbrevation.trim())
-                next.product_abbrevation = 'Product abbreviation is required';
+            const name = formData.product_name.trim();
+            if (!name) next.product_name = 'Product name is required';
+            else if (name.length > MAX_TEXT_FIELD_LENGTH)
+                next.product_name = maxLengthError('Product name');
+            const abbr = formData.product_abbrevation.trim();
+            if (!abbr) next.product_abbrevation = 'Product abbreviation is required';
+            else if (abbr.length > MAX_TEXT_FIELD_LENGTH)
+                next.product_abbrevation = maxLengthError('Product abbreviation');
             setErrors(next);
             return Object.keys(next).length === 0;
         };
@@ -99,6 +111,7 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         value={formData.product_name}
                         onChange={(e) => handleChange('product_name', e.target.value)}
                         placeholder="Enter product name"
+                        maxLength={MAX_TEXT_FIELD_LENGTH}
                         className={inputClass('product_name')}
                         disabled={readOnly}
                         readOnly={readOnly}
@@ -116,6 +129,7 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         value={formData.product_abbrevation}
                         onChange={(e) => handleChange('product_abbrevation', e.target.value)}
                         placeholder="e.g. GR, RC"
+                        maxLength={MAX_TEXT_FIELD_LENGTH}
                         className={inputClass('product_abbrevation')}
                         disabled={readOnly}
                         readOnly={readOnly}

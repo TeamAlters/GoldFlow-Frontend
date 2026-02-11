@@ -1,5 +1,6 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticDesignFormData = {
   design_name: string;
@@ -57,21 +58,37 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
       validate: () => validate(),
     }));
 
+    const lastAppliedInitialRef = useRef<Partial<StaticDesignFormData> | undefined>(undefined);
     useEffect(() => {
       if (initialData) {
-        setFormData((prev) => ({ ...emptyForm, ...prev, ...initialData }));
+        if (lastAppliedInitialRef.current !== initialData) {
+          lastAppliedInitialRef.current = initialData;
+          setFormData((prev) => ({ ...emptyForm, ...prev, ...initialData }));
+        }
+      } else {
+        lastAppliedInitialRef.current = undefined;
       }
     }, [initialData]);
 
     const handleChange = (key: keyof StaticDesignFormData, value: string) => {
-      setFormData((prev) => ({ ...prev, [key]: value }));
+      const isTextField = key === 'design_name' || key === 'product_name';
+      const capped = isTextField && value.length > MAX_TEXT_FIELD_LENGTH
+        ? value.slice(0, MAX_TEXT_FIELD_LENGTH)
+        : value;
+      setFormData((prev) => ({ ...prev, [key]: capped }));
       if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
     };
 
     const validate = (): boolean => {
       const next: Record<string, string> = {};
-      if (!formData.design_name.trim()) next.design_name = 'Design name is required';
-      if (!formData.product_name.trim()) next.product_name = 'Product is required';
+      const designName = formData.design_name.trim();
+      if (!designName) next.design_name = 'Design name is required';
+      else if (designName.length > MAX_TEXT_FIELD_LENGTH)
+        next.design_name = maxLengthError('Design name');
+      const productName = formData.product_name.trim();
+      if (!productName) next.product_name = 'Product is required';
+      else if (productName.length > MAX_TEXT_FIELD_LENGTH)
+        next.product_name = maxLengthError('Product');
       setErrors(next);
       return Object.keys(next).length === 0;
     };
@@ -106,8 +123,9 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
             value={formData.design_name}
             onChange={(e) => handleChange('design_name', e.target.value)}
             placeholder="e.g. Design A"
+            maxLength={MAX_TEXT_FIELD_LENGTH}
             className={inputClass('design_name')}
-            disabled={isEdit || readOnly}
+            disabled={readOnly}
             readOnly={readOnly}
           />
           {errors.design_name && (
@@ -138,6 +156,7 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
               value={formData.product_name}
               onChange={(e) => handleChange('product_name', e.target.value)}
               placeholder="Product name"
+              maxLength={MAX_TEXT_FIELD_LENGTH}
               className={inputClass('product_name')}
               disabled={readOnly}
               readOnly={readOnly}

@@ -106,10 +106,20 @@ export default function ProductEditPage() {
 
     if (dataLoading) {
         return (
-            <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <div className="w-full max-w-3xl">
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: '/dashboard' },
+                        { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
+                        { label: '...' },
+                    ]}
+                    className="mb-4"
+                />
+                <div className="flex flex-col items-center justify-center min-h-[320px] gap-4">
+                    <div
+                        className={`animate-spin rounded-full h-12 w-12 border-2 border-t-transparent ${isDarkMode ? 'border-blue-400' : 'border-blue-500'}`}
+                    />
+                    <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         Loading product...
                     </p>
                 </div>
@@ -120,7 +130,7 @@ export default function ProductEditPage() {
     const breadcrumbLabel = initialData?.product_name ?? 'Edit Product';
 
     return (
-        <div className="w-full">
+        <div className="w-full max-w-3xl">
             <Breadcrumbs
                 items={[
                     { label: 'Dashboard', href: '/dashboard' },
@@ -129,32 +139,46 @@ export default function ProductEditPage() {
                 ]}
                 className="mb-4"
             />
-            <div className="mb-6">
+
+            <div className="mb-6 flex flex-col gap-1">
                 <h1
-                    className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+                    className={`text-2xl font-bold tracking-tight sm:text-3xl ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                 >
                     Edit {entityConfig.displayName}
                 </h1>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Update product information.
+                    Update product information below.
                 </p>
             </div>
+
             <form
                 onSubmit={handleFormSubmit}
-                className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
+                className={`overflow-hidden rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700 shadow-lg' : 'bg-white border-gray-200 shadow-sm'}`}
             >
-                <StaticProductForm
-                    ref={formRef}
-                    initialData={initialData}
-                    isEdit={true}
-                    wrapInForm={false}
-                    showActions={false}
-                />
-                <div className="flex items-center justify-end gap-3 pt-6 mt-6">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2
+                        className={`text-base font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
+                    >
+                        Product details
+                    </h2>
+                </div>
+                <div className="p-6">
+                    <StaticProductForm
+                        key={id}
+                        ref={formRef}
+                        initialData={initialData}
+                        isEdit={true}
+                        wrapInForm={false}
+                        showActions={false}
+                    />
+                </div>
+                <div
+                    className={`flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t ${isDarkMode ? 'border-gray-700 bg-gray-800/80' : 'border-gray-200 bg-gray-50/80'}`}
+                >
                     <button
                         type="button"
                         onClick={handleCancel}
-                        className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
+                        className={`px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors ${isDarkMode
                             ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                             : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                             }`}
@@ -164,10 +188,10 @@ export default function ProductEditPage() {
                     <button
                         type="submit"
                         disabled={submitLoading}
-                        className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
+                        className={`px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-colors ${isDarkMode
                             ? 'bg-blue-600 hover:bg-blue-700 text-white'
                             : 'bg-blue-500 hover:bg-blue-600 text-white'
-                            } disabled:opacity-60`}
+                            } disabled:opacity-60 disabled:cursor-not-allowed`}
                     >
                         {submitLoading ? 'Saving...' : 'Update Product'}
                     </button>

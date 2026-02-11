@@ -152,6 +152,7 @@ export default function DesignEditPage() {
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
         <StaticDesignForm
+          key={id}
           ref={formRef}
           initialData={initialData}
           productOptions={productOptions}
