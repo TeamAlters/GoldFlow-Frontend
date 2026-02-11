@@ -124,46 +124,50 @@ export default function Toaster() {
 
   return (
     <div
-      className="fixed top-4 right-4 z-[100] flex flex-col gap-3 max-w-md w-full pointer-events-none"
+      className="fixed top-0 left-0 right-0 sm:left-auto sm:right-4 z-[100] pointer-events-none pt-[max(1rem,env(safe-area-inset-top))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:pl-0 sm:pr-0"
       aria-live="polite"
     >
-      {toasts.map((toast) => {
-        const { title, barClass, titleClass, icon } = config[toast.type];
-        const isExiting = exitingIds.has(toast.id);
-        return (
-          <div
-            key={toast.id}
-            className={`pointer-events-auto flex rounded-xl bg-white shadow-lg border border-gray-200/80 overflow-hidden hover:shadow-xl ${isExiting ? 'toast-exit' : 'toast-enter'}`}
-            role="alert"
-          >
-            <div className={`w-1 flex-shrink-0 ${barClass}`} aria-hidden />
-            <div className="flex-1 flex gap-3 p-4 min-w-0">
-              <span className={titleClass} aria-hidden>
-                {icon}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className={`font-semibold text-sm ${titleClass}`}>{title}</p>
-                <p className="mt-0.5 text-sm text-gray-600">{toast.message}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => startExit(toast.id)}
-              className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Dismiss"
+      <div className="flex flex-col gap-3 w-full max-w-md sm:ml-auto">
+        {toasts.map((toast) => {
+          const { title, barClass, titleClass, icon } = config[toast.type];
+          const isExiting = exitingIds.has(toast.id);
+          return (
+            <div
+              key={toast.id}
+              className={`pointer-events-auto flex rounded-xl bg-white shadow-lg border border-gray-200/80 overflow-hidden hover:shadow-xl min-w-0 ${isExiting ? 'toast-exit' : 'toast-enter'}`}
+              role="alert"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        );
-      })}
+              <div className={`w-1 flex-shrink-0 ${barClass}`} aria-hidden />
+              <div className="flex-1 flex gap-3 p-3 sm:p-4 min-w-0">
+                <span className={`${titleClass} flex-shrink-0`} aria-hidden>
+                  {icon}
+                </span>
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <p className={`font-semibold text-sm truncate ${titleClass}`}>{title}</p>
+                  <p className="mt-0.5 text-sm text-gray-600 break-words line-clamp-4">
+                    {toast.message}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => startExit(toast.id)}
+                className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+                aria-label="Dismiss"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

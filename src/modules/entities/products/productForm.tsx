@@ -100,7 +100,7 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         onChange={(e) => handleChange('product_name', e.target.value)}
                         placeholder="Enter product name"
                         className={inputClass('product_name')}
-                        disabled={isEdit || readOnly}
+                        disabled={readOnly}
                         readOnly={readOnly}
                     />
                     {errors.product_name && (
@@ -135,8 +135,8 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         type="button"
                         onClick={onCancel}
                         className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
-                                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                             }`}
                     >
                         Cancel
@@ -145,10 +145,10 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         type="submit"
                         disabled={submitLoading}
                         className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white'
                             } disabled:opacity-60`}
-                    >
+                    > 
                         {submitLoading ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
                     </button>
                 </div>

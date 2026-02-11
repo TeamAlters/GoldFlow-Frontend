@@ -10,7 +10,6 @@ import FilterComponent, {
 } from '../../../shared/components/FilterComponent';
 import ListPageLayout from '../../../shared/components/ListPageLayout';
 import Pagination from '../../../shared/components/Pagination';
-import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
@@ -26,19 +25,14 @@ import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { getRowDisplayValue } from '../../../shared/utils/common';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 
-/**
- * Products list page. Uses the same pattern as UsersPage:
- * - GET /api/v1/entities/product/listing-metadata (via getEntityMetadata) for columns, filters, id_field, detail_link_field
- * - GET /api/v1/entities/product/list (via getEntityList) for table rows
- */
 type EntityRow = Record<string, unknown>;
 
-let productMetadataFetchInFlight = false;
+let thicknessMetadataFetchInFlight = false;
 
-export default function ProductsPage() {
+export default function ThicknessPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const entityName = 'product';
+  const entityName = 'thikness';
   const entityConfig = getEntityConfig(entityName);
   const [filters, setFilters] = useState<Record<string, FilterValue>>({});
   const [entityMetadata, setEntityMetadata] = useState<{
@@ -51,13 +45,12 @@ export default function ProductsPage() {
   } | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(true);
   const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [products, setProducts] = useState<EntityRow[]>([]);
+  const [items, setItems] = useState<EntityRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number | undefined>(20);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
-  const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
   const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
   const lastToastedErrorRef = useRef<string | null>(null);
@@ -80,8 +73,8 @@ export default function ProductsPage() {
       setMetadataLoading(false);
       return;
     }
-    if (productMetadataFetchInFlight) return;
-    productMetadataFetchInFlight = true;
+    if (thicknessMetadataFetchInFlight) return;
+    thicknessMetadataFetchInFlight = true;
     setMetadataLoading(true);
     setMetadataError(null);
     lastToastedErrorRef.current = null;
@@ -90,7 +83,7 @@ export default function ProductsPage() {
         const data = res.data;
         if (data && (data.fields?.length || data.display_name != null || data.filters)) {
           const meta = {
-            display_name: data.display_name ?? 'Products',
+            display_name: data.display_name ?? 'Thicknesses',
             fields: Array.isArray(data.fields) ? data.fields : [],
             filters: {
               default_visible: Array.isArray(data.filters?.default_visible)
@@ -122,17 +115,14 @@ export default function ProductsPage() {
         showErrorToast(msg);
       })
       .finally(() => {
-        productMetadataFetchInFlight = false;
+        thicknessMetadataFetchInFlight = false;
         setMetadataLoading(false);
       });
   }, [token, entityName, showErrorToast, handleAuthError]);
 
-  // Load listing-metadata (columns, filters, id_field, detail_link_field); use cache when available
   useEffect(() => {
     if (!token) {
-      const msg = 'Not logged in. Sign in and try again.';
-      setMetadataError(msg);
-      showErrorToast(msg);
+      setMetadataError('Not logged in. Sign in and try again.');
       setMetadataLoading(false);
       return;
     }
@@ -150,7 +140,7 @@ export default function ProductsPage() {
       return;
     }
     fetchMetadata();
-  }, [token, entityName, fetchMetadata, showErrorToast]);
+  }, [token, entityName, fetchMetadata]);
 
   const filterFieldTypeMap = useMemo((): Record<string, string> => {
     const map: Record<string, string> = {};
@@ -238,26 +228,26 @@ export default function ProductsPage() {
           pagination?: ResShape['pagination'];
         };
         const data: DataShape | undefined = res.data ?? (res as ResShape);
-        const items: unknown[] =
+        const listItems: unknown[] =
           (Array.isArray(data?.items) ? data.items : null) ??
           (Array.isArray((res as ResShape).items) ? (res as ResShape).items : null) ??
           (Array.isArray(data?.results) ? data.results : null) ??
           [];
         const pag = data?.pagination ?? (res as ResShape).pagination;
-        setProducts(items as EntityRow[]);
+        setItems(listItems as EntityRow[]);
         setTotalItems(pag?.total_items ?? 0);
         setTotalPages(pag?.total_pages ?? 0);
         if (pag?.page_size != null) setPageSize(pag.page_size);
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (/401|unauthorized|credentials/i.test(msg)) {
+        if (/401|unauthorized/i.test(msg)) {
           showErrorToast('Session expired. Please sign in again.');
           handleAuthError();
           return;
         }
         showErrorToast(msg);
-        setProducts([]);
+        setItems([]);
       })
       .finally(() => setListLoading(false));
   }, [token, entityName, page, pageSize, filtersForApi, showErrorToast, handleAuthError]);
@@ -274,28 +264,26 @@ export default function ProductsPage() {
 
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
-    const idField = entityMetadata?.id_field ?? 'id';
+    if (!visibleFields.length) return [];
     const detailLinkField = entityMetadata?.detail_link_field;
+    const idField = entityMetadata?.id_field ?? 'thikness';
 
-    const getRowId = (row: EntityRow) =>
-      row[idField] ?? row['id'] ?? row['product_name'];
+    return visibleFields.map((f) => ({
+      key: f.name,
+      header: f.label,
+      sortable: true,
+      accessor: (row: EntityRow) => {
+        const value = getRowDisplayValue(row, f.name, f.type);
+        const isDetailLink = f.name === detailLinkField;
 
-    const makeAccessor = (fieldKey: string, fieldType: string, isDetailLink: boolean) => {
-      return (row: EntityRow) => {
-        const value = getRowDisplayValue(row, fieldKey, fieldType);
         if (isDetailLink) {
-          const rowId = getRowId(row);
-          if (rowId === undefined || rowId === null) {
-            return (
-              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>
-            );
-          }
+          const rowId = row[idField];
           return (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
+                navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(String(rowId))));
               }}
               className={
                 isDarkMode
@@ -307,64 +295,47 @@ export default function ProductsPage() {
             </button>
           );
         }
+
         return (
           <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>
         );
-      };
-    };
-
-    return visibleFields
-      .map((f) => {
-        const fieldKey = f.name || (f as { field?: string }).field || '';
-        if (!fieldKey) return null;
-        return {
-          key: fieldKey,
-          header: f.label,
-          sortable: true,
-          accessor: makeAccessor(fieldKey, f.type, fieldKey === detailLinkField),
-        };
-      })
-      .filter((col): col is NonNullable<typeof col> => col != null) as TableColumn<EntityRow>[];
+      },
+    }));
   }, [entityMetadata, isDarkMode, navigate, entityConfig]);
 
   const handleAddEntity = () => {
     navigate(entityConfig.routes.add);
   };
 
-  const idField = entityMetadata?.id_field ?? 'id';
+  const idField = entityMetadata?.id_field ?? 'thikness';
 
-  const getRowId = useCallback(
-    (row: EntityRow) => row[idField] ?? row['id'] ?? row['product_name'],
-    [idField]
+  const handleDelete = useCallback(
+    async (row: EntityRow) => {
+      const rowId = row[idField];
+      if (rowId === undefined || rowId === null) return;
+      const displayName = String(row.thikness ?? row.name ?? 'this thickness');
+      if (!window.confirm(`Are you sure you want to delete ${displayName}?`)) return;
+      try {
+        await deleteEntity(entityName, String(rowId));
+        toast.success(`${entityConfig.displayName} deleted successfully.`);
+        fetchList();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to delete thickness';
+        toast.error(msg);
+        if (/401|unauthorized/i.test(msg)) handleAuthError();
+      }
+    },
+    [entityName, entityConfig.displayName, idField, fetchList, handleAuthError]
   );
-
-  const handleDeleteClick = useCallback((row: EntityRow) => {
-    setDeleteConfirmRow(row);
-  }, []);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteConfirmRow) return;
-    const rowId = deleteConfirmRow[idField];
-    if (rowId === undefined || rowId === null) return;
-    try {
-      await deleteEntity(entityName, String(rowId));
-      toast.success(`${entityConfig.displayName} deleted successfully.`);
-      fetchList();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete product';
-      toast.error(msg);
-      if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
-    }
-  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList, handleAuthError]);
 
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [
       {
         label: 'Edit',
         onClick: (row) => {
-          const rowId = getRowId(row);
+          const rowId = row[idField];
           if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
+            navigate(entityConfig.routes.edit.replace(':id', encodeURIComponent(String(rowId))));
           }
         },
         variant: 'primary' as const,
@@ -381,7 +352,7 @@ export default function ProductsPage() {
       },
       {
         label: 'Delete',
-        onClick: handleDeleteClick,
+        onClick: handleDelete,
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -395,7 +366,7 @@ export default function ProductsPage() {
         ),
       },
     ],
-    [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
+    [idField, navigate, entityConfig.routes.edit, handleDelete]
   );
 
   const filterConfig: FilterComponentConfig = useMemo(() => {
@@ -413,33 +384,14 @@ export default function ProductsPage() {
     return { default: defaultConfig, addable: addableConfig };
   }, [entityMetadata]);
 
-  const handleRowClick = () => { };
+  const handleRowClick = () => {};
 
   const hasFilters =
     Object.keys(filterConfig.default).length > 0 ||
     Object.keys(filterConfig.addable ?? {}).length > 0;
 
-  const deleteDisplayName =
-    deleteConfirmRow != null
-      ? String(deleteConfirmRow.product_name ?? deleteConfirmRow.name ?? 'this product')
-      : '';
-
   return (
     <>
-      <ConfirmationDialog
-        isOpen={deleteConfirmRow != null}
-        onClose={() => setDeleteConfirmRow(null)}
-        onConfirm={handleDeleteConfirm}
-        title="Delete Product"
-        message={
-          deleteDisplayName
-            ? `Are you sure you want to delete "${deleteDisplayName}"? This action cannot be undone.`
-            : 'Are you sure you want to delete this product?'
-        }
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        variant="danger"
-      />
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },
@@ -464,10 +416,11 @@ export default function ProductsPage() {
         }
         toolbarRight={
           <button
-            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
+            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
+              isDarkMode
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
             onClick={handleAddEntity}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -494,7 +447,7 @@ export default function ProductsPage() {
         )}
 
         <DataTable
-          data={products}
+          data={items}
           columns={columns}
           actions={actions}
           searchable={false}

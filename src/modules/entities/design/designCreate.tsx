@@ -1,60 +1,74 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { createEntity } from '../../admin/admin.api';
+import { createEntity, getEntityList } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { useAuthStore } from '../../../auth/auth.store';
 import { useUIStore } from '../../../stores/ui.store';
-import StaticProductForm, {
-  type StaticProductFormData,
-  type StaticProductFormRef,
-} from './productForm';
+import StaticDesignForm, {
+  type StaticDesignFormData,
+  type StaticDesignFormRef,
+  type ProductOption,
+} from './designForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 
-const ENTITY_NAME = 'product';
+const ENTITY_NAME = 'design';
 
-export function toInitialProductData(
+export function toInitialDesignData(
   entity: Record<string, unknown>
-): Partial<StaticProductFormData> {
-  const abbrev =
-    entity.product_abbreviation ?? entity.product_abbrevation;
+): Partial<StaticDesignFormData> {
   return {
+    design_name: entity.design_name != null ? String(entity.design_name) : '',
     product_name: entity.product_name != null ? String(entity.product_name) : '',
-    product_abbrevation: abbrev != null ? String(abbrev) : '',
   };
 }
 
-export function toProductPayload(data: StaticProductFormData): Record<string, unknown> {
+export function toDesignPayload(data: StaticDesignFormData): Record<string, unknown> {
   return {
+    design_name: data.design_name.trim(),
     product_name: data.product_name.trim(),
-    product_abbreviation: data.product_abbrevation.trim(),
   };
 }
 
-export default function ProductCreatePage() {
+export default function DesignCreatePage() {
   const navigate = useNavigate();
   const entityConfig = getEntityConfig(ENTITY_NAME);
   const logout = useAuthStore((state) => state.logout);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const formRef = useRef<StaticProductFormRef>(null);
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
+  const formRef = useRef<StaticDesignFormRef>(null);
 
   const handleAuthError = useCallback(() => {
     logout();
     navigate('/login', { replace: true });
   }, [logout, navigate]);
 
+  useEffect(() => {
+    getEntityList('product', { page: 1, page_size: 500 })
+      .then((res) => {
+        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const options: ProductOption[] = items.map((row) => {
+          const name = row.product_name ?? row.product_abbreviation ?? row.product_abbrevation;
+          const value = String(row.product_name ?? name ?? '');
+          return { value, label: String(name ?? value) };
+        });
+        setProductOptions(options);
+      })
+      .catch(() => setProductOptions([]));
+  }, []);
+
   const handleSubmit = useCallback(
-    async (formData: StaticProductFormData) => {
+    async (formData: StaticDesignFormData) => {
       setSubmitLoading(true);
       try {
-        // POST /api/v1/entities/product (via createEntity)
-        await createEntity(ENTITY_NAME, toProductPayload(formData));
+        await createEntity(ENTITY_NAME, toDesignPayload(formData));
         toast.success(`${entityConfig.displayName} created successfully.`);
         navigate(entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         toast.error(msg);
-        if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
+        if (/401|unauthorized/i.test(msg)) handleAuthError();
       } finally {
         setSubmitLoading(false);
       }
@@ -95,16 +109,17 @@ export default function ProductCreatePage() {
           Add {entityConfig.displayName}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Create a new product.
+          Create a new design linked to a product.
         </p>
       </div>
       <form
         onSubmit={handleFormSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
-        <StaticProductForm
+        <StaticDesignForm
           ref={formRef}
           initialData={undefined}
+          productOptions={productOptions}
           isEdit={false}
           wrapInForm={false}
           showActions={false}
@@ -113,22 +128,24 @@ export default function ProductCreatePage() {
           <button
             type="button"
             onClick={handleCancel}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
-              ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-              : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-              }`}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
+              isDarkMode
+                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+            }`}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitLoading}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-              } disabled:opacity-60`}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+              isDarkMode
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : 'Create Product'}
+            {submitLoading ? 'Saving...' : 'Create Design'}
           </button>
         </div>
       </form>

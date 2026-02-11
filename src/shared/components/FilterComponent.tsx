@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { apiClient } from '../../api/axios';
 import { useUIStore } from '../../stores/ui.store';
 import type { TableColumn } from './DataTable';
 import type { FilterOperatorOption } from '../constants/filterOperators';
@@ -99,16 +100,15 @@ export default function FilterComponent<T extends Record<string, any>>({
       Object.entries(config.default).forEach(([key, filterConfig]) => {
         if (filterConfig.fetchFrom && !apiOptions[key]) {
           fetchPromises.push(
-            fetch(filterConfig.fetchFrom)
-              .then((res) => res.json())
-              .then((data) => {
-                // Transform API response to options format
-                // Adjust this based on your API response structure
+            apiClient
+              .get<unknown>(filterConfig.fetchFrom)
+              .then((res) => {
+                const data = res.data;
                 const options = Array.isArray(data)
-                  ? data.map((item: any) => ({
-                    label: item.name || item.label || String(item),
-                    value: item.id || item.value || String(item),
-                  }))
+                  ? data.map((item: Record<string, unknown>) => ({
+                      label: String(item.name ?? item.label ?? item),
+                      value: String(item.id ?? item.value ?? item),
+                    }))
                   : [];
                 setApiOptions((prev) => ({ ...prev, [key]: options }));
               })
@@ -124,14 +124,15 @@ export default function FilterComponent<T extends Record<string, any>>({
       Object.entries(validAddableFilters).forEach(([key, filterConfig]) => {
         if (filterConfig.fetchFrom && !apiOptions[key]) {
           fetchPromises.push(
-            fetch(filterConfig.fetchFrom)
-              .then((res) => res.json())
-              .then((data) => {
+            apiClient
+              .get<unknown>(filterConfig.fetchFrom)
+              .then((res) => {
+                const data = res.data;
                 const options = Array.isArray(data)
-                  ? data.map((item: any) => ({
-                    label: item.name || item.label || String(item),
-                    value: item.id || item.value || String(item),
-                  }))
+                  ? data.map((item: Record<string, unknown>) => ({
+                      label: String(item.name ?? item.label ?? item),
+                      value: String(item.id ?? item.value ?? item),
+                    }))
                   : [];
                 setApiOptions((prev) => ({ ...prev, [key]: options }));
               })

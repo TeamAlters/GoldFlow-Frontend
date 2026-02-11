@@ -34,20 +34,26 @@ export default function ProductEditPage() {
 
     useEffect(() => {
         if (!id) return;
+        const controller = new AbortController();
         setDataLoading(true);
-        getEntity(ENTITY_NAME, id)
+        getEntity(ENTITY_NAME, id, { signal: controller.signal })
             .then((res) => {
+                if (controller.signal.aborted) return;
                 if (res.data && typeof res.data === 'object') {
                     const entity = res.data as Record<string, unknown>;
                     setInitialData(toInitialProductData(entity));
                 }
             })
             .catch((err) => {
+                if (controller.signal.aborted) return;
                 const msg = err instanceof Error ? err.message : 'Failed to load product';
                 toast.error(msg);
                 if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
             })
-            .finally(() => setDataLoading(false));
+            .finally(() => {
+                if (!controller.signal.aborted) setDataLoading(false);
+            });
+        return () => controller.abort();
     }, [id, handleAuthError]);
 
     const handleSubmit = useCallback(
@@ -55,6 +61,7 @@ export default function ProductEditPage() {
             if (!id) return;
             setSubmitLoading(true);
             try {
+                // PUT /api/v1/entities/product/{entity_id} (via updateEntity)
                 await updateEntity(ENTITY_NAME, id, toProductPayload(formData));
                 toast.success(`${entityConfig.displayName} updated successfully.`);
                 navigate(entityConfig.routes.list);
@@ -140,8 +147,8 @@ export default function ProductEditPage() {
                         type="button"
                         onClick={handleCancel}
                         className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
-                                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                             }`}
                     >
                         Cancel
@@ -150,8 +157,8 @@ export default function ProductEditPage() {
                         type="submit"
                         disabled={submitLoading}
                         className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white'
                             } disabled:opacity-60`}
                     >
                         {submitLoading ? 'Saving...' : 'Update Product'}
