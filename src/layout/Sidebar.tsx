@@ -230,6 +230,82 @@ const NavIcon = ({ name, className }: { name: string; className?: string }) => {
         />
       </svg>
     ),
+    ruler: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+        />
+      </svg>
+    ),
+    pencil: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+        />
+      </svg>
+    ),
+    box: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+        />
+      </svg>
+    ),
+    cog: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+        />
+      </svg>
+    ),
+    key: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+        />
+      </svg>
+    ),
+    file: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+        />
+      </svg>
+    ),
+    archive: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+        />
+      </svg>
+    ),
     default: (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -287,6 +363,13 @@ function LogoutButton({ isDarkMode }: { isDarkMode: boolean }) {
   );
 }
 
+// Check if a nav item is active (exact match or nested route under item.path)
+function isItemActive(currentPath: string, itemPath: string): boolean {
+  if (currentPath === itemPath) return true;
+  if (itemPath === '/') return false;
+  return currentPath.startsWith(itemPath + '/');
+}
+
 // Menu Category Component
 const MenuCategory = ({
   category,
@@ -299,9 +382,9 @@ const MenuCategory = ({
 }) => {
   const [isOpen, setIsOpen] = useState(category.defaultOpen || false);
 
-  // Auto-expand if a child is active
+  // Auto-expand if a child is active (exact or nested route)
   useEffect(() => {
-    const hasActiveChild = category.items.some((item) => currentPath === item.path);
+    const hasActiveChild = category.items.some((item) => isItemActive(currentPath, item.path));
     if (hasActiveChild) {
       setIsOpen(true);
     }
@@ -332,11 +415,11 @@ const MenuCategory = ({
 
       {/* Submenu Items */}
       <div
-        className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-96' : 'max-h-0'}`}
+        className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-[70vh]' : 'max-h-0'}`}
       >
         <div className="ml-4 mt-1 space-y-1">
           {category.items.map((item) => {
-            const isActive = currentPath === item.path;
+            const isActive = isItemActive(currentPath, item.path);
             return (
               <Link
                 key={item.path}

@@ -27,6 +27,10 @@ import WireSizePage from '../modules/entities/wireSize/WireSizePage';
 import WireSizeCreatePage from '../modules/entities/wireSize/wireSizeCreate';
 import WireSizeEditPage from '../modules/entities/wireSize/wireSizeEdit';
 import WireSizeViewPage from '../modules/entities/wireSize/wireSizeView';
+import MachinePage from '../modules/entities/machine/MachinePage';
+import MachineCreatePage from '../modules/entities/machine/machineCreate';
+import MachineEditPage from '../modules/entities/machine/machineEdit';
+import MachineViewPage from '../modules/entities/machine/machineView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -96,6 +100,10 @@ export default function AppRouter() {
           <Route path="wire-sizes/add" element={<WireSizeCreatePage />} />
           <Route path="wire-sizes/edit/:id" element={<WireSizeEditPage />} />
           <Route path="wire-sizes/:id" element={<WireSizeViewPage />} />
+          <Route path="machines" element={<MachinePage />} />
+          <Route path="machines/add" element={<MachineCreatePage />} />
+          <Route path="machines/edit/:id" element={<MachineEditPage />} />
+          <Route path="machines/:id" element={<MachineViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>
