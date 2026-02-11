@@ -13,7 +13,7 @@ import StaticThicknessForm, {
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialThicknessData, toThicknessPayload } from './thicknessCreate';
 
-const ENTITY_NAME = 'thikness';
+const ENTITY_NAME = 'thickness';
 
 export default function ThicknessEditPage() {
   const navigate = useNavigate();
@@ -111,7 +111,7 @@ export default function ThicknessEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.thikness ?? 'Edit Thickness';
+  const breadcrumbLabel = initialData?.thickness ?? 'Edit Thickness';
 
   return (
     <div className="w-full">

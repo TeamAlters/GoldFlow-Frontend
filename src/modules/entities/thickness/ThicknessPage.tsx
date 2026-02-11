@@ -10,6 +10,7 @@ import FilterComponent, {
 } from '../../../shared/components/FilterComponent';
 import ListPageLayout from '../../../shared/components/ListPageLayout';
 import Pagination from '../../../shared/components/Pagination';
+import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
@@ -33,7 +34,7 @@ let thicknessMetadataFetchInFlight = false;
 export default function ThicknessPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const entityName = 'thikness';
+  const entityName = 'thickness';
   const entityConfig = getEntityConfig(entityName);
   const [filters, setFilters] = useState<Record<string, FilterValue>>({});
   const [entityMetadata, setEntityMetadata] = useState<{
@@ -52,6 +53,7 @@ export default function ThicknessPage() {
   const [pageSize, setPageSize] = useState<number | undefined>(20);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
+  const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
   const token = useAuthStore((state) => state.token);
   const lastToastedErrorRef = useRef<string | null>(null);
 
@@ -251,7 +253,7 @@ export default function ThicknessPage() {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
     if (!visibleFields.length) return [];
     const detailLinkField = entityMetadata?.detail_link_field;
-    const idField = entityMetadata?.id_field ?? 'thikness';
+    const idField = entityMetadata?.id_field ?? 'thickness';
 
     return visibleFields.map((f) => ({
       key: f.name,
@@ -292,25 +294,26 @@ export default function ThicknessPage() {
     navigate(entityConfig.routes.add);
   };
 
-  const idField = entityMetadata?.id_field ?? 'thikness';
+  const idField = entityMetadata?.id_field ?? 'thickness';
 
-  const handleDelete = useCallback(
-    async (row: EntityRow) => {
-      const rowId = row[idField];
-      if (rowId === undefined || rowId === null) return;
-      const displayName = String(row.thikness ?? row.name ?? 'this thickness');
-      if (!window.confirm(`Are you sure you want to delete ${displayName}?`)) return;
-      try {
-        await deleteEntity(entityName, String(rowId));
-        toast.success(`${entityConfig.displayName} deleted successfully.`);
-        fetchList();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to delete thickness';
-        showErrorToastUnlessAuth(msg);
-      }
-    },
-    [entityName, entityConfig.displayName, idField, fetchList]
-  );
+  const handleDeleteClick = useCallback((row: EntityRow) => {
+    setDeleteConfirmRow(row);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteConfirmRow) return;
+    const rowId = deleteConfirmRow[idField];
+    if (rowId === undefined || rowId === null) return;
+    try {
+      await deleteEntity(entityName, String(rowId));
+      toast.success(`${entityConfig.displayName} deleted successfully.`);
+      setDeleteConfirmRow(null);
+      fetchList();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete thickness';
+      showErrorToastUnlessAuth(msg);
+    }
+  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList]);
 
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [
@@ -336,7 +339,7 @@ export default function ThicknessPage() {
       },
       {
         label: 'Delete',
-        onClick: handleDelete,
+        onClick: handleDeleteClick,
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -350,7 +353,7 @@ export default function ThicknessPage() {
         ),
       },
     ],
-    [idField, navigate, entityConfig.routes.edit, handleDelete]
+    [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
   );
 
   const filterConfig: FilterComponentConfig = useMemo(() => {
@@ -374,8 +377,27 @@ export default function ThicknessPage() {
     Object.keys(filterConfig.default).length > 0 ||
     Object.keys(filterConfig.addable ?? {}).length > 0;
 
+  const deleteDisplayName =
+    deleteConfirmRow != null
+      ? String(deleteConfirmRow.thickness ?? deleteConfirmRow.name ?? 'this thickness')
+      : '';
+
   return (
     <>
+      <ConfirmationDialog
+        isOpen={deleteConfirmRow != null}
+        onClose={() => setDeleteConfirmRow(null)}
+        onConfirm={handleDeleteConfirm}
+        title={`Delete ${entityConfig.displayName}`}
+        message={
+          deleteDisplayName
+            ? `Are you sure you want to delete "${deleteDisplayName}"? This action cannot be undone.`
+            : `Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}?`
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+      />
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },
