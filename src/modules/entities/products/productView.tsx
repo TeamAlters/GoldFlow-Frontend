@@ -3,7 +3,6 @@ import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
-import { isAuthError } from '../../../shared/utils/errorHandling';
 import { useAuthStore } from '../../../auth/auth.store';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticProductForm, { type StaticProductFormData } from './productForm';
@@ -44,7 +43,7 @@ export default function ProductViewPage() {
                 if (controller.signal.aborted) return;
                 const msg = err instanceof Error ? err.message : 'Failed to load product';
                 toast.error(msg);
-                if (isAuthError(msg)) handleAuthError();
+                if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
             })
             .finally(() => {
                 if (!controller.signal.aborted) setDataLoading(false);

@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useUIStore } from '../stores/ui.store';
 import { useAuthStore } from '../auth/auth.store';
 import { logout as logoutApi } from '../auth/auth.api';
-import { showErrorToastUnlessAuth } from '../shared/utils/errorHandling';
+import { toast } from '../stores/toast.store';
 import { useState, useRef, useEffect } from 'react';
 
 export default function Navbar() {
@@ -34,8 +34,9 @@ export default function Navbar() {
       try {
         await logoutApi(token);
       } catch (err) {
+        // 401 = token already invalid/expired; we're clearing state anyway, don't show error
         const msg = err instanceof Error ? err.message : '';
-        showErrorToastUnlessAuth(msg);
+        if (msg && !/401|unauthorized|credentials/i.test(msg)) toast.error(msg);
       }
     }
     logout();
