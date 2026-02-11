@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
 
 export type StaticDesignFormData = {
@@ -57,9 +57,15 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
       validate: () => validate(),
     }));
 
+    const lastAppliedInitialRef = useRef<Partial<StaticDesignFormData> | undefined>(undefined);
     useEffect(() => {
       if (initialData) {
-        setFormData((prev) => ({ ...emptyForm, ...prev, ...initialData }));
+        if (lastAppliedInitialRef.current !== initialData) {
+          lastAppliedInitialRef.current = initialData;
+          setFormData((prev) => ({ ...emptyForm, ...prev, ...initialData }));
+        }
+      } else {
+        lastAppliedInitialRef.current = undefined;
       }
     }, [initialData]);
 
@@ -107,7 +113,7 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
             onChange={(e) => handleChange('design_name', e.target.value)}
             placeholder="e.g. Design A"
             className={inputClass('design_name')}
-            disabled={isEdit || readOnly}
+            disabled={readOnly}
             readOnly={readOnly}
           />
           {errors.design_name && (

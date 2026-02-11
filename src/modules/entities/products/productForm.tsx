@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
 
 export type StaticProductFormData = {
@@ -50,9 +50,15 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
             validate: () => validate(),
         }));
 
+        const lastAppliedInitialRef = useRef<Partial<StaticProductFormData> | undefined>(undefined);
         useEffect(() => {
             if (initialData) {
-                setFormData((prev) => ({ ...emptyForm, ...prev, ...initialData }));
+                if (lastAppliedInitialRef.current !== initialData) {
+                    lastAppliedInitialRef.current = initialData;
+                    setFormData((prev) => ({ ...emptyForm, ...prev, ...initialData }));
+                }
+            } else {
+                lastAppliedInitialRef.current = undefined;
             }
         }, [initialData]);
 

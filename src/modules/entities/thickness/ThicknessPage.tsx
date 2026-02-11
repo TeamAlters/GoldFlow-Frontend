@@ -384,7 +384,7 @@ export default function ThicknessPage() {
     return { default: defaultConfig, addable: addableConfig };
   }, [entityMetadata]);
 
-  const handleRowClick = () => {};
+  const handleRowClick = () => { };
 
   const hasFilters =
     Object.keys(filterConfig.default).length > 0 ||
@@ -416,11 +416,10 @@ export default function ThicknessPage() {
         }
         toolbarRight={
           <button
-            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
+            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
             onClick={handleAddEntity}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
