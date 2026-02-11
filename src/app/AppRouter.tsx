@@ -11,10 +11,18 @@ import ProductsPage from '../modules/entities/products/ProductsPage';
 import ProductCreatePage from '../modules/entities/products/productCreate';
 import ProductEditPage from '../modules/entities/products/productEdit';
 import ProductViewPage from '../modules/entities/products/productView';
-import PuritiesPage from '../modules/entities/purity/purityPage';
+import PuritiesPage from '../modules/entities/purity/PurityPage';
 import PurityCreatePage from '../modules/entities/purity/purityCreate';
 import PurityEditPage from '../modules/entities/purity/purityEdit';
 import PurityViewPage from '../modules/entities/purity/purityView';
+import DesignsPage from '../modules/entities/design/DesignsPage';
+import DesignCreatePage from '../modules/entities/design/designCreate';
+import DesignEditPage from '../modules/entities/design/designEdit';
+import DesignViewPage from '../modules/entities/design/designView';
+import ThicknessPage from '../modules/entities/thickness/ThicknessPage';
+import ThicknessCreatePage from '../modules/entities/thickness/thicknessCreate';
+import ThicknessEditPage from '../modules/entities/thickness/thicknessEdit';
+import ThicknessViewPage from '../modules/entities/thickness/thicknessView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -72,6 +80,14 @@ export default function AppRouter() {
           <Route path="purities/add" element={<PurityCreatePage />} />
           <Route path="purities/edit/:id" element={<PurityEditPage />} />
           <Route path="purities/:id" element={<PurityViewPage />} />
+          <Route path="designs" element={<DesignsPage />} />
+          <Route path="designs/add" element={<DesignCreatePage />} />
+          <Route path="designs/edit/:id" element={<DesignEditPage />} />
+          <Route path="designs/:id" element={<DesignViewPage />} />
+          <Route path="thickness" element={<ThicknessPage />} />
+          <Route path="thickness/add" element={<ThicknessCreatePage />} />
+          <Route path="thickness/edit/:id" element={<ThicknessEditPage />} />
+          <Route path="thickness/:id" element={<ThicknessViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>

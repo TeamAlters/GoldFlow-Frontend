@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useUIStore } from '../../stores/ui.store';
 import {
     getEntityNamesForRolesTable,
     getEntityConfig,
 } from '../../config/entity.config';
-import Breadcrumbs from '../../layout/Breadcrumbs';
 
 const PERMISSIONS = ['create', 'read', 'update', 'delete'] as const;
 export type Permission = (typeof PERMISSIONS)[number];

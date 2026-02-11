@@ -15,6 +15,8 @@ export function getRowDisplayValue(
           username: 'name',
           status: 'role',
           mobile_number: 'mobileNo',
+          name: 'product_name',
+          product_name: 'name',
         };
         const mappedKey = aliases[fieldKey];
         return mappedKey ? row[mappedKey] : undefined;
