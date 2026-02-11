@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity, getEntityList } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
-import { useAuthStore } from '../../../auth/auth.store';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticDesignForm, {
   type StaticDesignFormData,
@@ -33,15 +33,9 @@ export function toDesignPayload(data: StaticDesignFormData): Record<string, unkn
 export default function DesignCreatePage() {
   const navigate = useNavigate();
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const logout = useAuthStore((state) => state.logout);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const formRef = useRef<StaticDesignFormRef>(null);
-
-  const handleAuthError = useCallback(() => {
-    logout();
-    navigate('/login', { replace: true });
-  }, [logout, navigate]);
 
   useEffect(() => {
     getEntityList('product', { page: 1, page_size: 500 })
@@ -67,13 +61,12 @@ export default function DesignCreatePage() {
         navigate(entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
-        toast.error(msg);
-        if (/401|unauthorized/i.test(msg)) handleAuthError();
+        showErrorToastUnlessAuth(msg);
       } finally {
         setSubmitLoading(false);
       }
     },
-    [navigate, entityConfig, handleAuthError]
+    [navigate, entityConfig]
   );
 
   const handleCancel = useCallback(() => {

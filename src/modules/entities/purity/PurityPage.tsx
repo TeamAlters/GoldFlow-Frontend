@@ -25,6 +25,7 @@ import { getEntityConfig } from '../../../config/entity.config';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { getRowDisplayValue } from '../../../shared/utils/common';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 
 type EntityRow = Record<string, unknown>;
 
@@ -54,13 +55,7 @@ export default function PuritiesPage() {
   const [totalPages, setTotalPages] = useState<number>(0);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
   const token = useAuthStore((state) => state.token);
-  const logout = useAuthStore((state) => state.logout);
   const lastToastedErrorRef = useRef<string | null>(null);
-
-  const handleAuthError = useCallback(() => {
-    logout();
-    navigate('/login', { replace: true });
-  }, [logout, navigate]);
 
   const showErrorToast = useCallback((msg: string) => {
     if (lastToastedErrorRef.current === msg) return;
@@ -108,19 +103,14 @@ export default function PuritiesPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load metadata';
-        if (/credentials|401|validate|unauthorized/i.test(msg)) {
-          showErrorToast('Session expired. Please sign in again.');
-          handleAuthError();
-          return;
-        }
         setMetadataError(msg);
-        showErrorToast(msg);
+        showErrorToastUnlessAuth(msg);
       })
       .finally(() => {
         purityMetadataFetchInFlight = false;
         setMetadataLoading(false);
       });
-  }, [token, entityName, showErrorToast, handleAuthError]);
+  }, [token, entityName, showErrorToast]);
 
   useEffect(() => {
     if (!token) {
@@ -243,16 +233,11 @@ export default function PuritiesPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (/401|unauthorized|credentials/i.test(msg)) {
-          showErrorToast('Session expired. Please sign in again.');
-          handleAuthError();
-          return;
-        }
-        showErrorToast(msg);
+        showErrorToastUnlessAuth(msg);
         setPurities([]);
       })
       .finally(() => setListLoading(false));
-  }, [token, entityName, page, pageSize, filtersForApi, showErrorToast, handleAuthError]);
+  }, [token, entityName, page, pageSize, filtersForApi, showErrorToast]);
 
   useEffect(() => {
     const defaultSize = entityMetadata?.pagination?.default_page_size;
@@ -325,10 +310,9 @@ export default function PuritiesPage() {
       fetchList();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete purity';
-      toast.error(msg);
-      if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
+      showErrorToastUnlessAuth(msg);
     }
-  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList, handleAuthError]);
+  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList]);
 
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [
