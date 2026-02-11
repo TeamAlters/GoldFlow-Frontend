@@ -63,13 +63,19 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
 
         const validate = (): boolean => {
             const next: Record<string, string> = {};
-            if (!formData.purity.trim()) next.purity = 'Purity is required';
+            const purityTrimmed = formData.purity.trim();
+            if (!purityTrimmed) next.purity = 'Purity is required';
+            else if (purityTrimmed.length > 32) next.purity = 'Purity must be at most 32 characters';
             const pct = formData.purity_percentage.trim();
             if (!pct) next.purity_percentage = 'Purity percentage is required';
+            else if (pct.length < 2) next.purity_percentage = 'Purity % must be at least 2 digits';
             else {
-                const num = parseFloat(pct);
-                if (Number.isNaN(num)) next.purity_percentage = 'Enter a valid number';
-                else if (num < 0 || num > 100) next.purity_percentage = 'Must be between 0 and 100';
+                if (pct.length > 6) next.purity_percentage = 'Purity % must be at most 6 digits';
+                else {
+                    const num = parseFloat(pct);
+                    if (Number.isNaN(num)) next.purity_percentage = 'Enter a valid number';
+                    else if (num < 0 || num > 100) next.purity_percentage = 'Must be between 0 and 100';
+                }
             }
             setErrors(next);
             return Object.keys(next).length === 0;
@@ -104,8 +110,9 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
                         value={formData.purity}
                         onChange={(e) => handleChange('purity', e.target.value)}
                         placeholder="e.g. 24K, 22K"
+                        maxLength={32}
                         className={inputClass('purity')}
-                        disabled={isEdit || readOnly}
+                        disabled={readOnly}
                         readOnly={readOnly}
                     />
                     {errors.purity && <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>}
@@ -119,7 +126,9 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
                         inputMode="decimal"
                         value={formData.purity_percentage}
                         onChange={(e) => handleChange('purity_percentage', e.target.value)}
-                        placeholder="e.g. 99.99"
+                        placeholder="e.g. 99.99 (max 5 digits)"
+                        maxLength={5}
+                        minLength={2}
                         className={inputClass('purity_percentage')}
                         disabled={readOnly}
                         readOnly={readOnly}

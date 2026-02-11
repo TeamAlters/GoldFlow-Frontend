@@ -7,6 +7,9 @@
 import { useAuthStore } from '../../auth/auth.store';
 import { buildEntityUrl, getEntityConfig } from '../../config/entity.config';
 
+/** Message shown when backend returns 401 (e.g. "Could not validate credentials"). Ensures logout/redirect is triggered by existing /unauthorized/ checks. */
+const AUTH_ERROR_MESSAGE = 'Unauthorized. Please sign in again.';
+
 /** Build headers with Bearer token for authenticated API calls. Backend must accept "Authorization: Bearer <token>". */
 function getAuthHeaders(): HeadersInit {
   const token = useAuthStore.getState().token;
@@ -119,12 +122,14 @@ export async function getEntityMetadata(entityName: string): Promise<EntityMetad
     const detailStr =
       typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.join(', ') : null;
     const errMsg =
-      detailStr ??
-      (data as { message?: string }).message ??
-      (Array.isArray((data as { errors?: string[] }).errors)
-        ? (data as { errors: string[] }).errors.join(', ')
-        : null) ??
-      `Failed to load metadata (${res.status})`;
+      res.status === 401
+        ? AUTH_ERROR_MESSAGE
+        : detailStr ??
+          (data as { message?: string }).message ??
+          (Array.isArray((data as { errors?: string[] }).errors)
+            ? (data as { errors: string[] }).errors.join(', ')
+            : null) ??
+          `Failed to load metadata (${res.status})`;
     console.log('[GoldFlow] [admin.api] getEntityMetadata: failed', {
       status: res.status,
       entityName,
@@ -197,12 +202,14 @@ export async function getEntityFormMetadata(entityName: string): Promise<FormMet
     const detailStr =
       typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.join(', ') : null;
     const errMsg =
-      detailStr ??
-      (data as { message?: string }).message ??
-      (Array.isArray((data as { errors?: string[] }).errors)
-        ? (data as { errors: string[] }).errors.join(', ')
-        : null) ??
-      `Failed to load form metadata (${res.status})`;
+      res.status === 401
+        ? AUTH_ERROR_MESSAGE
+        : detailStr ??
+          (data as { message?: string }).message ??
+          (Array.isArray((data as { errors?: string[] }).errors)
+            ? (data as { errors: string[] }).errors.join(', ')
+            : null) ??
+          `Failed to load form metadata (${res.status})`;
     console.log('[GoldFlow] [admin.api] getEntityFormMetadata: failed', {
       status: res.status,
       entityName,
@@ -304,12 +311,14 @@ export async function getEntityList(
     const detailStr =
       typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.join(', ') : null;
     const errMsg =
-      detailStr ??
-      (data as { message?: string }).message ??
-      (Array.isArray((data as { errors?: string[] }).errors)
-        ? (data as { errors: string[] }).errors.join(', ')
-        : null) ??
-      `Failed to load list (${res.status})`;
+      res.status === 401
+        ? AUTH_ERROR_MESSAGE
+        : detailStr ??
+          (data as { message?: string }).message ??
+          (Array.isArray((data as { errors?: string[] }).errors)
+            ? (data as { errors: string[] }).errors.join(', ')
+            : null) ??
+          `Failed to load list (${res.status})`;
     console.log('[GoldFlow] [admin.api] getEntityList: failed', {
       status: res.status,
       entityName,
@@ -365,9 +374,11 @@ export async function createEntity(
 
   if (!res.ok) {
     const errMsg =
-      responseData.detail ??
-      responseData.message ??
-      `Failed to create ${entityName} (${res.status})`;
+      res.status === 401
+        ? AUTH_ERROR_MESSAGE
+        : responseData.detail ??
+          responseData.message ??
+          `Failed to create ${entityName} (${res.status})`;
     console.log('[GoldFlow] [admin.api] createEntity: failed', {
       status: res.status,
       entityName,
@@ -413,7 +424,11 @@ export async function getEntity(
 
   if (!res.ok) {
     const errMsg =
-      responseData.detail ?? responseData.message ?? `Failed to get ${entityName} (${res.status})`;
+      res.status === 401
+        ? AUTH_ERROR_MESSAGE
+        : responseData.detail ??
+          responseData.message ??
+          `Failed to get ${entityName} (${res.status})`;
     console.log('[GoldFlow] [admin.api] getEntity: failed', {
       status: res.status,
       entityName,
@@ -466,9 +481,11 @@ export async function updateEntity(
 
   if (!res.ok) {
     const errMsg =
-      responseData.detail ??
-      responseData.message ??
-      `Failed to update ${entityName} (${res.status})`;
+      res.status === 401
+        ? AUTH_ERROR_MESSAGE
+        : responseData.detail ??
+          responseData.message ??
+          `Failed to update ${entityName} (${res.status})`;
     console.log('[GoldFlow] [admin.api] updateEntity: failed', {
       status: res.status,
       entityName,
@@ -510,9 +527,11 @@ export async function deleteEntity(
 
   if (!res.ok) {
     const errMsg =
-      responseData.detail ??
-      responseData.message ??
-      `Failed to delete ${entityName} (${res.status})`;
+      res.status === 401
+        ? AUTH_ERROR_MESSAGE
+        : responseData.detail ??
+          responseData.message ??
+          `Failed to delete ${entityName} (${res.status})`;
     console.log('[GoldFlow] [admin.api] deleteEntity: failed', {
       status: res.status,
       entityName,

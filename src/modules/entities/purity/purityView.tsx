@@ -40,7 +40,7 @@ export default function PurityViewPage() {
             .catch((err) => {
                 const msg = err instanceof Error ? err.message : 'Failed to load purity';
                 toast.error(msg);
-                if (/401|unauthorized/i.test(msg)) handleAuthError();
+                if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
             })
             .finally(() => setDataLoading(false));
     }, [id, handleAuthError]);

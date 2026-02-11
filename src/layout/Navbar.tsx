@@ -36,7 +36,7 @@ export default function Navbar() {
       } catch (err) {
         // 401 = token already invalid/expired; we're clearing state anyway, don't show error
         const msg = err instanceof Error ? err.message : '';
-        if (msg && !/401|unauthorized/i.test(msg)) toast.error(msg);
+        if (msg && !/401|unauthorized|credentials/i.test(msg)) toast.error(msg);
       }
     }
     logout();
