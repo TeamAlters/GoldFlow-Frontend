@@ -10,6 +10,7 @@ import FilterComponent, {
 } from '../../../shared/components/FilterComponent';
 import ListPageLayout from '../../../shared/components/ListPageLayout';
 import Pagination from '../../../shared/components/Pagination';
+import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
@@ -49,6 +50,7 @@ export default function UsersPage() {
   const [pageSize, setPageSize] = useState<number | undefined>(20);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
+  const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
   const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
   const lastToastedErrorRef = useRef<string | null>(null);
@@ -347,24 +349,24 @@ export default function UsersPage() {
 
   const idField = entityMetadata?.id_field ?? 'id';
 
-  const handleDelete = useCallback(
-    async (row: EntityRow) => {
-      const rowId = row[idField];
-      if (rowId === undefined || rowId === null) return;
-      const displayName = String(row.username ?? row.name ?? 'this user');
-      if (!window.confirm(`Are you sure you want to delete ${displayName}?`)) return;
-      try {
-        await deleteEntity(entityName, String(rowId));
-        toast.success(`${entityConfig.displayName} deleted successfully.`);
-        fetchList();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to delete user';
-        toast.error(msg);
-        if (/401|unauthorized/i.test(msg)) handleAuthError();
-      }
-    },
-    [entityName, entityConfig.displayName, idField, fetchList, handleAuthError]
-  );
+  const handleDeleteClick = useCallback((row: EntityRow) => {
+    setDeleteConfirmRow(row);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteConfirmRow) return;
+    const rowId = deleteConfirmRow[idField];
+    if (rowId === undefined || rowId === null) return;
+    try {
+      await deleteEntity(entityName, String(rowId));
+      toast.success(`${entityConfig.displayName} deleted successfully.`);
+      fetchList();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete user';
+      toast.error(msg);
+      if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
+    }
+  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList, handleAuthError]);
 
   // Define table actions: Edit and Delete
   const actions: TableAction<EntityRow>[] = useMemo(
@@ -391,7 +393,7 @@ export default function UsersPage() {
       },
       {
         label: 'Delete',
-        onClick: handleDelete,
+        onClick: handleDeleteClick,
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,7 +407,7 @@ export default function UsersPage() {
         ),
       },
     ],
-    [idField, navigate, entityConfig.routes.edit, handleDelete]
+    [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
   );
 
   // Filter configuration from entity metadata (default_visible + additional)
@@ -433,8 +435,27 @@ export default function UsersPage() {
     Object.keys(filterConfig.default).length > 0 ||
     Object.keys(filterConfig.addable ?? {}).length > 0;
 
+  const deleteDisplayName =
+    deleteConfirmRow != null
+      ? String(deleteConfirmRow.username ?? deleteConfirmRow.name ?? 'this user')
+      : '';
+
   return (
     <>
+      <ConfirmationDialog
+        isOpen={deleteConfirmRow != null}
+        onClose={() => setDeleteConfirmRow(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete User"
+        message={
+          deleteDisplayName
+            ? `Are you sure you want to delete "${deleteDisplayName}"? This action cannot be undone.`
+            : 'Are you sure you want to delete this user?'
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+      />
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

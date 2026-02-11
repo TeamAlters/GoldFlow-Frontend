@@ -10,6 +10,7 @@ import FilterComponent, {
 } from '../../../shared/components/FilterComponent';
 import ListPageLayout from '../../../shared/components/ListPageLayout';
 import Pagination from '../../../shared/components/Pagination';
+import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
@@ -51,6 +52,7 @@ export default function PuritiesPage() {
   const [pageSize, setPageSize] = useState<number | undefined>(20);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
+  const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
   const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
   const lastToastedErrorRef = useRef<string | null>(null);
@@ -241,7 +243,7 @@ export default function PuritiesPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (/401|unauthorized/i.test(msg)) {
+        if (/401|unauthorized|credentials/i.test(msg)) {
           showErrorToast('Session expired. Please sign in again.');
           handleAuthError();
           return;
@@ -309,24 +311,24 @@ export default function PuritiesPage() {
 
   const idField = entityMetadata?.id_field ?? 'purity';
 
-  const handleDelete = useCallback(
-    async (row: EntityRow) => {
-      const rowId = row[idField];
-      if (rowId === undefined || rowId === null) return;
-      const displayName = String(row.purity ?? row.name ?? 'this purity');
-      if (!window.confirm(`Are you sure you want to delete ${displayName}?`)) return;
-      try {
-        await deleteEntity(entityName, String(rowId));
-        toast.success(`${entityConfig.displayName} deleted successfully.`);
-        fetchList();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to delete purity';
-        toast.error(msg);
-        if (/401|unauthorized/i.test(msg)) handleAuthError();
-      }
-    },
-    [entityName, entityConfig.displayName, idField, fetchList, handleAuthError]
-  );
+  const handleDeleteClick = useCallback((row: EntityRow) => {
+    setDeleteConfirmRow(row);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteConfirmRow) return;
+    const rowId = deleteConfirmRow[idField];
+    if (rowId === undefined || rowId === null) return;
+    try {
+      await deleteEntity(entityName, String(rowId));
+      toast.success(`${entityConfig.displayName} deleted successfully.`);
+      fetchList();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete purity';
+      toast.error(msg);
+      if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
+    }
+  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList, handleAuthError]);
 
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [
@@ -352,7 +354,7 @@ export default function PuritiesPage() {
       },
       {
         label: 'Delete',
-        onClick: handleDelete,
+        onClick: handleDeleteClick,
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -366,7 +368,7 @@ export default function PuritiesPage() {
         ),
       },
     ],
-    [idField, navigate, entityConfig.routes.edit, handleDelete]
+    [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
   );
 
   const filterConfig: FilterComponentConfig = useMemo(() => {
@@ -390,8 +392,27 @@ export default function PuritiesPage() {
     Object.keys(filterConfig.default).length > 0 ||
     Object.keys(filterConfig.addable ?? {}).length > 0;
 
+  const deleteDisplayName =
+    deleteConfirmRow != null
+      ? String(deleteConfirmRow.purity ?? deleteConfirmRow.name ?? 'this item')
+      : '';
+
   return (
     <>
+      <ConfirmationDialog
+        isOpen={deleteConfirmRow != null}
+        onClose={() => setDeleteConfirmRow(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Purity"
+        message={
+          deleteDisplayName
+            ? `Are you sure you want to delete "${deleteDisplayName}"? This action cannot be undone.`
+            : 'Are you sure you want to delete this item?'
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+      />
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

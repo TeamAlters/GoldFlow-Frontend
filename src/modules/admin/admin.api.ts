@@ -1,7 +1,7 @@
 /**
  * Admin / entity APIs
  * Base URL: VITE_API_BASE_URL from .env
-` * Authenticated requests use Bearer token from auth store (via apiClient interceptor).
+ * Authenticated requests use Bearer token from auth store (via apiClient interceptor).
  */
 
 import { apiClient, messageFromAxiosError } from '../../api/axios';

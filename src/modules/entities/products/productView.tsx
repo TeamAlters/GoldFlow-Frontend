@@ -43,7 +43,7 @@ export default function ProductViewPage() {
                 if (controller.signal.aborted) return;
                 const msg = err instanceof Error ? err.message : 'Failed to load product';
                 toast.error(msg);
-                if (/401|unauthorized/i.test(msg)) handleAuthError();
+                if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
             })
             .finally(() => {
                 if (!controller.signal.aborted) setDataLoading(false);

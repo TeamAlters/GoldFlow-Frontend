@@ -75,7 +75,7 @@ export default function EditUserPage() {
             .catch((err) => {
                 const msg = err instanceof Error ? err.message : 'Failed to load user';
                 toast.error(msg);
-                if (/401|unauthorized/i.test(msg)) handleAuthError();
+                if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
             })
             .finally(() => setDataLoading(false));
     }, [id, handleAuthError]);
@@ -92,7 +92,7 @@ export default function EditUserPage() {
             } catch (err) {
                 const msg = err instanceof Error ? err.message : 'Request failed';
                 toast.error(msg);
-                if (/401|unauthorized/i.test(msg)) handleAuthError();
+                if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
             } finally {
                 setSubmitLoading(false);
             }
