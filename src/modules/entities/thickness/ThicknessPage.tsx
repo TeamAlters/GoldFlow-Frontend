@@ -12,6 +12,7 @@ import ListPageLayout from '../../../shared/components/ListPageLayout';
 import Pagination from '../../../shared/components/Pagination';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
+import { isAuthError } from '../../../shared/utils/errorHandling';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
 import {
   getEntityMetadata,
@@ -106,7 +107,7 @@ export default function ThicknessPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load metadata';
-        if (/credentials|401|validate|unauthorized/i.test(msg)) {
+        if (isAuthError(msg)) {
           showErrorToast('Session expired. Please sign in again.');
           handleAuthError();
           return;
@@ -241,7 +242,7 @@ export default function ThicknessPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (/401|unauthorized/i.test(msg)) {
+        if (isAuthError(msg)) {
           showErrorToast('Session expired. Please sign in again.');
           handleAuthError();
           return;
@@ -322,7 +323,7 @@ export default function ThicknessPage() {
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to delete thickness';
         toast.error(msg);
-        if (/401|unauthorized/i.test(msg)) handleAuthError();
+        if (isAuthError(msg)) handleAuthError();
       }
     },
     [entityName, entityConfig.displayName, idField, fetchList, handleAuthError]

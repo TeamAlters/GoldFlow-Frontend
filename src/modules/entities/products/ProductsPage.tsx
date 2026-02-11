@@ -13,6 +13,7 @@ import Pagination from '../../../shared/components/Pagination';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
+import { isAuthError } from '../../../shared/utils/errorHandling';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
 import {
   getEntityMetadata,
@@ -113,7 +114,7 @@ export default function ProductsPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load metadata';
-        if (/credentials|401|validate|unauthorized/i.test(msg)) {
+        if (isAuthError(msg)) {
           showErrorToast('Session expired. Please sign in again.');
           handleAuthError();
           return;
@@ -251,7 +252,7 @@ export default function ProductsPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (/credentials|401|validate|unauthorized/i.test(msg)) {
+        if (isAuthError(msg)) {
           showErrorToast('Session expired. Please sign in again.');
           handleAuthError();
           return;
@@ -352,7 +353,7 @@ export default function ProductsPage() {
       fetchList();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete product';
-      if (/credentials|401|validate|unauthorized/i.test(msg)) {
+      if (isAuthError(msg)) {
         toast.error('Session expired. Please sign in again.');
         handleAuthError();
       } else {
