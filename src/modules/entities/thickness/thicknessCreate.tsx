@@ -12,20 +12,21 @@ import StaticThicknessForm, {
 } from './thicknessForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 
-const ENTITY_NAME = 'thikness';
+const ENTITY_NAME = 'thickness';
 
 export function toInitialThicknessData(
   entity: Record<string, unknown>
 ): Partial<StaticThicknessFormData> {
+  const thicknessVal = entity.thickness ?? entity.thikness;
   return {
-    thikness: entity.thikness != null ? String(entity.thikness) : '',
+    thickness: thicknessVal != null ? String(thicknessVal) : '',
     product_name: entity.product_name != null ? String(entity.product_name) : '',
   };
 }
 
 export function toThicknessPayload(data: StaticThicknessFormData): Record<string, unknown> {
   return {
-    thikness: data.thikness.trim(),
+    thickness: data.thickness.trim(),
     product_name: data.product_name.trim(),
   };
 }

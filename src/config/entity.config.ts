@@ -199,7 +199,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     },
   },
 
-  thikness: {
+  thickness: {
     displayName: 'Thickness',
     displayNamePlural: 'Thicknesses',
     api: {

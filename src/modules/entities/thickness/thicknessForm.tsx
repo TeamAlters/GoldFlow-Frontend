@@ -3,7 +3,7 @@ import { useUIStore } from '../../../stores/ui.store';
 import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticThicknessFormData = {
-  thikness: string;
+  thickness: string;
   product_name: string;
 };
 
@@ -30,7 +30,7 @@ export interface StaticThicknessFormProps {
 }
 
 const emptyForm: StaticThicknessFormData = {
-  thikness: '',
+  thickness: '',
   product_name: '',
 };
 
@@ -71,10 +71,10 @@ const StaticThicknessFormInner = forwardRef<StaticThicknessFormRef, StaticThickn
 
     const validate = (): boolean => {
       const next: Record<string, string> = {};
-      const th = formData.thikness.trim();
-      if (!th) next.thikness = 'Thickness is required';
+      const th = formData.thickness.trim();
+      if (!th) next.thickness = 'Thickness is required';
       else if (th.length > MAX_TEXT_FIELD_LENGTH)
-        next.thikness = maxLengthError('Thickness');
+        next.thickness = maxLengthError('Thickness');
       if (!formData.product_name.trim()) next.product_name = 'Product is required';
       setErrors(next);
       return Object.keys(next).length === 0;
@@ -107,15 +107,15 @@ const StaticThicknessFormInner = forwardRef<StaticThicknessFormRef, StaticThickn
           </label>
           <input
             type="text"
-            value={formData.thikness}
-            onChange={(e) => handleChange('thikness', e.target.value)}
+            value={formData.thickness}
+            onChange={(e) => handleChange('thickness', e.target.value)}
             placeholder="e.g. 1.5mm, 2mm"
             maxLength={MAX_TEXT_FIELD_LENGTH}
-            className={inputClass('thikness')}
-            disabled={isEdit || readOnly}
+            className={inputClass('thickness')}
+            disabled={readOnly}
             readOnly={readOnly}
           />
-          {errors.thikness && <p className={`mt-1 ${errorClass}`}>{errors.thikness}</p>}
+          {errors.thickness && <p className={`mt-1 ${errorClass}`}>{errors.thickness}</p>}
         </div>
         <div>
           <label className={labelClass}>
