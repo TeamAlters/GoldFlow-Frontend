@@ -3,7 +3,7 @@ import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, updateEntity, getEntityList } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
-import { useAuthStore } from '../../../auth/auth.store';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticDesignForm, {
   type StaticDesignFormData,
@@ -19,7 +19,6 @@ export default function DesignEditPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const logout = useAuthStore((state) => state.logout);
 
   const [initialData, setInitialData] = useState<Partial<StaticDesignFormData> | undefined>(
     undefined
@@ -28,11 +27,6 @@ export default function DesignEditPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const formRef = useRef<StaticDesignFormRef>(null);
-
-  const handleAuthError = useCallback(() => {
-    logout();
-    navigate('/login', { replace: true });
-  }, [logout, navigate]);
 
   useEffect(() => {
     if (!id) return;
@@ -49,14 +43,13 @@ export default function DesignEditPage() {
       .catch((err) => {
         if (controller.signal.aborted) return;
         const msg = err instanceof Error ? err.message : 'Failed to load design';
-        toast.error(msg);
-        if (/401|unauthorized/i.test(msg)) handleAuthError();
+        showErrorToastUnlessAuth(msg);
       })
       .finally(() => {
         if (!controller.signal.aborted) setDataLoading(false);
       });
     return () => controller.abort();
-  }, [id, handleAuthError]);
+  }, [id]);
 
   useEffect(() => {
     getEntityList('product', { page: 1, page_size: 500 })
@@ -83,13 +76,12 @@ export default function DesignEditPage() {
         navigate(entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
-        toast.error(msg);
-        if (/401|unauthorized/i.test(msg)) handleAuthError();
+        showErrorToastUnlessAuth(msg);
       } finally {
         setSubmitLoading(false);
       }
     },
-    [id, navigate, entityConfig, handleAuthError]
+    [id, navigate, entityConfig]
   );
 
   const handleCancel = useCallback(() => {

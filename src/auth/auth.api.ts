@@ -47,6 +47,7 @@ async function authFetch<T>(path: string, method: string, body?: object): Promis
       url: path,
       method: method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
       data: body,
+      skipAuthRedirect: true,
     });
     return res.data as T;
   } catch (err) {
@@ -67,7 +68,7 @@ export async function getRegistrationStatus(): Promise<RegistrationStatusRespons
     const res = await apiClient.get<{
       success?: boolean;
       data?: { registration_allowed?: boolean; reason?: string };
-    }>('/api/v1/auth/registration-status');
+    }>('/api/v1/auth/registration-status', { skipAuthRedirect: true });
     const body = res.data ?? {};
     const allowed = body?.data?.registration_allowed ?? false;
     return { registration_allowed: allowed, reason: body?.data?.reason };
