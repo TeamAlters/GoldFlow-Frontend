@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity, getEntityList } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
+import { isAuthError } from '../../../shared/utils/errorHandling';
 import { useAuthStore } from '../../../auth/auth.store';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticThicknessForm, {
@@ -68,7 +69,7 @@ export default function ThicknessCreatePage() {
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         toast.error(msg);
-        if (/401|unauthorized/i.test(msg)) handleAuthError();
+        if (isAuthError(msg)) handleAuthError();
       } finally {
         setSubmitLoading(false);
       }

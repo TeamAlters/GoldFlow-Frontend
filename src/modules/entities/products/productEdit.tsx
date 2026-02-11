@@ -3,6 +3,7 @@ import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, updateEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
+import { isAuthError } from '../../../shared/utils/errorHandling';
 import { useAuthStore } from '../../../auth/auth.store';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticProductForm, {
@@ -47,7 +48,7 @@ export default function ProductEditPage() {
             .catch((err) => {
                 if (controller.signal.aborted) return;
                 const msg = err instanceof Error ? err.message : 'Failed to load product';
-                if (/credentials|401|validate|unauthorized/i.test(msg)) {
+                if (isAuthError(msg)) {
                     toast.error('Session expired. Please sign in again.');
                     handleAuthError();
                 } else {
@@ -71,7 +72,7 @@ export default function ProductEditPage() {
                 navigate(entityConfig.routes.list);
             } catch (err) {
                 const msg = err instanceof Error ? err.message : 'Request failed';
-                if (/credentials|401|validate|unauthorized/i.test(msg)) {
+                if (isAuthError(msg)) {
                     toast.error('Session expired. Please sign in again.');
                     handleAuthError();
                 } else {

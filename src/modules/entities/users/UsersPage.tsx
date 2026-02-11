@@ -13,6 +13,7 @@ import Pagination from '../../../shared/components/Pagination';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
+import { isAuthError } from '../../../shared/utils/errorHandling';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
 import { getEntityMetadata, getEntityList, deleteEntity, type EntityListFilter } from '../../admin/admin.api';
 import type { EntityField, EntityFilterField } from '../../admin/admin.api';
@@ -114,10 +115,7 @@ export default function UsersPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load metadata';
-        if (/credentials|401|validate|unauthorized/i.test(msg)) {
-          console.warn('[GoldFlow] [UsersPage] fetchMetadata: auth error (401/credentials)', {
-            msg,
-          });
+        if (isAuthError(msg)) {
           showErrorToast('Session expired. Please sign in again.');
           handleAuthError();
           return;
@@ -275,8 +273,7 @@ export default function UsersPage() {
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : 'Failed to load list';
-        if (/credentials|401|validate|unauthorized/i.test(msg)) {
-          console.warn('[GoldFlow] [UsersPage] fetchList: auth error (401/credentials)', { msg });
+        if (isAuthError(msg)) {
           showErrorToast('Session expired. Please sign in again.');
           handleAuthError();
           return;
@@ -364,7 +361,7 @@ export default function UsersPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete user';
       toast.error(msg);
-      if (/401|unauthorized|credentials/i.test(msg)) handleAuthError();
+      if (isAuthError(msg)) handleAuthError();
     }
   }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList, handleAuthError]);
 
