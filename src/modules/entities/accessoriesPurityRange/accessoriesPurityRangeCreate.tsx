@@ -6,6 +6,7 @@ import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import type { StaticAccessoriesPurityRangeFormData } from './accessoriesPurityRangeForm';
+import { MAX_NUMERIC_63_LENGTH, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 
 const ENTITY_NAME = 'accessories_purity_range';
@@ -67,13 +68,22 @@ export default function AccessoriesPurityRangeCreatePage() {
 
   const validate = useCallback((): boolean => {
     const next: Record<string, string> = {};
-    const from = parseNum(fromValue);
     if (fromValue.trim() === '') next.from_value = 'From value is required';
-    else if (from === null) next.from_value = 'Enter a valid number';
-    const to = parseNum(toValue);
+    else {
+      const err = validateNumeric63(fromValue, 'From value', { nonNegative: true });
+      if (err) next.from_value = err;
+    }
     if (toValue.trim() === '') next.to_value = 'To value is required';
-    else if (to === null) next.to_value = 'Enter a valid number';
+    else {
+      const err = validateNumeric63(toValue, 'To value', { nonNegative: true });
+      if (err) next.to_value = err;
+    }
     if (!accessoryPurity.trim()) next.accessory_purity = 'Accessory purity is required';
+    if (!next.from_value && !next.to_value && fromValue.trim() && toValue.trim()) {
+      const from = parseNum(fromValue);
+      const to = parseNum(toValue);
+      if (from !== null && to !== null && from > to) next.to_value = 'To value must be greater than or equal to from value';
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   }, [fromValue, toValue, accessoryPurity]);
@@ -155,10 +165,11 @@ export default function AccessoriesPurityRangeCreatePage() {
               inputMode="decimal"
               value={fromValue}
               onChange={(e) => {
-                setFromValue(e.target.value);
+                setFromValue(sanitizeNumeric63Input(e.target.value));
                 if (errors.from_value) setErrors((prev) => ({ ...prev, from_value: '' }));
               }}
               placeholder="e.g. 0.000"
+              maxLength={MAX_NUMERIC_63_LENGTH}
               className={inputClass('from_value')}
             />
             {errors.from_value && (
@@ -174,10 +185,11 @@ export default function AccessoriesPurityRangeCreatePage() {
               inputMode="decimal"
               value={toValue}
               onChange={(e) => {
-                setToValue(e.target.value);
+                setToValue(sanitizeNumeric63Input(e.target.value));
                 if (errors.to_value) setErrors((prev) => ({ ...prev, to_value: '' }));
               }}
               placeholder="e.g. 99.999"
+              maxLength={MAX_NUMERIC_63_LENGTH}
               className={inputClass('to_value')}
             />
             {errors.to_value && (

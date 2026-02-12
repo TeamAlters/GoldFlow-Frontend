@@ -93,7 +93,7 @@ export default function CustomerEditPage() {
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
-        const msg = err instanceof Error ? err.message : 'Failed to load customer master';
+        const msg = err instanceof Error ? err.message : 'Failed to load customer';
         showErrorToastUnlessAuth(msg);
       })
       .finally(() => {
@@ -146,14 +146,14 @@ export default function CustomerEditPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Loading customer master...
+            Loading customer...
           </p>
         </div>
       </div>
     );
   }
 
-  const breadcrumbLabel = initialData?.customer_name ?? 'Edit Customer Master';
+  const breadcrumbLabel = initialData?.customer_name ?? 'Edit Customer Details';
 
   return (
     <div className="w-full">
@@ -172,7 +172,7 @@ export default function CustomerEditPage() {
           Edit {entityConfig.displayName}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update customer master information.
+          Update customer information.
         </p>
       </div>
       <form
