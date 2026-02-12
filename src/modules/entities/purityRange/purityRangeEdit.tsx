@@ -143,6 +143,7 @@ export default function PurityRangeEditPage() {
           isEdit={true}
           wrapInForm={false}
           showActions={false}
+          hidePurityRangeField={true}
         />
         <div className="flex items-center justify-end gap-3 pt-6 mt-6">
           <button

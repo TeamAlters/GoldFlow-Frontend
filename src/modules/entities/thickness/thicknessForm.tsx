@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_24, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticThicknessFormData = {
   thickness: string;
@@ -73,8 +73,8 @@ const StaticThicknessFormInner = forwardRef<StaticThicknessFormRef, StaticThickn
       const next: Record<string, string> = {};
       const th = formData.thickness.trim();
       if (!th) next.thickness = 'Thickness is required';
-      else if (th.length > MAX_TEXT_FIELD_LENGTH)
-        next.thickness = maxLengthError('Thickness');
+      else if (th.length > MAX_LENGTH_24)
+        next.thickness = maxLengthError('Thickness', MAX_LENGTH_24);
       if (!formData.product_name.trim()) next.product_name = 'Product is required';
       setErrors(next);
       return Object.keys(next).length === 0;
@@ -110,7 +110,7 @@ const StaticThicknessFormInner = forwardRef<StaticThicknessFormRef, StaticThickn
             value={formData.thickness}
             onChange={(e) => handleChange('thickness', e.target.value)}
             placeholder="e.g. 1.5mm, 2mm"
-            maxLength={MAX_TEXT_FIELD_LENGTH}
+            maxLength={MAX_LENGTH_24}
             className={inputClass('thickness')}
             disabled={readOnly}
             readOnly={readOnly}
@@ -141,7 +141,7 @@ const StaticThicknessFormInner = forwardRef<StaticThicknessFormRef, StaticThickn
               value={formData.product_name}
               onChange={(e) => handleChange('product_name', e.target.value)}
               placeholder="Product name"
-              maxLength={MAX_TEXT_FIELD_LENGTH}
+              maxLength={MAX_LENGTH_24}
               className={inputClass('product_name')}
               disabled={readOnly}
               readOnly={readOnly}

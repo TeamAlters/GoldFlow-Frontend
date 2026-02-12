@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_24, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticAccessoryPurityFormData = {
   accessory_purity: string;
@@ -75,8 +75,8 @@ const StaticAccessoryPurityFormInner = forwardRef<
     const next: Record<string, string> = {};
     const name = formData.accessory_purity.trim();
     if (!name) next.accessory_purity = 'Accessory purity is required';
-    else if (name.length > MAX_TEXT_FIELD_LENGTH)
-      next.accessory_purity = maxLengthError('Accessory purity');
+    else if (name.length > MAX_LENGTH_24)
+      next.accessory_purity = maxLengthError('Accessory purity', MAX_LENGTH_24);
     if (!formData.purity.trim()) next.purity = 'Purity is required';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -113,7 +113,7 @@ const StaticAccessoryPurityFormInner = forwardRef<
           value={formData.accessory_purity}
           onChange={(e) => handleChange('accessory_purity', e.target.value)}
           placeholder="e.g. AP-01"
-          maxLength={MAX_TEXT_FIELD_LENGTH}
+          maxLength={MAX_LENGTH_24}
           className={inputClass('accessory_purity')}
           disabled={readOnly}
           readOnly={readOnly}
@@ -146,7 +146,7 @@ const StaticAccessoryPurityFormInner = forwardRef<
             value={formData.purity}
             onChange={(e) => handleChange('purity', e.target.value)}
             placeholder="Purity"
-            maxLength={MAX_TEXT_FIELD_LENGTH}
+            maxLength={MAX_LENGTH_24}
             className={inputClass('purity')}
             disabled={readOnly}
             readOnly={readOnly}

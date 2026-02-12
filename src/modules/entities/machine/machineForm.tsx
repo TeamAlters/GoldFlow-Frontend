@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticMachineFormData = {
   machine_name: string;
@@ -73,8 +73,8 @@ const StaticMachineFormInner = forwardRef<StaticMachineFormRef, StaticMachineFor
       const next: Record<string, string> = {};
       const name = formData.machine_name.trim();
       if (!name) next.machine_name = 'Machine name is required';
-      else if (name.length > MAX_TEXT_FIELD_LENGTH)
-        next.machine_name = maxLengthError('Machine name');
+      else if (name.length > MAX_LENGTH_36)
+        next.machine_name = maxLengthError('Machine name', MAX_LENGTH_36);
       if (!formData.product_name.trim()) next.product_name = 'Product is required';
       setErrors(next);
       return Object.keys(next).length === 0;
@@ -110,7 +110,7 @@ const StaticMachineFormInner = forwardRef<StaticMachineFormRef, StaticMachineFor
             value={formData.machine_name}
             onChange={(e) => handleChange('machine_name', e.target.value)}
             placeholder="e.g. Machine-01"
-            maxLength={MAX_TEXT_FIELD_LENGTH}
+            maxLength={MAX_LENGTH_36}
             className={inputClass('machine_name')}
             disabled={readOnly}
             readOnly={readOnly}
@@ -143,7 +143,7 @@ const StaticMachineFormInner = forwardRef<StaticMachineFormRef, StaticMachineFor
               value={formData.product_name}
               onChange={(e) => handleChange('product_name', e.target.value)}
               placeholder="Product name"
-              maxLength={MAX_TEXT_FIELD_LENGTH}
+              maxLength={MAX_LENGTH_36}
               className={inputClass('product_name')}
               disabled={readOnly}
               readOnly={readOnly}

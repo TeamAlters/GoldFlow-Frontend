@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_24, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticWireSizeFormData = {
   wire_size: string;
@@ -73,8 +73,8 @@ const StaticWireSizeFormInner = forwardRef<StaticWireSizeFormRef, StaticWireSize
       const next: Record<string, string> = {};
       const ws = formData.wire_size.trim();
       if (!ws) next.wire_size = 'Wire size is required';
-      else if (ws.length > MAX_TEXT_FIELD_LENGTH)
-        next.wire_size = maxLengthError('Wire size');
+      else if (ws.length > MAX_LENGTH_24)
+        next.wire_size = maxLengthError('Wire size', MAX_LENGTH_24);
       if (!formData.product_name.trim()) next.product_name = 'Product is required';
       setErrors(next);
       return Object.keys(next).length === 0;
@@ -110,7 +110,7 @@ const StaticWireSizeFormInner = forwardRef<StaticWireSizeFormRef, StaticWireSize
             value={formData.wire_size}
             onChange={(e) => handleChange('wire_size', e.target.value)}
             placeholder="e.g. 0.5mm, 1mm"
-            maxLength={MAX_TEXT_FIELD_LENGTH}
+            maxLength={MAX_LENGTH_24}
             className={inputClass('wire_size')}
             disabled={readOnly}
             readOnly={readOnly}
@@ -141,7 +141,7 @@ const StaticWireSizeFormInner = forwardRef<StaticWireSizeFormRef, StaticWireSize
               value={formData.product_name}
               onChange={(e) => handleChange('product_name', e.target.value)}
               placeholder="Product name"
-              maxLength={MAX_TEXT_FIELD_LENGTH}
+              maxLength={MAX_LENGTH_24}
               className={inputClass('product_name')}
               disabled={readOnly}
               readOnly={readOnly}

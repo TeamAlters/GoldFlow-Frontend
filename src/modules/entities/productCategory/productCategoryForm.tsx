@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticProductCategoryFormData = {
   product_category: string;
@@ -81,8 +81,8 @@ const StaticProductCategoryFormInner = forwardRef<
     const next: Record<string, string> = {};
     const name = formData.product_category.trim();
     if (!name) next.product_category = 'Product category is required';
-    else if (name.length > MAX_TEXT_FIELD_LENGTH)
-      next.product_category = maxLengthError('Product category');
+    else if (name.length > MAX_LENGTH_36)
+      next.product_category = maxLengthError('Product category', MAX_LENGTH_36);
     if (!formData.product_name.trim()) next.product_name = 'Product is required';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -118,7 +118,7 @@ const StaticProductCategoryFormInner = forwardRef<
           value={formData.product_category}
           onChange={(e) => handleChange('product_category', e.target.value)}
           placeholder="e.g. Gold, Silver"
-          maxLength={MAX_TEXT_FIELD_LENGTH}
+          maxLength={MAX_LENGTH_36}
           className={inputClass('product_category')}
           disabled={readOnly}
           readOnly={readOnly}
@@ -151,7 +151,7 @@ const StaticProductCategoryFormInner = forwardRef<
             value={formData.product_name}
             onChange={(e) => handleChange('product_name', e.target.value)}
             placeholder="Product name"
-            maxLength={MAX_TEXT_FIELD_LENGTH}
+            maxLength={MAX_LENGTH_36}
             className={inputClass('product_name')}
             disabled={readOnly}
             readOnly={readOnly}

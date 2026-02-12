@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_24, MAX_NUMERIC_63_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 
 export type StaticPurityFormData = {
     purity: string;
@@ -58,6 +58,7 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
         }, [initialData]);
 
         const handleChange = (key: keyof StaticPurityFormData, value: string) => {
+            if (key === 'purity_percentage') value = sanitizeNumeric63Input(value);
             setFormData((prev) => ({ ...prev, [key]: value }));
             if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
         };
@@ -66,16 +67,15 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
             const next: Record<string, string> = {};
             const purityTrimmed = formData.purity.trim();
             if (!purityTrimmed) next.purity = 'Purity is required';
-            else if (purityTrimmed.length > MAX_TEXT_FIELD_LENGTH) next.purity = maxLengthError('Purity');
+            else if (purityTrimmed.length > MAX_LENGTH_24) next.purity = maxLengthError('Purity', MAX_LENGTH_24);
             const pct = formData.purity_percentage.trim();
             if (!pct) next.purity_percentage = 'Purity percentage is required';
-            else if (pct.length < 2) next.purity_percentage = 'Purity % must be at least 2 digits';
             else {
-                if (pct.length > 6) next.purity_percentage = 'Purity % must be at most 6 digits';
+                const err = validateNumeric63(pct, 'Purity percentage', { nonNegative: true });
+                if (err) next.purity_percentage = err;
                 else {
                     const num = parseFloat(pct);
-                    if (Number.isNaN(num)) next.purity_percentage = 'Enter a valid number';
-                    else if (num < 0 || num > 100) next.purity_percentage = 'Must be between 0 and 100';
+                    if (num > 100) next.purity_percentage = 'Must be between 0 and 100';
                 }
             }
             setErrors(next);
@@ -111,7 +111,7 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
                         value={formData.purity}
                         onChange={(e) => handleChange('purity', e.target.value)}
                         placeholder="e.g. 24K, 22K"
-                        maxLength={MAX_TEXT_FIELD_LENGTH}
+                        maxLength={MAX_LENGTH_24}
                         className={inputClass('purity')}
                         disabled={readOnly}
                         readOnly={readOnly}
@@ -127,9 +127,8 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
                         inputMode="decimal"
                         value={formData.purity_percentage}
                         onChange={(e) => handleChange('purity_percentage', e.target.value)}
-                        placeholder="e.g. 99.99 (max 5 digits)"
-                        maxLength={5}
-                        minLength={2}
+                        placeholder="e.g. 99.999 (0–100)"
+                        maxLength={MAX_NUMERIC_63_LENGTH}
                         className={inputClass('purity_percentage')}
                         disabled={readOnly}
                         readOnly={readOnly}

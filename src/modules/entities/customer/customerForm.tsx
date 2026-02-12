@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_NUMERIC_63_LENGTH, MAX_TEXT_FIELD_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 
 export type StaticCustomerMasterFormData = {
   customer_name: string;
@@ -100,6 +100,7 @@ const StaticCustomerMasterFormInner = forwardRef<
   }, [initialData]);
 
   const handleChange = (key: keyof StaticCustomerMasterFormData, value: string) => {
+    if (key === 'issue_purity' || key === 'wastage') value = sanitizeNumeric63Input(value);
     setFormData((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
   };
@@ -109,15 +110,17 @@ const StaticCustomerMasterFormInner = forwardRef<
     const name = formData.customer_name.trim();
     if (!name) next.customer_name = 'Customer name is required';
     else if (name.length > MAX_TEXT_FIELD_LENGTH)
-      next.customer_name = maxLengthError('Customer name');
+      next.customer_name = maxLengthError('Customer name', 32);
     if (!formData.purity.trim()) next.purity = 'Purity is required';
     if (!formData.product_name.trim()) next.product_name = 'Product is required';
-    const issuePurity = parseNum(formData.issue_purity);
-    if (formData.issue_purity.trim() !== '' && issuePurity === null)
-      next.issue_purity = 'Enter a valid number';
-    const wastageNum = parseNum(formData.wastage);
-    if (formData.wastage.trim() !== '' && wastageNum === null)
-      next.wastage = 'Enter a valid number';
+    if (formData.issue_purity.trim() !== '') {
+      const err = validateNumeric63(formData.issue_purity, 'Issue purity', { nonNegative: true });
+      if (err) next.issue_purity = err;
+    }
+    if (formData.wastage.trim() !== '') {
+      const err = validateNumeric63(formData.wastage, 'Wastage', { nonNegative: true });
+      if (err) next.wastage = err;
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -213,6 +216,7 @@ const StaticCustomerMasterFormInner = forwardRef<
           value={formData.issue_purity}
           onChange={(e) => handleChange('issue_purity', e.target.value)}
           placeholder="e.g. 99.50"
+          maxLength={MAX_NUMERIC_63_LENGTH}
           className={inputClass('issue_purity')}
           disabled={readOnly}
           readOnly={readOnly}
@@ -259,6 +263,7 @@ const StaticCustomerMasterFormInner = forwardRef<
           value={formData.wastage}
           onChange={(e) => handleChange('wastage', e.target.value)}
           placeholder="e.g. 0.125"
+          maxLength={MAX_NUMERIC_63_LENGTH}
           className={inputClass('wastage')}
           disabled={readOnly}
           readOnly={readOnly}
@@ -295,8 +300,8 @@ const StaticCustomerMasterFormInner = forwardRef<
           {submitLoading
             ? 'Saving...'
             : isEdit
-              ? 'Update Customer Master'
-              : 'Create Customer Master'}
+              ? 'Update Customer Details'
+              : 'Create Customer Details'}
         </button>
       </div>
     );

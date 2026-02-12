@@ -460,8 +460,8 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
   },
 
   customer: {
-    displayName: 'Customer Master',
-    displayNamePlural: 'Customer Masters',
+    displayName: 'Customer',
+    displayNamePlural: 'Customers',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -472,10 +472,10 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       delete: DEFAULT_API_PATHS.delete,
     },
     routes: {
-      list: '/customer-masters',
-      add: '/customer-masters/add',
-      edit: '/customer-masters/edit/:id',
-      detail: '/customer-masters/:id',
+      list: '/customers',
+      add: '/customers/add',
+      edit: '/customers/edit/:id',
+      detail: '/customers/:id',
     },
     features: {
       canCreate: true,

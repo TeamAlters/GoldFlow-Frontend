@@ -91,7 +91,7 @@ export default function CustomerViewPage() {
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
-        const msg = err instanceof Error ? err.message : 'Failed to load customer master';
+        const msg = err instanceof Error ? err.message : 'Failed to load customer details';
         showErrorToastUnlessAuth(msg);
       })
       .finally(() => {
@@ -117,14 +117,14 @@ export default function CustomerViewPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Loading customer master...
+            Loading customer details...
           </p>
         </div>
       </div>
     );
   }
 
-  const breadcrumbLabel = initialData?.customer_name ?? 'View Customer Master';
+  const breadcrumbLabel = initialData?.customer_name ?? 'View Customer Details';
 
   return (
     <div className="w-full">
@@ -144,7 +144,7 @@ export default function CustomerViewPage() {
             View {entityConfig.displayName}
           </h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Read-only customer master information.
+            Read-only customer details.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">

@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticItemTypeFormData = {
   item_type: string;
@@ -64,8 +64,8 @@ const StaticItemTypeFormInner = forwardRef<StaticItemTypeFormRef, StaticItemType
       const next: Record<string, string> = {};
       const value = formData.item_type.trim();
       if (!value) next.item_type = 'Item type is required';
-      else if (value.length > MAX_TEXT_FIELD_LENGTH)
-        next.item_type = maxLengthError('Item type');
+      else if (value.length > MAX_LENGTH_36)
+        next.item_type = maxLengthError('Item type', MAX_LENGTH_36);
       setErrors(next);
       return Object.keys(next).length === 0;
     };
@@ -100,7 +100,7 @@ const StaticItemTypeFormInner = forwardRef<StaticItemTypeFormRef, StaticItemType
             value={formData.item_type}
             onChange={(e) => handleChange('item_type', e.target.value)}
             placeholder="e.g. Type-A"
-            maxLength={MAX_TEXT_FIELD_LENGTH}
+            maxLength={MAX_LENGTH_36}
             className={inputClass('item_type')}
             disabled={readOnly}
             readOnly={readOnly}

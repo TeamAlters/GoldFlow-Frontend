@@ -1,6 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_NUMERIC_63_LENGTH, MAX_TEXT_FIELD_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 
 export type StaticPurityRangeFormData = {
   purity_range: string;
@@ -29,6 +29,8 @@ export interface StaticPurityRangeFormProps {
   submitLoading?: boolean;
   wrapInForm?: boolean;
   showActions?: boolean;
+  /** When true, hide the Purity Range text input (e.g. on Create/Edit). */
+  hidePurityRangeField?: boolean;
 }
 
 const emptyForm: StaticPurityRangeFormData = {
@@ -52,6 +54,7 @@ const StaticPurityRangeFormInner = forwardRef<
     submitLoading = false,
     wrapInForm = true,
     showActions = true,
+    hidePurityRangeField = false,
   },
   ref
 ) {
@@ -71,29 +74,32 @@ const StaticPurityRangeFormInner = forwardRef<
   }, [initialData]);
 
   const handleChange = (key: keyof StaticPurityRangeFormData, value: string) => {
+    if (key === 'from_value' || key === 'to_value') value = sanitizeNumeric63Input(value);
     setFormData((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
   };
 
   const validate = (): boolean => {
     const next: Record<string, string> = {};
-    const name = formData.purity_range.trim();
-    if (!name) next.purity_range = 'Purity range is required';
-    else if (name.length > MAX_TEXT_FIELD_LENGTH)
-      next.purity_range = maxLengthError('Purity range');
+    if (!hidePurityRangeField) {
+      const name = formData.purity_range.trim();
+      if (!name) next.purity_range = 'Purity range is required';
+      else if (name.length > MAX_TEXT_FIELD_LENGTH)
+        next.purity_range = maxLengthError('Purity range');
+    }
 
     const fromStr = formData.from_value.trim();
     if (!fromStr) next.from_value = 'From value is required';
     else {
-      const fromNum = parseFloat(fromStr);
-      if (Number.isNaN(fromNum)) next.from_value = 'Enter a valid number';
+      const err = validateNumeric63(formData.from_value, 'From value', { nonNegative: true });
+      if (err) next.from_value = err;
     }
 
     const toStr = formData.to_value.trim();
     if (!toStr) next.to_value = 'To value is required';
     else {
-      const toNum = parseFloat(toStr);
-      if (Number.isNaN(toNum)) next.to_value = 'Enter a valid number';
+      const err = validateNumeric63(formData.to_value, 'To value', { nonNegative: true });
+      if (err) next.to_value = err;
     }
 
     if (!formData.purity.trim()) next.purity = 'Purity is required';
@@ -129,25 +135,27 @@ const StaticPurityRangeFormInner = forwardRef<
 
   const fields = (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <label className={labelClass}>
-          Purity Range{' '}
-          <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
-        </label>
-        <input
-          type="text"
-          value={formData.purity_range}
-          onChange={(e) => handleChange('purity_range', e.target.value)}
-          placeholder="e.g. Range-01"
-          maxLength={MAX_TEXT_FIELD_LENGTH}
-          className={inputClass('purity_range')}
-          disabled={readOnly}
-          readOnly={readOnly}
-        />
-        {errors.purity_range && (
-          <p className={`mt-1 ${errorClass}`}>{errors.purity_range}</p>
-        )}
-      </div>
+      {!hidePurityRangeField && (
+        <div>
+          <label className={labelClass}>
+            Purity Range{' '}
+            <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
+          </label>
+          <input
+            type="text"
+            value={formData.purity_range}
+            onChange={(e) => handleChange('purity_range', e.target.value)}
+            placeholder="e.g. Range-01"
+            maxLength={MAX_TEXT_FIELD_LENGTH}
+            className={inputClass('purity_range')}
+            disabled={readOnly}
+            readOnly={readOnly}
+          />
+          {errors.purity_range && (
+            <p className={`mt-1 ${errorClass}`}>{errors.purity_range}</p>
+          )}
+        </div>
+      )}
       <div>
         <label className={labelClass}>
           From Value{' '}
@@ -159,6 +167,7 @@ const StaticPurityRangeFormInner = forwardRef<
           value={formData.from_value}
           onChange={(e) => handleChange('from_value', e.target.value)}
           placeholder="e.g. 0.000"
+          maxLength={MAX_NUMERIC_63_LENGTH}
           className={inputClass('from_value')}
           disabled={readOnly}
           readOnly={readOnly}
@@ -177,6 +186,7 @@ const StaticPurityRangeFormInner = forwardRef<
           value={formData.to_value}
           onChange={(e) => handleChange('to_value', e.target.value)}
           placeholder="e.g. 99.999"
+          maxLength={MAX_NUMERIC_63_LENGTH}
           className={inputClass('to_value')}
           disabled={readOnly}
           readOnly={readOnly}

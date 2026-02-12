@@ -28,7 +28,7 @@ import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 
 /**
- * Customer Masters list page. Uses metadata-driven columns, filters, and list API.
+ * Customers list page. Uses metadata-driven columns, filters, and list API.
  */
 type EntityRow = Record<string, unknown>;
 
@@ -83,7 +83,7 @@ export default function CustomerPage() {
         const data = res.data;
         if (data && (data.fields?.length || data.display_name != null || data.filters)) {
           const meta = {
-            display_name: data.display_name ?? 'Customer Masters',
+            display_name: data.display_name ?? 'Customers',
             fields: Array.isArray(data.fields) ? data.fields : [],
             filters: {
               default_visible: Array.isArray(data.filters?.default_visible)
@@ -334,7 +334,7 @@ export default function CustomerPage() {
       setDeleteConfirmRow(null);
       fetchList();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete customer master';
+      const msg = err instanceof Error ? err.message : 'Failed to delete customer';
       showErrorToastUnlessAuth(msg);
     }
   }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList]);
@@ -406,8 +406,8 @@ export default function CustomerPage() {
       ? String(
           (deleteConfirmRow as Record<string, unknown>)['customer_name'] ??
             deleteConfirmRow.name ??
-            'this customer master'
-        )
+            'this customer'
+        ) 
       : '';
 
   return (

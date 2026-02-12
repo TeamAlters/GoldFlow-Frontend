@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticProductFormData = {
     product_name: string;
@@ -72,12 +72,12 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
             const next: Record<string, string> = {};
             const name = formData.product_name.trim();
             if (!name) next.product_name = 'Product name is required';
-            else if (name.length > MAX_TEXT_FIELD_LENGTH)
-                next.product_name = maxLengthError('Product name');
+            else if (name.length > MAX_LENGTH_36)
+                next.product_name = maxLengthError('Product name', MAX_LENGTH_36);
             const abbr = formData.product_abbrevation.trim();
             if (!abbr) next.product_abbrevation = 'Product abbreviation is required';
-            else if (abbr.length > MAX_TEXT_FIELD_LENGTH)
-                next.product_abbrevation = maxLengthError('Product abbreviation');
+            else if (abbr.length > MAX_LENGTH_36)
+                next.product_abbrevation = maxLengthError('Product abbreviation', MAX_LENGTH_36);
             setErrors(next);
             return Object.keys(next).length === 0;
         };
@@ -111,7 +111,7 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         value={formData.product_name}
                         onChange={(e) => handleChange('product_name', e.target.value)}
                         placeholder="Enter product name"
-                        maxLength={MAX_TEXT_FIELD_LENGTH}
+                        maxLength={MAX_LENGTH_36}
                         className={inputClass('product_name')}
                         disabled={readOnly}
                         readOnly={readOnly}
@@ -129,7 +129,7 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         value={formData.product_abbrevation}
                         onChange={(e) => handleChange('product_abbrevation', e.target.value)}
                         placeholder="e.g. GR, RC"
-                        maxLength={MAX_TEXT_FIELD_LENGTH}
+                        maxLength={MAX_LENGTH_36}
                         className={inputClass('product_abbrevation')}
                         disabled={readOnly}
                         readOnly={readOnly}

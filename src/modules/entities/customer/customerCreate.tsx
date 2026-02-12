@@ -166,7 +166,7 @@ export default function CustomerCreatePage() {
           Add {entityConfig.displayName}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Create a new customer master record.
+          Create a new customer record.
         </p>
       </div>
       <form
