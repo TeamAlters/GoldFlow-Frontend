@@ -1,5 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_LENGTH_24, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticAccessoryPurityFormData = {
@@ -127,19 +128,15 @@ const StaticAccessoryPurityFormInner = forwardRef<
           Purity <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
         </label>
         {purityOptions.length > 0 ? (
-          <select
+          <FormSelect
             value={formData.purity}
-            onChange={(e) => handleChange('purity', e.target.value)}
-            className={inputClass('purity')}
+            onChange={(v) => handleChange('purity', v)}
+            options={purityOptions}
+            placeholder="Select purity"
             disabled={readOnly}
-          >
-            <option value="">Select purity</option>
-            {purityOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            className={inputClass('purity')}
+            isDarkMode={isDarkMode}
+          />
         ) : (
           <input
             type="text"

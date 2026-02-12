@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, updateEntity } from '../../admin/admin.api';
+import { getEntity, updateEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticPurityForm, {
     type StaticPurityFormData,
     type StaticPurityFormRef,
+    type PurityOption,
 } from './purityForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialPurityData, toPurityPayload } from './purityCreate';
@@ -22,9 +23,16 @@ export default function PurityEditPage() {
     const [initialData, setInitialData] = useState<Partial<StaticPurityFormData> | undefined>(
         undefined
     );
+    const [purityOptions, setPurityOptions] = useState<PurityOption[]>([]);
     const [dataLoading, setDataLoading] = useState(true);
     const [submitLoading, setSubmitLoading] = useState(false);
     const formRef = useRef<StaticPurityFormRef>(null);
+
+    useEffect(() => {
+        getEntityReferences(ENTITY_NAME)
+            .then((items) => setPurityOptions(mapReferenceItemsToOptions(items, 'purity')))
+            .catch(() => setPurityOptions([]));
+    }, []);
 
     useEffect(() => {
         if (!id) return;
@@ -123,6 +131,7 @@ export default function PurityEditPage() {
                 <StaticPurityForm
                     ref={formRef}
                     initialData={initialData}
+                    purityOptions={purityOptions}
                     isEdit={true}
                     wrapInForm={false}
                     showActions={false}

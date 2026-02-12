@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_NUMERIC_63_LENGTH, MAX_TEXT_FIELD_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 
 export type StaticCustomerMasterFormData = {
@@ -152,19 +153,15 @@ const StaticCustomerMasterFormInner = forwardRef<
     const value = formData[key];
     if (options.length > 0) {
       return (
-        <select
+        <FormSelect
           value={value}
-          onChange={(e) => handleChange(key, e.target.value)}
-          className={inputClass(key)}
+          onChange={(v) => handleChange(key, v)}
+          options={options}
+          placeholder={placeholder}
           disabled={readOnly}
-        >
-          <option value="">{placeholder}</option>
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          className={inputClass(key)}
+          isDarkMode={isDarkMode}
+        />
       );
     }
     return (

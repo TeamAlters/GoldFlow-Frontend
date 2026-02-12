@@ -1,5 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticAccessoriesPurityRangeFormData = {
@@ -112,19 +113,15 @@ const StaticAccessoriesPurityRangeFormInner = forwardRef<
     placeholder: string
   ) =>
     options.length > 0 ? (
-      <select
+      <FormSelect
         value={formData[key]}
-        onChange={(e) => handleChange(key, e.target.value)}
-        className={inputClass(key)}
+        onChange={(v) => handleChange(key, v)}
+        options={options}
+        placeholder={placeholder}
         disabled={readOnly}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+        className={inputClass(key)}
+        isDarkMode={isDarkMode}
+      />
     ) : (
       <input
         type="text"

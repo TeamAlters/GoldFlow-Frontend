@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { createEntity, getEntityList } from '../../admin/admin.api';
+import { createEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -16,13 +16,6 @@ function parseNum(s: string): number | null {
   if (t === '') return null;
   const n = Number(t);
   return Number.isFinite(n) ? n : null;
-}
-
-function toOptionList(items: Record<string, unknown>[], valueKey: string): { value: string; label: string }[] {
-  return items.map((row) => {
-    const value = String(row[valueKey] ?? '');
-    return { value, label: value };
-  });
 }
 
 export function toInitialAccessoriesPurityRangeData(
@@ -57,12 +50,8 @@ export default function AccessoriesPurityRangeCreatePage() {
   const [accessoryPurityOptions, setAccessoryPurityOptions] = useState<{ value: string; label: string }[]>([]);
 
   useEffect(() => {
-    getEntityList('accessory_purity', { page: 1, page_size: 500 })
-      .then((res) => {
-        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
-        const items = Array.isArray(data?.items) ? data.items : [];
-        setAccessoryPurityOptions(toOptionList(items, 'accessory_purity'));
-      })
+    getEntityReferences('accessory_purity')
+      .then((items) => setAccessoryPurityOptions(mapReferenceItemsToOptions(items, 'accessory_purity')))
       .catch(() => setAccessoryPurityOptions([]));
   }, []);
 

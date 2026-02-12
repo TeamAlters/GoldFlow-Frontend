@@ -94,3 +94,20 @@ html.dark input.filter-datetime-input[type='date'],
 html.dark input.filter-datetime-input[type='datetime-local'] {
   border-color: #9ca3af;
 }
+
+/* Form dropdowns: prevent long option text from overflowing */
+form .grid > * {
+  min-width: 0;
+}
+form select {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+form select option {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, updateEntity, getEntityList } from '../../admin/admin.api';
+import { getEntity, updateEntity, getEntityReferences } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -29,10 +29,8 @@ export default function MachineEditPage() {
   const formRef = useRef<StaticMachineFormRef>(null);
 
   useEffect(() => {
-    getEntityList('product', { page: 1, page_size: 500 })
-      .then((res) => {
-        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
-        const items = Array.isArray(data?.items) ? data.items : [];
+    getEntityReferences('product')
+      .then((items) => {
         const options: ProductOption[] = items.map((row) => {
           const name = row.product_name ?? row.product_abbreviation ?? row.product_abbrevation;
           const value = String(row.product_name ?? name ?? '');
