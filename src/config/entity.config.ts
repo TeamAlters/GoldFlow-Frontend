@@ -329,6 +329,32 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     },
   },
 
+  karigar: {
+    displayName: 'Karigar',
+    displayNamePlural: 'Karigars',
+    api: {
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
+      list: DEFAULT_API_PATHS.list,
+      create: DEFAULT_API_PATHS.create,
+      get: DEFAULT_API_PATHS.get,
+      update: DEFAULT_API_PATHS.update,
+      delete: DEFAULT_API_PATHS.delete,
+    },
+    routes: {
+      list: '/karigars',
+      add: '/karigars/add',
+      edit: '/karigars/edit/:id',
+      detail: '/karigars/:id',
+    },
+    features: {
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: false,
+    },
+  },
+
   workorder: {
     displayName: 'Work Order',
     displayNamePlural: 'Work Orders',
