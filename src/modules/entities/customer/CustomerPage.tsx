@@ -34,7 +34,7 @@ type EntityRow = Record<string, unknown>;
 
 let customerMasterMetadataFetchInFlight = false;
 
-export default function CustomerMasterPage() {
+export default function CustomerPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const entityName = 'customer';

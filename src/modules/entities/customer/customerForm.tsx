@@ -60,7 +60,7 @@ function parseNum(s: string): number | null {
 const StaticCustomerMasterFormInner = forwardRef<
   StaticCustomerMasterFormRef,
   StaticCustomerMasterFormProps
->(function StaticCustomerMasterFormInner(
+>(function CustomerFormInner(
   {
     initialData,
     purityOptions = [],
