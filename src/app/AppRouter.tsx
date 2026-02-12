@@ -11,6 +11,10 @@ import ProductsPage from '../modules/entities/products/ProductsPage';
 import ProductCreatePage from '../modules/entities/products/productCreate';
 import ProductEditPage from '../modules/entities/products/productEdit';
 import ProductViewPage from '../modules/entities/products/productView';
+import ProductCategoryPage from '../modules/entities/productCategory/ProductCategoryPage';
+import ProductCategoryCreatePage from '../modules/entities/productCategory/productCategoryCreate';
+import ProductCategoryEditPage from '../modules/entities/productCategory/productCategoryEdit';
+import ProductCategoryViewPage from '../modules/entities/productCategory/productCategoryView';
 import PuritiesPage from '../modules/entities/purity/PurityPage';
 import PurityCreatePage from '../modules/entities/purity/purityCreate';
 import PurityEditPage from '../modules/entities/purity/purityEdit';
@@ -108,6 +112,10 @@ export default function AppRouter() {
           <Route path="products/add" element={<ProductCreatePage />} />
           <Route path="products/edit/:id" element={<ProductEditPage />} />
           <Route path="products/:id" element={<ProductViewPage />} />
+          <Route path="product-categories" element={<ProductCategoryPage />} />
+          <Route path="product-categories/add" element={<ProductCategoryCreatePage />} />
+          <Route path="product-categories/edit/:id" element={<ProductCategoryEditPage />} />
+          <Route path="product-categories/:id" element={<ProductCategoryViewPage />} />
           <Route path="purities" element={<PuritiesPage />} />
           <Route path="purities/add" element={<PurityCreatePage />} />
           <Route path="purities/edit/:id" element={<PurityEditPage />} />

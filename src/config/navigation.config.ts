@@ -55,6 +55,7 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Thickness', path: '/thickness', icon: 'ruler', entityName: 'thickness' },
       { name: 'Design', path: '/designs', icon: 'pencil', entityName: 'design' },
       { name: 'Product', path: '/products', icon: 'box', entityName: 'product' },
+      { name: 'Product Category', path: '/product-categories', icon: 'layers', entityName: 'product_category' },
       { name: 'Wire Size', path: '/wire-sizes', icon: 'ruler', entityName: 'wire_size' },
       { name: 'Machine', path: '/machines', icon: 'cog', entityName: 'machine' },
       { name: 'Item', path: '/items', icon: 'tag', entityName: 'item' },
