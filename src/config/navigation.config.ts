@@ -50,6 +50,7 @@ export const sidebarNavConfig: NavCategory[] = [
     items: [
       { name: 'Purities', path: '/purities', icon: 'sparkles', entityName: 'purity' },
       { name: 'Purity Range', path: '/purity-ranges', icon: 'ruler', entityName: 'purity_range' },
+      { name: 'Accessory Purity', path: '/accessory-purities', icon: 'sparkles', entityName: 'accessory_purity' },
       { name: 'Thickness', path: '/thickness', icon: 'ruler', entityName: 'thickness' },
       { name: 'Design', path: '/designs', icon: 'pencil', entityName: 'design' },
       { name: 'Product', path: '/products', icon: 'box', entityName: 'product' },
