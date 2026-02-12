@@ -467,9 +467,9 @@ const MenuCategory = ({
         </svg>
       </button>
 
-      {/* Submenu Items */}
+        {/* Submenu Items - scrollable when many items (e.g. Masters) */}
       <div
-        className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-[70vh]' : 'max-h-0'}`}
+        className={`overflow-hidden transition-all duration-200 ${isOpen ? 'max-h-[70vh] overflow-y-auto' : 'max-h-0'}`}
       >
         <div className="ml-4 mt-1 space-y-1">
           {category.items.map((item) => {
