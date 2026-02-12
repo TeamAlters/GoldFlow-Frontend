@@ -303,6 +303,32 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     },
   },
 
+  item_type: {
+    displayName: 'Item Type',
+    displayNamePlural: 'Item Types',
+    api: {
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
+      list: DEFAULT_API_PATHS.list,
+      create: DEFAULT_API_PATHS.create,
+      get: DEFAULT_API_PATHS.get,
+      update: DEFAULT_API_PATHS.update,
+      delete: DEFAULT_API_PATHS.delete,
+    },
+    routes: {
+      list: '/item-types',
+      add: '/item-types/add',
+      edit: '/item-types/edit/:id',
+      detail: '/item-types/:id',
+    },
+    features: {
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: false,
+    },
+  },
+
   workorder: {
     displayName: 'Work Order',
     displayNamePlural: 'Work Orders',

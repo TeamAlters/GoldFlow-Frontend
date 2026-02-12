@@ -60,6 +60,7 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Wire Size', path: '/wire-sizes', icon: 'ruler', entityName: 'wire_size' },
       { name: 'Machine', path: '/machines', icon: 'cog', entityName: 'machine' },
       { name: 'Item', path: '/items', icon: 'tag', entityName: 'item' },
+      { name: 'Item Type', path: '/item-types', icon: 'layers', entityName: 'item_type' },
     ],
   },
   {
