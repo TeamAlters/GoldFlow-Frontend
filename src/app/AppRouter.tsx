@@ -59,6 +59,10 @@ import KarigarPage from '../modules/entities/karigar/karigarPage';
 import KarigarCreatePage from '../modules/entities/karigar/karigarCreate';
 import KarigarEditPage from '../modules/entities/karigar/karigarEdit';
 import KarigarViewPage from '../modules/entities/karigar/karigarView';
+import CustomerPage from '../modules/entities/customer/CustomerPage';
+import CustomerCreatePage from '../modules/entities/customer/customerCreate';
+import CustomerEditPage from '../modules/entities/customer/customerEdit';
+import CustomerViewPage from '../modules/entities/customer/customerView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -160,6 +164,10 @@ export default function AppRouter() {
           <Route path="karigars/add" element={<KarigarCreatePage />} />
           <Route path="karigars/edit/:id" element={<KarigarEditPage />} />
           <Route path="karigars/:id" element={<KarigarViewPage />} />
+          <Route path="customers" element={<CustomerPage />} />
+          <Route path="customers/add" element={<CustomerCreatePage />} />
+          <Route path="customers/edit/:id" element={<CustomerEditPage />} />
+          <Route path="customers/:id" element={<CustomerViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>
