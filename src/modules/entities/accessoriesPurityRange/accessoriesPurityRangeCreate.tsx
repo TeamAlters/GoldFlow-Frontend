@@ -1,20 +1,23 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity, getEntityList } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import StaticAccessoriesPurityRangeForm, {
-  type StaticAccessoriesPurityRangeFormData,
-  type StaticAccessoriesPurityRangeFormRef,
-  type DropdownOption,
-} from './accessoriesPurityRangeForm';
+import type { StaticAccessoriesPurityRangeFormData } from './accessoriesPurityRangeForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 
 const ENTITY_NAME = 'accessories_purity_range';
 
-function toOptionList(items: Record<string, unknown>[], valueKey: string): DropdownOption[] {
+function parseNum(s: string): number | null {
+  const t = s.trim();
+  if (t === '') return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toOptionList(items: Record<string, unknown>[], valueKey: string): { value: string; label: string }[] {
   return items.map((row) => {
     const value = String(row[valueKey] ?? '');
     return { value, label: value };
@@ -46,32 +49,49 @@ export default function AccessoriesPurityRangeCreatePage() {
   const navigate = useNavigate();
   const entityConfig = getEntityConfig(ENTITY_NAME);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [purityRangeOptions, setPurityRangeOptions] = useState<DropdownOption[]>([]);
-  const [accessoryPurityOptions, setAccessoryPurityOptions] = useState<DropdownOption[]>([]);
-  const formRef = useRef<StaticAccessoriesPurityRangeFormRef>(null);
+  const [fromValue, setFromValue] = useState('');
+  const [toValue, setToValue] = useState('');
+  const [accessoryPurity, setAccessoryPurity] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [accessoryPurityOptions, setAccessoryPurityOptions] = useState<{ value: string; label: string }[]>([]);
 
   useEffect(() => {
-    Promise.all([
-      getEntityList('purity_range', { page: 1, page_size: 500 }),
-      getEntityList('accessory_purity', { page: 1, page_size: 500 }),
-    ])
-      .then(([purityRangeRes, accessoryPurityRes]) => {
-        const prData = purityRangeRes.data as { items?: Record<string, unknown>[] } | undefined;
-        const apData = accessoryPurityRes.data as { items?: Record<string, unknown>[] } | undefined;
-        setPurityRangeOptions(toOptionList(Array.isArray(prData?.items) ? prData.items : [], 'purity_range'));
-        setAccessoryPurityOptions(toOptionList(Array.isArray(apData?.items) ? apData.items : [], 'accessory_purity'));
+    getEntityList('accessory_purity', { page: 1, page_size: 500 })
+      .then((res) => {
+        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        setAccessoryPurityOptions(toOptionList(items, 'accessory_purity'));
       })
-      .catch(() => {
-        setPurityRangeOptions([]);
-        setAccessoryPurityOptions([]);
-      });
+      .catch(() => setAccessoryPurityOptions([]));
   }, []);
 
+  const validate = useCallback((): boolean => {
+    const next: Record<string, string> = {};
+    const from = parseNum(fromValue);
+    if (fromValue.trim() === '') next.from_value = 'From value is required';
+    else if (from === null) next.from_value = 'Enter a valid number';
+    const to = parseNum(toValue);
+    if (toValue.trim() === '') next.to_value = 'To value is required';
+    else if (to === null) next.to_value = 'Enter a valid number';
+    if (!accessoryPurity.trim()) next.accessory_purity = 'Accessory purity is required';
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }, [fromValue, toValue, accessoryPurity]);
+
   const handleSubmit = useCallback(
-    async (formData: StaticAccessoriesPurityRangeFormData) => {
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!validate()) return;
+      const from = parseNum(fromValue);
+      const to = parseNum(toValue);
+      if (from === null || to === null) return;
       setSubmitLoading(true);
       try {
-        await createEntity(ENTITY_NAME, toAccessoriesPurityRangePayload(formData));
+        await createEntity(ENTITY_NAME, {
+          from_value: from,
+          to_value: to,
+          purity: accessoryPurity.trim(),
+        });
         toast.success(`${entityConfig.displayName} created successfully.`);
         navigate(entityConfig.routes.list);
       } catch (err) {
@@ -81,24 +101,27 @@ export default function AccessoriesPurityRangeCreatePage() {
         setSubmitLoading(false);
       }
     },
-    [navigate, entityConfig]
+    [fromValue, toValue, accessoryPurity, navigate, entityConfig]
   );
 
   const handleCancel = useCallback(() => {
     navigate(entityConfig.routes.list);
   }, [navigate, entityConfig.routes.list]);
 
-  const handleFormSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      if (formRef.current?.validate()) {
-        handleSubmit(formRef.current.getData());
-      }
-    },
-    [handleSubmit]
-  );
-
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+
+  const inputClass = (key: string) =>
+    `w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${
+      errors[key]
+        ? isDarkMode
+          ? 'border-red-500 focus:ring-red-500/20 bg-red-500/10'
+          : 'border-red-300 focus:ring-red-500/20 bg-red-50'
+        : isDarkMode
+          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+    }`;
+  const labelClass = `block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`;
+  const errorClass = `text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`;
 
   return (
     <div className="w-full">
@@ -115,22 +138,89 @@ export default function AccessoriesPurityRangeCreatePage() {
           Add {entityConfig.displayName}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Create a new accessories purity range linked to purity range and accessory purity.
+          Create a new accessories purity range with from value, to value and accessory purity.
         </p>
       </div>
       <form
-        onSubmit={handleFormSubmit}
+        onSubmit={handleSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
-        <StaticAccessoriesPurityRangeForm
-          ref={formRef}
-          initialData={undefined}
-          purityRangeOptions={purityRangeOptions}
-          accessoryPurityOptions={accessoryPurityOptions}
-          isEdit={false}
-          wrapInForm={false}
-          showActions={false}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className={labelClass}>
+              From Value <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={fromValue}
+              onChange={(e) => {
+                setFromValue(e.target.value);
+                if (errors.from_value) setErrors((prev) => ({ ...prev, from_value: '' }));
+              }}
+              placeholder="e.g. 0.000"
+              className={inputClass('from_value')}
+            />
+            {errors.from_value && (
+              <p className={`mt-1 ${errorClass}`}>{errors.from_value}</p>
+            )}
+          </div>
+          <div>
+            <label className={labelClass}>
+              To Value <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={toValue}
+              onChange={(e) => {
+                setToValue(e.target.value);
+                if (errors.to_value) setErrors((prev) => ({ ...prev, to_value: '' }));
+              }}
+              placeholder="e.g. 99.999"
+              className={inputClass('to_value')}
+            />
+            {errors.to_value && (
+              <p className={`mt-1 ${errorClass}`}>{errors.to_value}</p>
+            )}
+          </div>
+          <div>
+            <label className={labelClass}>
+              Accessory Purity <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
+            </label>
+            {accessoryPurityOptions.length > 0 ? (
+              <select
+                value={accessoryPurity}
+                onChange={(e) => {
+                  setAccessoryPurity(e.target.value);
+                  if (errors.accessory_purity) setErrors((prev) => ({ ...prev, accessory_purity: '' }));
+                }}
+                className={inputClass('accessory_purity')}
+              >
+                <option value="">Select accessory purity</option>
+                {accessoryPurityOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={accessoryPurity}
+                onChange={(e) => {
+                  setAccessoryPurity(e.target.value);
+                  if (errors.accessory_purity) setErrors((prev) => ({ ...prev, accessory_purity: '' }));
+                }}
+                placeholder="Accessory purity"
+                className={inputClass('accessory_purity')}
+              />
+            )}
+            {errors.accessory_purity && (
+              <p className={`mt-1 ${errorClass}`}>{errors.accessory_purity}</p>
+            )}
+          </div>
+        </div>
         <div className="flex items-center justify-end gap-3 pt-6 mt-6">
           <button
             type="button"
