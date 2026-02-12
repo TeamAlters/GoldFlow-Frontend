@@ -15,6 +15,10 @@ import PuritiesPage from '../modules/entities/purity/PurityPage';
 import PurityCreatePage from '../modules/entities/purity/purityCreate';
 import PurityEditPage from '../modules/entities/purity/purityEdit';
 import PurityViewPage from '../modules/entities/purity/purityView';
+import PurityRangePage from '../modules/entities/purityRange/PurityRangePage';
+import PurityRangeCreatePage from '../modules/entities/purityRange/purityRangeCreate';
+import PurityRangeEditPage from '../modules/entities/purityRange/purityRangeEdit';
+import PurityRangeViewPage from '../modules/entities/purityRange/purityRangeView';
 import DesignsPage from '../modules/entities/design/DesignsPage';
 import DesignCreatePage from '../modules/entities/design/designCreate';
 import DesignEditPage from '../modules/entities/design/designEdit';
@@ -100,6 +104,10 @@ export default function AppRouter() {
           <Route path="purities/add" element={<PurityCreatePage />} />
           <Route path="purities/edit/:id" element={<PurityEditPage />} />
           <Route path="purities/:id" element={<PurityViewPage />} />
+          <Route path="purity-ranges" element={<PurityRangePage />} />
+          <Route path="purity-ranges/add" element={<PurityRangeCreatePage />} />
+          <Route path="purity-ranges/edit/:id" element={<PurityRangeEditPage />} />
+          <Route path="purity-ranges/:id" element={<PurityRangeViewPage />} />
           <Route path="designs" element={<DesignsPage />} />
           <Route path="designs/add" element={<DesignCreatePage />} />
           <Route path="designs/edit/:id" element={<DesignEditPage />} />
