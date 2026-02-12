@@ -31,6 +31,14 @@ import MachinePage from '../modules/entities/machine/MachinePage';
 import MachineCreatePage from '../modules/entities/machine/machineCreate';
 import MachineEditPage from '../modules/entities/machine/machineEdit';
 import MachineViewPage from '../modules/entities/machine/machineView';
+import ItemPage from '../modules/entities/itemName/ItemPage';
+import ItemCreatePage from '../modules/entities/itemName/itemCreate';
+import ItemEditPage from '../modules/entities/itemName/itemEdit';
+import ItemViewPage from '../modules/entities/itemName/itemView';
+import ItemTypePage from '../modules/entities/itemType/ItemTypePage';
+import ItemTypeCreatePage from '../modules/entities/itemType/itemTypeCreate';
+import ItemTypeEditPage from '../modules/entities/itemType/itemTypeEdit';
+import ItemTypeViewPage from '../modules/entities/itemType/itemTypeView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -104,6 +112,14 @@ export default function AppRouter() {
           <Route path="machines/add" element={<MachineCreatePage />} />
           <Route path="machines/edit/:id" element={<MachineEditPage />} />
           <Route path="machines/:id" element={<MachineViewPage />} />
+          <Route path="items" element={<ItemPage />} />
+          <Route path="items/add" element={<ItemCreatePage />} />
+          <Route path="items/edit/:id" element={<ItemEditPage />} />
+          <Route path="items/:id" element={<ItemViewPage />} />
+          <Route path="item-types" element={<ItemTypePage />} />
+          <Route path="item-types/add" element={<ItemTypeCreatePage />} />
+          <Route path="item-types/edit/:id" element={<ItemTypeEditPage />} />
+          <Route path="item-types/:id" element={<ItemTypeViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>
