@@ -48,8 +48,8 @@ export const sidebarNavConfig: NavCategory[] = [
     icon: 'database',
     defaultOpen: true,
     items: [
-      { name: 'Stone', path: '/masters/stones', icon: 'gem' },
       { name: 'Purities', path: '/purities', icon: 'sparkles', entityName: 'purity' },
+      { name: 'Purity Range', path: '/purity-ranges', icon: 'ruler', entityName: 'purity_range' },
       { name: 'Thickness', path: '/thickness', icon: 'ruler', entityName: 'thickness' },
       { name: 'Design', path: '/designs', icon: 'pencil', entityName: 'design' },
       { name: 'Product', path: '/products', icon: 'box', entityName: 'product' },
