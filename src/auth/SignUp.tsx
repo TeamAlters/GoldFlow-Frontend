@@ -416,8 +416,8 @@ export default function SignUp() {
         }`}
       >
         <div className="mx-auto w-full max-w-md min-w-0 py-4">
-          {/* Logo/Brand - visible on all screen sizes (matches Login page) */}
-          <div className="flex items-center gap-3 mb-6">
+          {/* Logo/Brand - only on small screens when left panel is hidden; avoid duplicate logo on lg+ */}
+          <div className="flex items-center gap-3 mb-6 lg:hidden">
             <div
               className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
                 isDarkMode

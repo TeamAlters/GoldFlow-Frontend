@@ -266,8 +266,8 @@ export default function LoginPage() {
         }`}
       >
         <div className="w-full max-w-md">
-          {/* Logo/Brand */}
-          <div className="flex items-center gap-3 mb-8">
+          {/* Logo/Brand - only on small screens when left panel is hidden; avoid duplicate logo on lg+ */}
+          <div className="flex items-center gap-3 mb-8 lg:hidden">
             <div
               className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                 isDarkMode
