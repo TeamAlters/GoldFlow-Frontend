@@ -1,5 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_LENGTH_24, MAX_NUMERIC_63_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 
 export type StaticPurityFormData = {
@@ -12,8 +13,14 @@ export interface StaticPurityFormRef {
     validate: () => boolean;
 }
 
+export interface PurityOption {
+    value: string;
+    label: string;
+}
+
 export interface StaticPurityFormProps {
     initialData?: Partial<StaticPurityFormData>;
+    purityOptions?: PurityOption[];
     onSubmit?: (data: StaticPurityFormData) => void;
     onCancel?: () => void;
     isEdit?: boolean;
@@ -32,6 +39,7 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
     function StaticPurityFormInner(
         {
             initialData,
+            purityOptions = [],
             onSubmit,
             onCancel,
             isEdit = false,
@@ -106,16 +114,28 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
                     <label className={labelClass}>
                         Purity <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
                     </label>
-                    <input
-                        type="text"
-                        value={formData.purity}
-                        onChange={(e) => handleChange('purity', e.target.value)}
-                        placeholder="e.g. 24K, 22K"
-                        maxLength={MAX_LENGTH_24}
-                        className={inputClass('purity')}
-                        disabled={readOnly}
-                        readOnly={readOnly}
-                    />
+                    {purityOptions.length > 0 ? (
+                        <FormSelect
+                            value={formData.purity}
+                            onChange={(v) => handleChange('purity', v)}
+                            options={purityOptions}
+                            placeholder="Select purity"
+                            disabled={readOnly}
+                            className={inputClass('purity')}
+                            isDarkMode={isDarkMode}
+                        />
+                    ) : (
+                        <input
+                            type="text"
+                            value={formData.purity}
+                            onChange={(e) => handleChange('purity', e.target.value)}
+                            placeholder="e.g. 24K, 22K"
+                            maxLength={MAX_LENGTH_24}
+                            className={inputClass('purity')}
+                            disabled={readOnly}
+                            readOnly={readOnly}
+                        />
+                    )}
                     {errors.purity && <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>}
                 </div>
                 <div>

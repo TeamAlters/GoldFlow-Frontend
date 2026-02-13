@@ -1,5 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticItemFormData = {
@@ -124,19 +125,15 @@ const StaticItemFormInner = forwardRef<StaticItemFormRef, StaticItemFormProps>(
             Item Type <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
           </label>
           {itemTypeOptions.length > 0 ? (
-            <select
+            <FormSelect
               value={formData.item_type}
-              onChange={(e) => handleChange('item_type', e.target.value)}
-              className={inputClass('item_type')}
+              onChange={(v) => handleChange('item_type', v)}
+              options={itemTypeOptions}
+              placeholder="Select item type"
               disabled={readOnly}
-            >
-              <option value="">Select item type</option>
-              {itemTypeOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              className={inputClass('item_type')}
+              isDarkMode={isDarkMode}
+            />
           ) : (
             <input
               type="text"

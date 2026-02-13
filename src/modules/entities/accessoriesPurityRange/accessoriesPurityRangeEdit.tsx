@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, updateEntity, getEntityList } from '../../admin/admin.api';
+import { getEntity, updateEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -14,13 +14,6 @@ import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialAccessoriesPurityRangeData, toAccessoriesPurityRangePayload } from './accessoriesPurityRangeCreate';
 
 const ENTITY_NAME = 'accessories_purity_range';
-
-function toOptionList(items: Record<string, unknown>[], valueKey: string): DropdownOption[] {
-  return items.map((row) => {
-    const value = String(row[valueKey] ?? '');
-    return { value, label: value };
-  });
-}
 
 export default function AccessoriesPurityRangeEditPage() {
   const navigate = useNavigate();
@@ -35,19 +28,16 @@ export default function AccessoriesPurityRangeEditPage() {
 
   useEffect(() => {
     Promise.all([
-      getEntityList('purity_range', { page: 1, page_size: 500 }),
-      getEntityList('accessory_purity', { page: 1, page_size: 500 }),
-    ])
-      .then(([purityRangeRes, accessoryPurityRes]) => {
-        const prData = purityRangeRes.data as { items?: Record<string, unknown>[] } | undefined;
-        const apData = accessoryPurityRes.data as { items?: Record<string, unknown>[] } | undefined;
-        setPurityRangeOptions(toOptionList(Array.isArray(prData?.items) ? prData.items : [], 'purity_range'));
-        setAccessoryPurityOptions(toOptionList(Array.isArray(apData?.items) ? apData.items : [], 'accessory_purity'));
-      })
-      .catch(() => {
-        setPurityRangeOptions([]);
-        setAccessoryPurityOptions([]);
-      });
+      getEntityReferences('purity_range').then((items) =>
+        setPurityRangeOptions(mapReferenceItemsToOptions(items, 'purity_range'))
+      ),
+      getEntityReferences('accessory_purity').then((items) =>
+        setAccessoryPurityOptions(mapReferenceItemsToOptions(items, 'accessory_purity'))
+      ),
+    ]).catch(() => {
+      setPurityRangeOptions([]);
+      setAccessoryPurityOptions([]);
+    });
   }, []);
 
   useEffect(() => {

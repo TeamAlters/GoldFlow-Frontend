@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { createEntity, getEntityList } from '../../admin/admin.api';
+import { createEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -38,16 +38,8 @@ export default function ItemCreatePage() {
   const formRef = useRef<StaticItemFormRef>(null);
 
   useEffect(() => {
-    getEntityList('item_type', { page: 1, page_size: 500 })
-      .then((res) => {
-        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
-        const items = Array.isArray(data?.items) ? data.items : [];
-        const options: ItemTypeOption[] = items.map((row) => {
-          const value = String(row.item_type ?? '');
-          return { value, label: value };
-        });
-        setItemTypeOptions(options);
-      })
+    getEntityReferences('item_type')
+      .then((items) => setItemTypeOptions(mapReferenceItemsToOptions(items, 'item_type')))
       .catch(() => setItemTypeOptions([]));
   }, []);
 

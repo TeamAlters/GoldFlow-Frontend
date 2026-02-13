@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, updateEntity, getEntityList } from '../../admin/admin.api';
+import { getEntity, updateEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -29,16 +29,8 @@ export default function PurityRangeEditPage() {
   const formRef = useRef<StaticPurityRangeFormRef>(null);
 
   useEffect(() => {
-    getEntityList('purity', { page: 1, page_size: 500 })
-      .then((res) => {
-        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
-        const items = Array.isArray(data?.items) ? data.items : [];
-        const options: PurityOption[] = items.map((row) => {
-          const value = String(row.purity ?? '');
-          return { value, label: value };
-        });
-        setPurityOptions(options);
-      })
+    getEntityReferences('purity')
+      .then((items) => setPurityOptions(mapReferenceItemsToOptions(items, 'purity')))
       .catch(() => setPurityOptions([]));
   }, []);
 

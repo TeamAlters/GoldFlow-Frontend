@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, getEntityList, updateEntity } from '../../admin/admin.api';
+import { getEntity, getEntityReferences, mapReferenceItemsToOptions, updateEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -33,27 +33,11 @@ export default function CustomerEditPage() {
   const formRef = useRef<StaticCustomerMasterFormRef>(null);
 
   useEffect(() => {
-    const mapList = (
-      items: Record<string, unknown>[],
-      valueKey: string,
-      labelKey?: string
-    ): SelectOption[] =>
-      items.map((row) => {
-        const val = row[valueKey];
-        const value = String(val ?? '');
-        const label = String((labelKey ? row[labelKey] : val) ?? value);
-        return { value, label };
-      });
-
     Promise.all([
-      getEntityList('purity', { page: 1, page_size: 500 }).then((res) => {
-        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
-        const items = Array.isArray(data?.items) ? data.items : [];
-        setPurityOptions(mapList(items, 'purity'));
-      }),
-      getEntityList('product', { page: 1, page_size: 500 }).then((res) => {
-        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
-        const items = Array.isArray(data?.items) ? data.items : [];
+      getEntityReferences('purity').then((items) =>
+        setPurityOptions(mapReferenceItemsToOptions(items, 'purity'))
+      ),
+      getEntityReferences('product').then((items) => {
         const opts = items.map((row) => {
           const name = row.product_name ?? row.product_abbreviation ?? row.product_abbrevation;
           const value = String(row.product_name ?? name ?? '');
@@ -61,22 +45,16 @@ export default function CustomerEditPage() {
         });
         setProductOptions(opts);
       }),
-      getEntityList('product_category', { page: 1, page_size: 500 }).then((res) => {
-        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
-        const items = Array.isArray(data?.items) ? data.items : [];
-        setProductCategoryOptions(mapList(items, 'product_category'));
-      }),
-      getEntityList('machine', { page: 1, page_size: 500 }).then((res) => {
-        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
-        const items = Array.isArray(data?.items) ? data.items : [];
-        setMachineOptions(mapList(items, 'machine_name'));
-      }),
-      getEntityList('design', { page: 1, page_size: 500 }).then((res) => {
-        const data = res.data as { items?: Record<string, unknown>[] } | undefined;
-        const items = Array.isArray(data?.items) ? data.items : [];
-        setDesignOptions(mapList(items, 'design_name'));
-      }),
-    ]).catch(() => { });
+      getEntityReferences('product_category').then((items) =>
+        setProductCategoryOptions(mapReferenceItemsToOptions(items, 'product_category'))
+      ),
+      getEntityReferences('machine').then((items) =>
+        setMachineOptions(mapReferenceItemsToOptions(items, 'machine_name'))
+      ),
+      getEntityReferences('design').then((items) =>
+        setDesignOptions(mapReferenceItemsToOptions(items, 'design_name'))
+      ),
+    ]).catch(() => {});
   }, []);
 
   useEffect(() => {

@@ -6,7 +6,7 @@
 
 import { apiClient, messageFromAxiosError } from '../../api/axios';
 import { useAuthStore } from '../../auth/auth.store';
-import { buildEntityUrl, getEntityConfig } from '../../config/entity.config';
+import { buildEntityUrl, ENTITY_REFERENCES_PATH, getEntityConfig } from '../../config/entity.config';
 
 function hasAuthToken(): boolean {
   const token = useAuthStore.getState().token;
@@ -275,6 +275,52 @@ export async function getEntityList(
     totalItems,
   });
   return data;
+}
+
+export type ReferenceOption = { value: string; label: string };
+
+/** Response shape for references API (items may be in data or data.items) */
+type EntityReferencesResponse = {
+  success?: boolean;
+  data?: Record<string, unknown>[] | { items?: Record<string, unknown>[] };
+};
+
+/**
+ * GET /api/v1/entities/references/{entity_name}
+ * Fetches reference options for dropdowns (Create/Edit forms).
+ */
+export async function getEntityReferences(
+  entityName: string
+): Promise<Record<string, unknown>[]> {
+  const url = buildEntityUrl(ENTITY_REFERENCES_PATH, entityName);
+  console.log('[GoldFlow] [admin.api] getEntityReferences: request', { entityName, url });
+  try {
+    const res = await apiClient.get<EntityReferencesResponse>(url);
+    const data = res.data?.data;
+    if (Array.isArray(data)) return data;
+    const items = (data as { items?: Record<string, unknown>[] } | undefined)?.items;
+    return Array.isArray(items) ? items : [];
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, `Failed to load references for ${entityName}`);
+    console.log('[GoldFlow] [admin.api] getEntityReferences: failed', { entityName, errMsg });
+    throw new Error(errMsg);
+  }
+}
+
+/**
+ * Maps reference items to { value, label } for dropdowns.
+ */
+export function mapReferenceItemsToOptions(
+  items: Record<string, unknown>[],
+  valueKey: string,
+  labelKey?: string
+): ReferenceOption[] {
+  const label = labelKey ?? valueKey;
+  return items.map((row) => {
+    const val = row[valueKey];
+    const value = String(val ?? '');
+    return { value, label: String((row[label] ?? val) ?? value) };
+  });
 }
 
 /**

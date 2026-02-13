@@ -89,6 +89,9 @@ const DEFAULT_API_PATHS = {
   delete: '/api/v1/entities/{entity_name}/{entity_id}',
 };
 
+/** Path for dropdown/reference options: GET /api/v1/entities/references/{entity_name} */
+export const ENTITY_REFERENCES_PATH = '/api/v1/entities/references/{entity_name}';
+
 /**
  * Entity configurations
  * Add new entities here to make them available throughout the app

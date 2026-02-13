@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
+import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
 
 export type StaticDesignFormData = {
@@ -135,19 +136,15 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
             Product <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
           </label>
           {productOptions.length > 0 ? (
-            <select
+            <FormSelect
               value={formData.product_name}
-              onChange={(e) => handleChange('product_name', e.target.value)}
-              className={inputClass('product_name')}
+              onChange={(v) => handleChange('product_name', v)}
+              options={productOptions}
+              placeholder="Select product"
               disabled={readOnly}
-            >
-              <option value="">Select product</option>
-              {productOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              className={inputClass('product_name')}
+              isDarkMode={isDarkMode}
+            />
           ) : (
             <input
               type="text"
