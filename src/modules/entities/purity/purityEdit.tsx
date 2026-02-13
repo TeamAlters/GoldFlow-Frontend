@@ -1,17 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, updateEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
+import { getEntity, updateEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticPurityForm, {
     type StaticPurityFormData,
     type StaticPurityFormRef,
-    type PurityOption,
 } from './purityForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialPurityData, toPurityPayload } from './purityCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'purity';
 
@@ -23,16 +27,9 @@ export default function PurityEditPage() {
     const [initialData, setInitialData] = useState<Partial<StaticPurityFormData> | undefined>(
         undefined
     );
-    const [purityOptions, setPurityOptions] = useState<PurityOption[]>([]);
     const [dataLoading, setDataLoading] = useState(true);
     const [submitLoading, setSubmitLoading] = useState(false);
     const formRef = useRef<StaticPurityFormRef>(null);
-
-    useEffect(() => {
-        getEntityReferences(ENTITY_NAME)
-            .then((items) => setPurityOptions(mapReferenceItemsToOptions(items, 'purity')))
-            .catch(() => setPurityOptions([]));
-    }, []);
 
     useEffect(() => {
         if (!id) return;
@@ -102,7 +99,7 @@ export default function PurityEditPage() {
         );
     }
 
-    const breadcrumbLabel = initialData?.purity ?? 'Edit Purity';
+    const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.purity);
 
     return (
         <div className="w-full">
@@ -118,10 +115,10 @@ export default function PurityEditPage() {
                 <h1
                     className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                 >
-                    Edit {entityConfig.displayName}
+                    {getEditPageTitle(entityConfig)}
                 </h1>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Update purity information.
+                    {getEditPageDescription(entityConfig)}
                 </p>
             </div>
             <form
@@ -131,7 +128,6 @@ export default function PurityEditPage() {
                 <StaticPurityForm
                     ref={formRef}
                     initialData={initialData}
-                    purityOptions={purityOptions}
                     isEdit={true}
                     wrapInForm={false}
                     showActions={false}
@@ -155,7 +151,7 @@ export default function PurityEditPage() {
                                 : 'bg-blue-500 hover:bg-blue-600 text-white'
                             } disabled:opacity-60`}
                     >
-                        {submitLoading ? 'Saving...' : 'Update Purity'}
+                        {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
                     </button>
                 </div>
             </form>

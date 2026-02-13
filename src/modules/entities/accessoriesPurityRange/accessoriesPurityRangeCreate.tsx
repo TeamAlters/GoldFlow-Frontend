@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
+import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -26,6 +27,35 @@ export function toInitialAccessoriesPurityRangeData(
       entity.accessories_purity_range != null ? String(entity.accessories_purity_range) : '',
     purity_range: entity.purity_range != null ? String(entity.purity_range) : '',
     accessory_purity: entity.accessory_purity != null ? String(entity.accessory_purity) : '',
+  };
+}
+
+/** Initial data for Edit/View when using From value, To value, Accessory purity, Purity range. */
+export function toFromToAccessoryInitialData(
+  entity: Record<string, unknown>
+): { from_value: string; to_value: string; accessory_purity: string; purity_range: string } {
+  const fromVal = entity.from_value;
+  const toVal = entity.to_value;
+  return {
+    from_value: fromVal !== undefined && fromVal !== null ? String(fromVal) : '',
+    to_value: toVal !== undefined && toVal !== null ? String(toVal) : '',
+    accessory_purity: entity.accessory_purity != null ? String(entity.accessory_purity) : '',
+    purity_range: entity.purity_range != null ? String(entity.purity_range) : '',
+  };
+}
+
+/** Payload for update (From value, To value, Accessory purity). */
+export function toFromToAccessoryPayload(
+  fromValue: string,
+  toValue: string,
+  accessoryPurity: string
+): Record<string, unknown> {
+  const from = parseNum(fromValue);
+  const to = parseNum(toValue);
+  return {
+    from_value: from ?? 0,
+    to_value: to ?? 0,
+    accessory_purity: accessoryPurity.trim(),
   };
 }
 
@@ -86,13 +116,11 @@ export default function AccessoriesPurityRangeCreatePage() {
       if (from === null || to === null) return;
       setSubmitLoading(true);
       try {
-        await createEntity(ENTITY_NAME, {
-          from_value: from,
-          to_value: to,
-          purity: accessoryPurity.trim(),
-        });
+        const payload = { from_value: from, to_value: to, accessory_purity: accessoryPurity.trim() };
+        const res = await createEntity(ENTITY_NAME, payload);
         toast.success(`${entityConfig.displayName} created successfully.`);
-        navigate(entityConfig.routes.list);
+        const id = getCreatedEntityId(res, payload as Record<string, unknown>, ['id']);
+        navigate(id != null ? entityConfig.routes.detail.replace(':id', encodeURIComponent(String(id))) : entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);

@@ -119,10 +119,11 @@ function handleDeduplication<T = any, R = AxiosResponse<T>, D = any>(
   makeRequest: () => Promise<R>
 ): Promise<R> {
   const method = (config.method || 'get').toLowerCase();
-  const shouldDeduplicate = 
-    !config.skipDeduplication && 
-    method === 'get' && 
-    config.url;
+  const shouldDeduplicate =
+    !config.skipDeduplication &&
+    method === 'get' &&
+    config.url &&
+    !config.signal;
   
   if (shouldDeduplicate) {
     // Generate key from config
@@ -132,19 +133,15 @@ function handleDeduplication<T = any, R = AxiosResponse<T>, D = any>(
     const existingRequest = pendingRequests.get(requestKey);
     
     if (existingRequest) {
-      console.log('[GoldFlow] [axios] ✅ Request deduplicated:', requestKey.substring(0, 80));
       return existingRequest as Promise<R>;
     }
-    
-    console.log('[GoldFlow] [axios] 🆕 New request:', requestKey.substring(0, 80), 'Map size:', pendingRequests.size);
-    
+
     // Create the request promise
     const requestPromise = makeRequest();
-    
+
     // Store it IMMEDIATELY (synchronously) - this is critical to prevent race conditions
     // Store as AxiosResponse for the map, but return as R for type safety
     pendingRequests.set(requestKey, requestPromise as unknown as Promise<AxiosResponse>);
-    console.log('[GoldFlow] [axios] Stored in map, new size:', pendingRequests.size);
     
     // Clean up after request completes
     requestPromise

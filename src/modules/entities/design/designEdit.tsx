@@ -11,7 +11,12 @@ import StaticDesignForm, {
   type ProductOption,
 } from './designForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toInitialDesignData, toDesignPayload } from './designCreate';
+import { toInitialDesignData, toDesignPayload, getDesignEntityFromResponse } from './designCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'design';
 
@@ -23,32 +28,41 @@ export default function DesignEditPage() {
   const [initialData, setInitialData] = useState<Partial<StaticDesignFormData> | undefined>(
     undefined
   );
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const formRef = useRef<StaticDesignFormRef>(null);
 
   useEffect(() => {
-    if (!id) return;
-    const controller = new AbortController();
+    if (!id || String(id).trim() === '') return;
+    let mounted = true;
+    const decodedId = decodeURIComponent(String(id).trim());
     setDataLoading(true);
-    getEntity(ENTITY_NAME, id, { signal: controller.signal })
+    setLoadError(null);
+    getEntity(ENTITY_NAME, decodedId)
       .then((res) => {
-        if (controller.signal.aborted) return;
-        if (res.data && typeof res.data === 'object') {
-          const entity = res.data as Record<string, unknown>;
+        if (!mounted) return;
+        const entity = getDesignEntityFromResponse(res, decodedId);
+        if (entity) {
           setInitialData(toInitialDesignData(entity));
+          setLoadError(null);
+        } else {
+          setLoadError('Design not found or invalid response from server.');
         }
       })
       .catch((err) => {
-        if (controller.signal.aborted) return;
+        if (!mounted) return;
         const msg = err instanceof Error ? err.message : 'Failed to load design';
+        setLoadError(msg);
         showErrorToastUnlessAuth(msg);
       })
       .finally(() => {
-        if (!controller.signal.aborted) setDataLoading(false);
+        if (mounted) setDataLoading(false);
       });
-    return () => controller.abort();
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   useEffect(() => {
@@ -69,7 +83,7 @@ export default function DesignEditPage() {
       if (!id) return;
       setSubmitLoading(true);
       try {
-        await updateEntity(ENTITY_NAME, id, toDesignPayload(formData));
+        await updateEntity(ENTITY_NAME, decodeURIComponent(id), toDesignPayload(formData));
         toast.success(`${entityConfig.displayName} updated successfully.`);
         navigate(entityConfig.routes.list);
       } catch (err) {
@@ -115,7 +129,34 @@ export default function DesignEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.design_name ?? 'Edit Design';
+  if (loadError || !initialData) {
+    return (
+      <div className="w-full">
+        <Breadcrumbs
+          items={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
+            { label: getEditPageTitle(entityConfig) },
+          ]}
+          className="mb-4"
+        />
+        <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
+          <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+            {loadError ?? 'Design not found.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate(entityConfig.routes.list)}
+            className={`mt-4 px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+          >
+            Back to list
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.design_name);
 
   return (
     <div className="w-full">
@@ -131,10 +172,10 @@ export default function DesignEditPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Edit {entityConfig.displayName}
+          {getEditPageTitle(entityConfig)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update design information.
+          {getEditPageDescription(entityConfig)}
         </p>
       </div>
       <form
@@ -154,24 +195,22 @@ export default function DesignEditPage() {
           <button
             type="button"
             onClick={handleCancel}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
                 ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                 : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
+              }`}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitLoading}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
-            } disabled:opacity-60`}
+              } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : 'Update Design'}
+            {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
           </button>
         </div>
       </form>

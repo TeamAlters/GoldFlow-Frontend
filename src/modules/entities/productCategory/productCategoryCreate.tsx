@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity, getEntityReferences } from '../../admin/admin.api';
+import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -56,9 +57,11 @@ export default function ProductCategoryCreatePage() {
     async (formData: StaticProductCategoryFormData) => {
       setSubmitLoading(true);
       try {
-        await createEntity(ENTITY_NAME, toProductCategoryPayload(formData));
+        const payload = toProductCategoryPayload(formData);
+        const res = await createEntity(ENTITY_NAME, payload);
         toast.success(`${entityConfig.displayName} created successfully.`);
-        navigate(entityConfig.routes.list);
+        const id = getCreatedEntityId(res, payload as Record<string, unknown>, ['product_category', 'id']);
+        navigate(id != null ? entityConfig.routes.detail.replace(':id', encodeURIComponent(String(id))) : entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);

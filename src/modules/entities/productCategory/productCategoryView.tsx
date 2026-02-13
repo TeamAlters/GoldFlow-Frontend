@@ -1,12 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import StaticProductCategoryForm, { type StaticProductCategoryFormData } from './productCategoryForm';
+import { useEntityLoad } from '../../../shared/hooks/useEntityLoad';
+import StaticProductCategoryForm from './productCategoryForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialProductCategoryData } from './productCategoryCreate';
+import {
+  getViewPageTitle,
+  getViewBreadcrumbLabel,
+  getViewPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'product_category';
 
@@ -14,34 +19,20 @@ export default function ProductCategoryViewPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
-
-  const [initialData, setInitialData] = useState<Partial<StaticProductCategoryFormData> | undefined>(
-    undefined
+  const { data: rawEntity, loading: dataLoading, error: loadError } = useEntityLoad(
+    ENTITY_NAME,
+    id ?? undefined,
+    { errorMessage: 'Failed to load product category' }
   );
-  const [dataLoading, setDataLoading] = useState(true);
+
+  const initialData = useMemo(
+    () => (rawEntity ? toInitialProductCategoryData(rawEntity) : undefined),
+    [rawEntity]
+  );
 
   useEffect(() => {
-    if (!id) return;
-    const controller = new AbortController();
-    setDataLoading(true);
-    getEntity(ENTITY_NAME, id, { signal: controller.signal })
-      .then((res) => {
-        if (controller.signal.aborted) return;
-        if (res.data && typeof res.data === 'object') {
-          const entity = res.data as Record<string, unknown>;
-          setInitialData(toInitialProductCategoryData(entity));
-        }
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        const msg = err instanceof Error ? err.message : 'Failed to load product category';
-        showErrorToastUnlessAuth(msg);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setDataLoading(false);
-      });
-    return () => controller.abort();
-  }, [id]);
+    if (loadError) showErrorToastUnlessAuth(loadError);
+  }, [loadError]);
 
   const handleBack = useCallback(() => {
     navigate(entityConfig.routes.list);
@@ -67,7 +58,33 @@ export default function ProductCategoryViewPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.product_category ?? 'View Product Category';
+  if (loadError && !initialData) {
+    return (
+      <div className="w-full">
+        <Breadcrumbs
+          items={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
+            { label: getViewPageTitle(entityConfig) },
+          ]}
+          className="mb-4"
+        />
+        <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
+          <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{loadError}</p>
+          <button
+            type="button"
+            onClick={() => navigate(entityConfig.routes.list)}
+            className={`mt-4 px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+          >
+            Back to list
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const viewPageTitle = getViewPageTitle(entityConfig);
+  const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.product_category);
 
   return (
     <div className="w-full">
@@ -83,10 +100,10 @@ export default function ProductCategoryViewPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          View {entityConfig.displayName}
+          {viewPageTitle}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Read-only product category information.
+          {getViewPageDescription(entityConfig)}
         </p>
       </div>
       <div

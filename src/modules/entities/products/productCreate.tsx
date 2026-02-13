@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity } from '../../admin/admin.api';
+import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -24,6 +25,36 @@ export function toInitialProductData(
   };
 }
 
+const hasProductFields = (o: unknown): o is Record<string, unknown> =>
+  typeof o === 'object' &&
+  o != null &&
+  ((o as Record<string, unknown>).product_name != null ||
+    (o as Record<string, unknown>).product_abbreviation != null ||
+    (o as Record<string, unknown>).product_abbrevation != null);
+
+/**
+ * Normalize getEntity response for product. Handles entity at top level,
+ * in res.data, res.data.data, res.item, res.result.
+ */
+export function getProductEntityFromResponse(
+  res: Record<string, unknown> | undefined | null
+): Record<string, unknown> | undefined {
+  if (res == null || typeof res !== 'object') return undefined;
+  if (hasProductFields(res)) return res as Record<string, unknown>;
+  const data = (res as Record<string, unknown>).data;
+  if (data != null && typeof data === 'object') {
+    const dataObj = data as Record<string, unknown>;
+    if (hasProductFields(dataObj)) return dataObj as Record<string, unknown>;
+    if (hasProductFields(dataObj['item'])) return dataObj['item'] as Record<string, unknown>;
+    if (hasProductFields(dataObj['result'])) return dataObj['result'] as Record<string, unknown>;
+    const inner = dataObj['data'];
+    if (inner != null && typeof inner === 'object' && hasProductFields(inner)) return inner as Record<string, unknown>;
+  }
+  if (hasProductFields((res as Record<string, unknown>)['result'])) return (res as Record<string, unknown>)['result'] as Record<string, unknown>;
+  if (hasProductFields((res as Record<string, unknown>)['item'])) return (res as Record<string, unknown>)['item'] as Record<string, unknown>;
+  return undefined;
+}
+
 export function toProductPayload(data: StaticProductFormData): Record<string, unknown> {
   return {
     product_name: data.product_name.trim(),
@@ -41,10 +72,11 @@ export default function ProductCreatePage() {
     async (formData: StaticProductFormData) => {
       setSubmitLoading(true);
       try {
-        // POST /api/v1/entities/product (via createEntity)
-        await createEntity(ENTITY_NAME, toProductPayload(formData));
+        const payload = toProductPayload(formData);
+        const res = await createEntity(ENTITY_NAME, payload);
         toast.success(`${entityConfig.displayName} created successfully.`);
-        navigate(entityConfig.routes.list);
+        const id = getCreatedEntityId(res, payload as Record<string, unknown>, ['product_name', 'id']);
+        navigate(id != null ? entityConfig.routes.detail.replace(':id', encodeURIComponent(String(id))) : entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);

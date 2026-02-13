@@ -6,7 +6,12 @@ import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticProductForm, { type StaticProductFormData } from './productForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toInitialProductData } from './productCreate';
+import { toInitialProductData, getProductEntityFromResponse } from './productCreate';
+import {
+  getViewPageTitle,
+  getViewBreadcrumbLabel,
+  getViewPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 
@@ -21,30 +26,40 @@ export default function ProductViewPage() {
         undefined
     );
     const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [dataLoading, setDataLoading] = useState(true);
 
     useEffect(() => {
-        if (!id) return;
-        const controller = new AbortController();
+        if (!id || String(id).trim() === '') return;
+        let mounted = true;
+        const decodedId = decodeURIComponent(String(id).trim());
         setDataLoading(true);
-        getEntity(ENTITY_NAME, id, { signal: controller.signal })
+        setLoadError(null);
+        getEntity(ENTITY_NAME, decodedId)
             .then((res) => {
-                if (controller.signal.aborted) return;
-                if (res.data && typeof res.data === 'object') {
-                    const entity = res.data as Record<string, unknown>;
+                if (!mounted) return;
+                const entity = getProductEntityFromResponse(res as Record<string, unknown>);
+                if (entity) {
                     setInitialData(toInitialProductData(entity));
                     setRawEntity(entity);
+                    setLoadError(null);
+                } else {
+                    setLoadError('Product not found or invalid response from server.');
                 }
             })
             .catch((err) => {
-                if (controller.signal.aborted) return;
-                const msg = err instanceof Error ? err.message : 'Failed to load product';
-                showErrorToastUnlessAuth(msg);
+                if (!mounted) return;
+                const msg = err instanceof Error ? err.message : '';
+                if (msg === 'canceled' || msg === 'aborted' || msg.toLowerCase().includes('cancel')) return;
+                setLoadError(msg || 'Failed to load product');
+                showErrorToastUnlessAuth(msg || 'Failed to load product');
             })
             .finally(() => {
-                if (!controller.signal.aborted) setDataLoading(false);
+                if (mounted) setDataLoading(false);
             });
-        return () => controller.abort();
+        return () => {
+            mounted = false;
+        };
     }, [id]);
 
     const handleBack = useCallback(() => {
@@ -52,7 +67,7 @@ export default function ProductViewPage() {
     }, [navigate, entityConfig.routes.list]);
 
     const isDarkMode = useUIStore((state) => state.isDarkMode);
-    const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+    const editUrl = entityConfig.routes.edit.replace(':id', id != null ? encodeURIComponent(id) : '');
 
     if (!id) {
         return <Navigate to={entityConfig.routes.list} replace />;
@@ -71,7 +86,38 @@ export default function ProductViewPage() {
         );
     }
 
-    const breadcrumbLabel = initialData?.product_name ?? 'View Product';
+    if (loadError || !initialData) {
+        return (
+            <div className="w-full">
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: '/dashboard' },
+                        { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
+                        { label: getViewPageTitle(entityConfig) },
+                    ]}
+                    className="mb-4"
+                />
+                <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
+                    <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                        {loadError ?? 'Product not found.'}
+                    </p>
+                    <div className="flex items-center gap-3 mt-4">
+                        <BackButton onClick={handleBack} />
+                        <button
+                            type="button"
+                            onClick={handleBack}
+                            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                        >
+                            Back to list
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const viewPageTitle = getViewPageTitle(entityConfig);
+    const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.product_name);
 
     return (
         <div className="w-full">
@@ -85,13 +131,13 @@ export default function ProductViewPage() {
             />
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h1
-                        className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-                    >
-                        View {entityConfig.displayName}
-                    </h1>
+          <h1
+            className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+          >
+            {viewPageTitle}
+          </h1>
                     <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Read-only product information.
+                        {getViewPageDescription(entityConfig)}
                     </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
@@ -103,7 +149,7 @@ export default function ProductViewPage() {
                                 : 'bg-blue-500 hover:bg-blue-600 text-white'
                             }`}
                     >
-                        Edit Product
+                        Edit {entityConfig.displayName}
                     </Link>
                 </div>
             </div>

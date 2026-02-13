@@ -22,6 +22,11 @@ import {
     toUserPayload,
     capabilitiesFromEntity,
 } from './userCreate';
+import {
+    getEditPageTitle,
+    getEditBreadcrumbLabel,
+    getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'user';
 
@@ -128,7 +133,7 @@ export default function EditUserPage() {
         );
     }
 
-    const breadcrumbLabel = initialData?.username ?? 'Edit User';
+    const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.username);
 
     return (
         <div className="w-full">
@@ -144,10 +149,10 @@ export default function EditUserPage() {
                 <h1
                     className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                 >
-                    Edit {entityConfig.displayName}
+                    {getEditPageTitle(entityConfig)}
                 </h1>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Update user information and permissions.
+                    {getEditPageDescription(entityConfig)}
                 </p>
             </div>
             <form
@@ -244,7 +249,7 @@ export default function EditUserPage() {
                         className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
                             } disabled:opacity-60`}
                     >
-                        {submitLoading ? 'Saving...' : 'Update User'}
+                        {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
                     </button>
                 </div>
             </form>

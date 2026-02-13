@@ -7,6 +7,11 @@ import { useUIStore } from '../../../stores/ui.store';
 import StaticItemTypeForm, { type StaticItemTypeFormData } from './itemTypeForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialItemTypeData } from './itemTypeCreate';
+import {
+  getViewPageTitle,
+  getViewBreadcrumbLabel,
+  getViewPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 
@@ -65,7 +70,8 @@ export default function ItemTypeViewPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.item_type ?? 'View Item Type';
+  const viewPageTitle = getViewPageTitle(entityConfig);
+  const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.item_type);
 
   return (
     <div className="w-full">
@@ -82,10 +88,10 @@ export default function ItemTypeViewPage() {
           <h1
             className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
           >
-            View {entityConfig.displayName}
+            {viewPageTitle}
           </h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Read-only item type information.
+            {getViewPageDescription(entityConfig)}
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">

@@ -7,6 +7,11 @@ import { useUIStore } from '../../../stores/ui.store';
 import StaticPurityForm, { type StaticPurityFormData } from './purityForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialPurityData } from './purityCreate';
+import {
+  getViewPageTitle,
+  getViewBreadcrumbLabel,
+  getViewPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 
@@ -65,7 +70,8 @@ export default function PurityViewPage() {
         );
     }
 
-    const breadcrumbLabel = initialData?.purity ?? 'View Purity';
+    const viewPageTitle = getViewPageTitle(entityConfig);
+    const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.purity);
 
     return (
         <div className="w-full">
@@ -79,13 +85,13 @@ export default function PurityViewPage() {
             />
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h1
-                        className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-                    >
-                        View {entityConfig.displayName}
-                    </h1>
+          <h1
+            className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+          >
+            {viewPageTitle}
+          </h1>
                     <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Read-only purity information.
+                        {getViewPageDescription(entityConfig)}
                     </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
@@ -97,7 +103,7 @@ export default function PurityViewPage() {
                                 : 'bg-blue-500 hover:bg-blue-600 text-white'
                             }`}
                     >
-                        Edit Purity
+                        Edit {entityConfig.displayName}
                     </Link>
                 </div>
             </div>

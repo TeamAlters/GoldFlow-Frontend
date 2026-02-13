@@ -9,6 +9,11 @@ import StaticPurityRangeForm, {
 } from './purityRangeForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialPurityRangeData } from './purityRangeCreate';
+import {
+  getViewPageTitle,
+  getViewBreadcrumbLabel,
+  getViewPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 
@@ -69,7 +74,8 @@ export default function PurityRangeViewPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.purity_range ?? 'View Purity Range';
+  const viewPageTitle = getViewPageTitle(entityConfig);
+  const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.purity_range);
 
   return (
     <div className="w-full">
@@ -86,10 +92,10 @@ export default function PurityRangeViewPage() {
           <h1
             className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
           >
-            View {entityConfig.displayName}
+            {viewPageTitle}
           </h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Read-only purity range information.
+            {getViewPageDescription(entityConfig)}
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">

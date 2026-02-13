@@ -12,6 +12,11 @@ import StaticAccessoryPurityForm, {
 } from './accessoryPurityForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialAccessoryPurityData, toAccessoryPurityPayload } from './accessoryPurityCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'accessory_purity';
 
@@ -29,7 +34,7 @@ export default function AccessoryPurityEditPage() {
   const formRef = useRef<StaticAccessoryPurityFormRef>(null);
 
   useEffect(() => {
-    getEntityList('purity', { page: 1, page_size: 500 })
+    getEntityList('purity', { page: 1, page_size: 100 })
       .then((res) => {
         const data = res.data as { items?: Record<string, unknown>[] } | undefined;
         const listItems = Array.isArray(data?.items) ? data.items : [];
@@ -110,7 +115,7 @@ export default function AccessoryPurityEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.accessory_purity ?? 'Edit Accessory Purity';
+  const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.accessory_purity);
 
   return (
     <div className="w-full">
@@ -126,10 +131,10 @@ export default function AccessoryPurityEditPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Edit {entityConfig.displayName}
+          {getEditPageTitle(entityConfig)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update accessory purity information.
+          {getEditPageDescription(entityConfig)}
         </p>
       </div>
       <form
