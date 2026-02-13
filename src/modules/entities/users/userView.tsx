@@ -17,7 +17,7 @@ import {
     capabilitiesFromEntity,
 } from './userCreate';
 import {
-    getViewPageTitle,
+    getViewPageHeading,
     getViewBreadcrumbLabel,
     getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
@@ -102,11 +102,9 @@ export default function UserViewPage() {
         return <Navigate to={entityConfig.routes.list} replace />;
     }
 
-    const viewPageTitle = getViewPageTitle(entityConfig);
-    const breadcrumbLabel = getViewBreadcrumbLabel(
-        entityConfig,
-        (initialData?.username ?? initialData?.email) as string | undefined
-    );
+    const displayValue = (initialData?.username ?? initialData?.email) as string | undefined;
+    const viewPageHeading = getViewPageHeading(entityConfig, displayValue);
+    const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, displayValue);
 
     if (dataLoading) {
         return (
@@ -135,7 +133,7 @@ export default function UserViewPage() {
                 <h1
                     className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                 >
-                    {viewPageTitle}
+                    {viewPageHeading}
                 </h1>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     {getViewPageDescription(entityConfig)}

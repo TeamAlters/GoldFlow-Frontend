@@ -7,7 +7,7 @@ import { useUIStore } from '../../../stores/ui.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toFromToAccessoryInitialData } from './accessoriesPurityRangeCreate';
 import {
-  getViewPageTitle,
+  getViewPageHeading,
   getViewBreadcrumbLabel,
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
@@ -80,7 +80,7 @@ export default function AccessoriesPurityRangeViewPage() {
       ? 'bg-gray-700/50 border-gray-600 text-white'
       : 'bg-white border-gray-300 text-gray-900'
     }`;
-  const viewPageTitle = getViewPageTitle(entityConfig);
+  const viewPageHeading = getViewPageHeading(entityConfig, data?.purity_range);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, data?.purity_range);
 
   return (
@@ -98,7 +98,7 @@ export default function AccessoriesPurityRangeViewPage() {
           <h1
             className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
           >
-            {viewPageTitle}
+            {viewPageHeading}
           </h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {getViewPageDescription(entityConfig)}

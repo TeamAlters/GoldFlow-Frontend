@@ -5,6 +5,18 @@ export function getViewPageTitle(config: EntityConfig): string {
   return `View ${config.displayName}`;
 }
 
+/** View page h1: "View {displayValue}" when present, else "View {displayName}" */
+export function getViewPageHeading(
+  config: EntityConfig,
+  displayValue: string | null | undefined
+): string {
+  const value =
+    displayValue != null && String(displayValue).trim() !== ''
+      ? String(displayValue).trim()
+      : undefined;
+  return value != null ? `View ${value}` : getViewPageTitle(config);
+}
+
 /** "Edit {displayName}" for edit page heading and fallback breadcrumb */
 export function getEditPageTitle(config: EntityConfig): string {
   return `Edit ${config.displayName}`;

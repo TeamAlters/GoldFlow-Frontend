@@ -8,7 +8,7 @@ import StaticCustomerMasterForm from './customerForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialCustomerMasterData } from './customerCreate';
 import {
-  getViewPageTitle,
+  getViewPageHeading,
   getViewBreadcrumbLabel,
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
@@ -70,7 +70,7 @@ export default function CustomerViewPage() {
           items={[
             { label: 'Dashboard', href: '/dashboard' },
             { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
-            { label: getViewPageTitle(entityConfig) },
+            { label: getViewPageHeading(entityConfig, undefined) },
           ]}
           className="mb-4"
         />
@@ -91,7 +91,7 @@ export default function CustomerViewPage() {
     );
   }
 
-  const viewPageTitle = getViewPageTitle(entityConfig);
+  const viewPageHeading = getViewPageHeading(entityConfig, initialData?.customer_name);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.customer_name);
 
   return (
@@ -109,7 +109,7 @@ export default function CustomerViewPage() {
           <h1
             className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
           >
-            {viewPageTitle}
+            {viewPageHeading}
           </h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {getViewPageDescription(entityConfig)}

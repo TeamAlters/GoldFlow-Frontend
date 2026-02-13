@@ -10,7 +10,7 @@ import StaticAccessoryPurityForm, {
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialAccessoryPurityData } from './accessoryPurityCreate';
 import {
-  getViewPageTitle,
+  getViewPageHeading,
   getViewBreadcrumbLabel,
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
@@ -74,7 +74,7 @@ export default function AccessoryPurityViewPage() {
     );
   }
 
-  const viewPageTitle = getViewPageTitle(entityConfig);
+  const viewPageHeading = getViewPageHeading(entityConfig, initialData?.accessory_purity);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.accessory_purity);
 
   return (
@@ -92,7 +92,7 @@ export default function AccessoryPurityViewPage() {
           <h1
             className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
           >
-            {viewPageTitle}
+            {viewPageHeading}
           </h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {getViewPageDescription(entityConfig)}

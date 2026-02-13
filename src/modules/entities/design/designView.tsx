@@ -10,7 +10,7 @@ import { toInitialDesignData, getDesignEntityFromResponse } from './designCreate
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 import {
-  getViewPageTitle,
+  getViewPageHeading,
   getViewBreadcrumbLabel,
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
@@ -93,7 +93,7 @@ export default function DesignViewPage() {
           items={[
             { label: 'Dashboard', href: '/dashboard' },
             { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
-            { label: getViewPageTitle(entityConfig) },
+            { label: getViewPageHeading(entityConfig, undefined) },
           ]}
           className="mb-4"
         />
@@ -116,7 +116,7 @@ export default function DesignViewPage() {
     );
   }
 
-  const viewPageTitle = getViewPageTitle(entityConfig);
+  const viewPageHeading = getViewPageHeading(entityConfig, initialData?.design_name);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.design_name);
 
   return (
@@ -134,7 +134,7 @@ export default function DesignViewPage() {
           <h1
             className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
           >
-            {viewPageTitle}
+            {viewPageHeading}
           </h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {getViewPageDescription(entityConfig)}
