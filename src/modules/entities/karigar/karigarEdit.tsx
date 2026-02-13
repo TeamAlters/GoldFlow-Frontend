@@ -11,6 +11,11 @@ import StaticKarigarForm, {
 } from './karigarForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialKarigarData, toKarigarPayload } from './karigarCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'karigar';
 
@@ -94,7 +99,7 @@ export default function KarigarEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.karigar ?? 'Edit Karigar';
+  const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.karigar);
 
   return (
     <div className="w-full">
@@ -110,10 +115,10 @@ export default function KarigarEditPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Edit {entityConfig.displayName}
+          {getEditPageTitle(entityConfig)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update karigar information.
+          {getEditPageDescription(entityConfig)}
         </p>
       </div>
       <form

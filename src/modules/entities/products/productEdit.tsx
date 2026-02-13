@@ -10,7 +10,12 @@ import StaticProductForm, {
     type StaticProductFormRef,
 } from './productForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toInitialProductData, toProductPayload } from './productCreate';
+import { toInitialProductData, toProductPayload, getProductEntityFromResponse } from './productCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'product';
 
@@ -22,31 +27,40 @@ export default function ProductEditPage() {
     const [initialData, setInitialData] = useState<Partial<StaticProductFormData> | undefined>(
         undefined
     );
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [dataLoading, setDataLoading] = useState(true);
     const [submitLoading, setSubmitLoading] = useState(false);
     const formRef = useRef<StaticProductFormRef>(null);
 
     useEffect(() => {
-        if (!id) return;
-        const controller = new AbortController();
+        if (!id || String(id).trim() === '') return;
+        let mounted = true;
+        const decodedId = decodeURIComponent(String(id).trim());
         setDataLoading(true);
-        getEntity(ENTITY_NAME, id, { signal: controller.signal })
+        setLoadError(null);
+        getEntity(ENTITY_NAME, decodedId)
             .then((res) => {
-                if (controller.signal.aborted) return;
-                if (res.data && typeof res.data === 'object') {
-                    const entity = res.data as Record<string, unknown>;
+                if (!mounted) return;
+                const entity = getProductEntityFromResponse(res as Record<string, unknown>);
+                if (entity) {
                     setInitialData(toInitialProductData(entity));
+                    setLoadError(null);
+                } else {
+                    setLoadError('Product not found or invalid response from server.');
                 }
             })
             .catch((err) => {
-                if (controller.signal.aborted) return;
+                if (!mounted) return;
                 const msg = err instanceof Error ? err.message : 'Failed to load product';
+                setLoadError(msg);
                 showErrorToastUnlessAuth(msg);
             })
             .finally(() => {
-                if (!controller.signal.aborted) setDataLoading(false);
+                if (mounted) setDataLoading(false);
             });
-        return () => controller.abort();
+        return () => {
+            mounted = false;
+        };
     }, [id]);
 
     const handleSubmit = useCallback(
@@ -55,7 +69,7 @@ export default function ProductEditPage() {
             setSubmitLoading(true);
             try {
                 // PUT /api/v1/entities/product/{entity_id} (via updateEntity)
-                await updateEntity(ENTITY_NAME, id, toProductPayload(formData));
+                await updateEntity(ENTITY_NAME, decodeURIComponent(id), toProductPayload(formData));
                 toast.success(`${entityConfig.displayName} updated successfully.`);
                 navigate(entityConfig.routes.list);
             } catch (err) {
@@ -111,7 +125,34 @@ export default function ProductEditPage() {
         );
     }
 
-    const breadcrumbLabel = initialData?.product_name ?? 'Edit Product';
+    if (loadError || !initialData) {
+        return (
+            <div className="w-full max-w-3xl">
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: '/dashboard' },
+                        { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
+                        { label: getEditPageTitle(entityConfig) },
+                    ]}
+                    className="mb-4"
+                />
+                <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
+                    <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                        {loadError ?? 'Product not found.'}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => navigate(entityConfig.routes.list)}
+                        className={`mt-4 px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                    >
+                        Back to list
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.product_name);
 
     return (
         <div className="w-full max-w-3xl">
@@ -128,10 +169,10 @@ export default function ProductEditPage() {
                 <h1
                     className={`text-2xl font-bold tracking-tight sm:text-3xl ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                 >
-                    Edit {entityConfig.displayName}
+                    {getEditPageTitle(entityConfig)}
                 </h1>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Update product information below.
+                    {getEditPageDescription(entityConfig)}
                 </p>
             </div>
 
@@ -177,7 +218,7 @@ export default function ProductEditPage() {
                             : 'bg-blue-500 hover:bg-blue-600 text-white'
                             } disabled:opacity-60 disabled:cursor-not-allowed`}
                     >
-                        {submitLoading ? 'Saving...' : 'Update Product'}
+                        {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
                     </button>
                 </div>
             </form>

@@ -12,6 +12,11 @@ import StaticPurityRangeForm, {
 } from './purityRangeForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialPurityRangeData, toPurityRangePayload } from './purityRangeCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'purity_range';
 
@@ -102,7 +107,7 @@ export default function PurityRangeEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.purity_range ?? 'Edit Purity Range';
+  const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.purity_range);
 
   return (
     <div className="w-full">
@@ -118,10 +123,10 @@ export default function PurityRangeEditPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Edit {entityConfig.displayName}
+          {getEditPageTitle(entityConfig)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update purity range information.
+          {getEditPageDescription(entityConfig)}
         </p>
       </div>
       <form

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
+import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -24,16 +25,18 @@ function parseNum(s: string): number | null {
 export function toInitialCustomerMasterData(
   entity: Record<string, unknown>
 ): Partial<StaticCustomerMasterFormData> {
+  const productVal = entity.product ?? entity.product_name;
+  const designVal = entity.design ?? entity.design_name;
   return {
     customer_name: entity.customer_name != null ? String(entity.customer_name) : '',
     purity: entity.purity != null ? String(entity.purity) : '',
     issue_purity:
       entity.issue_purity != null ? String(entity.issue_purity) : '',
-    product_name: entity.product_name != null ? String(entity.product_name) : '',
+    product_name: productVal != null ? String(productVal) : '',
     product_category:
       entity.product_category != null ? String(entity.product_category) : '',
     machine_size: entity.machine_size != null ? String(entity.machine_size) : '',
-    design_name: entity.design_name != null ? String(entity.design_name) : '',
+    design_name: designVal != null ? String(designVal) : '',
     wastage: entity.wastage != null ? String(entity.wastage) : '',
   };
 }
@@ -51,7 +54,7 @@ export function toCustomerMasterPayload(
   if (issuePurity !== null) payload.issue_purity = issuePurity;
   if (data.product_category.trim() !== '') payload.product_category = data.product_category.trim();
   if (data.machine_size.trim() !== '') payload.machine_size = data.machine_size.trim();
-  if (data.design_name.trim() !== '') payload.design_name = data.design_name.trim();
+  if (data.design_name.trim() !== '') payload.design = data.design_name.trim();
   if (wastageNum !== null) payload.wastage = wastageNum;
   return payload;
 }
@@ -96,9 +99,11 @@ export default function CustomerCreatePage() {
     async (formData: StaticCustomerMasterFormData) => {
       setSubmitLoading(true);
       try {
-        await createEntity(ENTITY_NAME, toCustomerMasterPayload(formData));
+        const payload = toCustomerMasterPayload(formData);
+        const res = await createEntity(ENTITY_NAME, payload);
         toast.success(`${entityConfig.displayName} created successfully.`);
-        navigate(entityConfig.routes.list);
+        const id = getCreatedEntityId(res, payload as Record<string, unknown>, ['customer_name', 'id']);
+        navigate(id != null ? entityConfig.routes.detail.replace(':id', encodeURIComponent(String(id))) : entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);

@@ -12,6 +12,11 @@ import StaticItemForm, {
 } from './itemForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialItemData, toItemPayload } from './itemCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'item';
 
@@ -102,7 +107,7 @@ export default function ItemEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.item_name ?? 'Edit Item';
+  const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.item_name);
 
   return (
     <div className="w-full">
@@ -118,10 +123,10 @@ export default function ItemEditPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Edit {entityConfig.displayName}
+          {getEditPageTitle(entityConfig)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update item name information.
+          {getEditPageDescription(entityConfig)}
         </p>
       </div>
       <form
@@ -157,7 +162,7 @@ export default function ItemEditPage() {
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
             } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : 'Update Item Name'}
+            {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
           </button>
         </div>
       </form>

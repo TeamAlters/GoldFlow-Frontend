@@ -1,7 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { FormSelect } from '../../../shared/components/FormSelect';
-import { MAX_LENGTH_24, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_24, MAX_NUMERIC_63_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 
 export type StaticAccessoryPurityFormData = {
   accessory_purity: string;
@@ -41,7 +40,6 @@ const StaticAccessoryPurityFormInner = forwardRef<
 >(function StaticAccessoryPurityFormInner(
   {
     initialData,
-    purityOptions = [],
     onSubmit,
     onCancel,
     isEdit = false,
@@ -68,6 +66,7 @@ const StaticAccessoryPurityFormInner = forwardRef<
   }, [initialData]);
 
   const handleChange = (key: keyof StaticAccessoryPurityFormData, value: string) => {
+    if (key === 'purity') value = sanitizeNumeric63Input(value);
     setFormData((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
   };
@@ -78,7 +77,16 @@ const StaticAccessoryPurityFormInner = forwardRef<
     if (!name) next.accessory_purity = 'Accessory purity is required';
     else if (name.length > MAX_LENGTH_24)
       next.accessory_purity = maxLengthError('Accessory purity', MAX_LENGTH_24);
-    if (!formData.purity.trim()) next.purity = 'Purity is required';
+    if (!formData.purity.trim()) next.purity = 'Accessory percentage is required';
+    else {
+      const err = validateNumeric63(formData.purity, 'Accessory percentage', { nonNegative: true });
+      if (err) next.purity = err;
+      else {
+        const num = parseFloat(formData.purity.trim());
+        if (Number.isFinite(num) && (num < 0 || num > 100))
+          next.purity = 'Accessory percentage must be between 0 and 100';
+      }
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -125,30 +133,20 @@ const StaticAccessoryPurityFormInner = forwardRef<
       </div>
       <div>
         <label className={labelClass}>
-          Purity <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
+          Accessory Percentage{' '}
+          <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
         </label>
-        {purityOptions.length > 0 ? (
-          <FormSelect
-            value={formData.purity}
-            onChange={(v) => handleChange('purity', v)}
-            options={purityOptions}
-            placeholder="Select purity"
-            disabled={readOnly}
-            className={inputClass('purity')}
-            isDarkMode={isDarkMode}
-          />
-        ) : (
-          <input
-            type="text"
-            value={formData.purity}
-            onChange={(e) => handleChange('purity', e.target.value)}
-            placeholder="Purity"
-            maxLength={MAX_LENGTH_24}
-            className={inputClass('purity')}
-            disabled={readOnly}
-            readOnly={readOnly}
-          />
-        )}
+        <input
+          type="text"
+          inputMode="decimal"
+          value={formData.purity}
+          onChange={(e) => handleChange('purity', e.target.value)}
+          placeholder="e.g. 92 or 92.5"
+          maxLength={MAX_NUMERIC_63_LENGTH}
+          className={inputClass('purity')}
+          disabled={readOnly}
+          readOnly={readOnly}
+        />
         {errors.purity && (
           <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>
         )}

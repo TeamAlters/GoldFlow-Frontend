@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, getEntityReferences, updateEntity } from '../../admin/admin.api';
+import { getEntityReferences, updateEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { useEntityLoad } from '../../../shared/hooks/useEntityLoad';
 import StaticProductCategoryForm, {
   type StaticProductCategoryFormData,
   type StaticProductCategoryFormRef,
@@ -12,21 +13,40 @@ import StaticProductCategoryForm, {
 } from './productCategoryForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialProductCategoryData, toProductCategoryPayload } from './productCategoryCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'product_category';
 
 export default function ProductCategoryEditPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const decodedId =
+    id != null && String(id).trim() !== ''
+      ? decodeURIComponent(String(id).trim())
+      : undefined;
   const entityConfig = getEntityConfig(ENTITY_NAME);
-
-  const [initialData, setInitialData] = useState<Partial<StaticProductCategoryFormData> | undefined>(
-    undefined
+  const { data: rawEntity, loading: dataLoading, error: loadError } = useEntityLoad(
+    ENTITY_NAME,
+    decodedId,
+    { errorMessage: 'Failed to load product category' }
   );
-  const [dataLoading, setDataLoading] = useState(true);
+
+  const initialData = useMemo(
+    () => (rawEntity ? toInitialProductCategoryData(rawEntity) : undefined),
+    [rawEntity]
+  );
+
   const [submitLoading, setSubmitLoading] = useState(false);
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const formRef = useRef<StaticProductCategoryFormRef>(null);
+
+  useEffect(() => {
+    if (loadError) showErrorToastUnlessAuth(loadError);
+  }, [loadError]);
 
   useEffect(() => {
     getEntityReferences('product')
@@ -41,35 +61,12 @@ export default function ProductCategoryEditPage() {
       .catch(() => setProductOptions([]));
   }, []);
 
-  useEffect(() => {
-    if (!id) return;
-    const controller = new AbortController();
-    setDataLoading(true);
-    getEntity(ENTITY_NAME, id, { signal: controller.signal })
-      .then((res) => {
-        if (controller.signal.aborted) return;
-        if (res.data && typeof res.data === 'object') {
-          const entity = res.data as Record<string, unknown>;
-          setInitialData(toInitialProductCategoryData(entity));
-        }
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        const msg = err instanceof Error ? err.message : 'Failed to load product category';
-        showErrorToastUnlessAuth(msg);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setDataLoading(false);
-      });
-    return () => controller.abort();
-  }, [id]);
-
   const handleSubmit = useCallback(
     async (formData: StaticProductCategoryFormData) => {
-      if (!id) return;
+      if (!decodedId) return;
       setSubmitLoading(true);
       try {
-        await updateEntity(ENTITY_NAME, id, toProductCategoryPayload(formData));
+        await updateEntity(ENTITY_NAME, decodedId, toProductCategoryPayload(formData));
         toast.success(`${entityConfig.displayName} updated successfully.`);
         navigate(entityConfig.routes.list);
       } catch (err) {
@@ -79,7 +76,7 @@ export default function ProductCategoryEditPage() {
         setSubmitLoading(false);
       }
     },
-    [id, navigate, entityConfig]
+    [decodedId, navigate, entityConfig]
   );
 
   const handleCancel = useCallback(() => {
@@ -98,7 +95,7 @@ export default function ProductCategoryEditPage() {
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
-  if (!id) {
+  if (!decodedId) {
     return <Navigate to={entityConfig.routes.list} replace />;
   }
 
@@ -115,7 +112,32 @@ export default function ProductCategoryEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.product_category ?? 'Edit Product Category';
+  if (loadError && !initialData) {
+    return (
+      <div className="w-full">
+        <Breadcrumbs
+          items={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
+            { label: getEditPageTitle(entityConfig) },
+          ]}
+          className="mb-4"
+        />
+        <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
+          <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{loadError}</p>
+          <button
+            type="button"
+            onClick={() => navigate(entityConfig.routes.list)}
+            className={`mt-4 px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+          >
+            Back to list
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.product_category);
 
   return (
     <div className="w-full">
@@ -131,10 +153,10 @@ export default function ProductCategoryEditPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Edit {entityConfig.displayName}
+          {getEditPageTitle(entityConfig)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update product category information.
+          {getEditPageDescription(entityConfig)}
         </p>
       </div>
       <form

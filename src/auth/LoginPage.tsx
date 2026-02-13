@@ -108,7 +108,10 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const data = await loginApi({ usernameOrEmail, password });
+      const data = await loginApi({
+        usernameOrEmail: usernameOrEmail.trim(),
+        password: password.trim(),
+      });
       const token =
         (data as { token?: string }).token ??
         (data as { access_token?: string }).access_token ??
@@ -117,18 +120,15 @@ export default function LoginPage() {
       const user =
         (data as { user?: AuthUser }).user ?? (data as { data?: { user?: AuthUser } }).data?.user;
       if (!token) {
-        console.log('[GoldFlow] [LoginPage] Login response missing token');
         setError('Invalid login response. Please try again.');
         toast.error('Invalid login response. Please try again.');
         return;
       }
       setAuth(token, user as AuthUser | undefined);
-      console.log('[GoldFlow] [LoginPage] Login success', { hasUser: !!user });
       toast.success('Signed in successfully.');
       navigate('/dashboard');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed';
-      console.log('[GoldFlow] [LoginPage] Login failed', { msg });
       setError(msg);
       toast.error(msg);
     } finally {
@@ -268,24 +268,26 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo/Brand */}
           <div className="flex items-center gap-3 mb-8">
-            {/* Logo Icon */}
-            {/* <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              isDarkMode 
-                ? 'bg-gradient-to-br from-amber-500 to-yellow-600' 
-                : 'bg-gradient-to-br from-amber-400 to-yellow-500'
-            } shadow-lg`}>
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                isDarkMode
+                  ? 'bg-gradient-to-br from-amber-500 to-yellow-600'
+                  : 'bg-gradient-to-br from-amber-400 to-yellow-500'
+              } shadow-lg`}
+            >
               <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
-            </div> */}
-            {/* Brand Name */}
-            {/* <span className={`text-2xl font-bold tracking-tight ${
-              isDarkMode 
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent' 
-                : 'bg-gradient-to-r from-amber-500 to-yellow-600 bg-clip-text text-transparent'
-            }`}>
+            </div>
+            <span
+              className={`text-2xl font-bold tracking-tight ${
+                isDarkMode
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent'
+                  : 'bg-gradient-to-r from-amber-500 to-yellow-600 bg-clip-text text-transparent'
+              }`}
+            >
               GoldFlow
-            </span> */}
+            </span>
           </div>
 
           {/* Welcome Header */}

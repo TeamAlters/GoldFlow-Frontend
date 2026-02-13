@@ -280,7 +280,7 @@ export default function ProductCategoryPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
+                navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(String(rowId))));
               }}
               className={
                 isDarkMode
@@ -349,7 +349,7 @@ export default function ProductCategoryPage() {
         onClick: (row) => {
           const rowId = getRowId(row);
           if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
+            navigate(entityConfig.routes.edit.replace(':id', encodeURIComponent(String(rowId))));
           }
         },
         variant: 'primary' as const,
@@ -398,7 +398,15 @@ export default function ProductCategoryPage() {
     return { default: defaultConfig, addable: addableConfig };
   }, [entityMetadata]);
 
-  const handleRowClick = () => { };
+  const handleRowClick = useCallback(
+    (row: EntityRow) => {
+      const rowId = getRowId(row);
+      if (rowId !== undefined && rowId !== null) {
+        navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(String(rowId))));
+      }
+    },
+    [getRowId, navigate, entityConfig.routes.detail]
+  );
 
   const hasFilters =
     Object.keys(filterConfig.default).length > 0 ||

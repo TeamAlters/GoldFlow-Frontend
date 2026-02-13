@@ -12,6 +12,11 @@ import StaticThicknessForm, {
 } from './thicknessForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialThicknessData, toThicknessPayload } from './thicknessCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'thickness';
 
@@ -109,7 +114,7 @@ export default function ThicknessEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.thickness ?? 'Edit Thickness';
+  const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.thickness);
 
   return (
     <div className="w-full">
@@ -125,10 +130,10 @@ export default function ThicknessEditPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Edit {entityConfig.displayName}
+          {getEditPageTitle(entityConfig)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update thickness information.
+          {getEditPageDescription(entityConfig)}
         </p>
       </div>
       <form
@@ -162,7 +167,7 @@ export default function ThicknessEditPage() {
               : 'bg-blue-500 hover:bg-blue-600 text-white'
               } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : 'Update Thickness'}
+            {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
           </button>
         </div>
       </form>

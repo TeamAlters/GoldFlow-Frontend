@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_4, MAX_LENGTH_36, maxLengthError, validateUppercaseOnly } from '../../../shared/utils/formValidation';
 
 export type StaticProductFormData = {
     product_name: string;
@@ -64,6 +64,9 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
         }, [initialData]);
 
         const handleChange = (key: keyof StaticProductFormData, value: string) => {
+            if (key === 'product_abbrevation') {
+                value = value.toUpperCase().slice(0, MAX_LENGTH_4);
+            }
             setFormData((prev) => ({ ...prev, [key]: value }));
             if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
         };
@@ -76,8 +79,14 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                 next.product_name = maxLengthError('Product name', MAX_LENGTH_36);
             const abbr = formData.product_abbrevation.trim();
             if (!abbr) next.product_abbrevation = 'Product abbreviation is required';
-            else if (abbr.length > MAX_LENGTH_36)
-                next.product_abbrevation = maxLengthError('Product abbreviation', MAX_LENGTH_36);
+            else {
+                if (abbr.length > MAX_LENGTH_4)
+                    next.product_abbrevation = maxLengthError('Product abbreviation', MAX_LENGTH_4);
+                else {
+                    const uppercaseErr = validateUppercaseOnly(abbr, 'Product abbreviation');
+                    if (uppercaseErr) next.product_abbrevation = uppercaseErr;
+                }
+            }
             setErrors(next);
             return Object.keys(next).length === 0;
         };
@@ -128,11 +137,12 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         type="text"
                         value={formData.product_abbrevation}
                         onChange={(e) => handleChange('product_abbrevation', e.target.value)}
-                        placeholder="e.g. GR, RC"
-                        maxLength={MAX_LENGTH_36}
+                        placeholder="e.g. GR, RC (max 4, uppercase)"
+                        maxLength={MAX_LENGTH_4}
                         className={inputClass('product_abbrevation')}
                         disabled={readOnly}
                         readOnly={readOnly}
+                        autoComplete="off"
                     />
                     {errors.product_abbrevation && (
                         <p className={`mt-1 ${errorClass}`}>{errors.product_abbrevation}</p>

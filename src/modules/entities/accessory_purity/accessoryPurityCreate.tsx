@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity, getEntityList } from '../../admin/admin.api';
+import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -17,18 +18,26 @@ const ENTITY_NAME = 'accessory_purity';
 export function toInitialAccessoryPurityData(
   entity: Record<string, unknown>
 ): Partial<StaticAccessoryPurityFormData> {
+  const percentage =
+    entity.accessory_purity_percentage !== undefined && entity.accessory_purity_percentage !== null
+      ? String(entity.accessory_purity_percentage)
+      : entity.purity != null
+        ? String(entity.purity)
+        : '';
   return {
     accessory_purity: entity.accessory_purity != null ? String(entity.accessory_purity) : '',
-    purity: entity.purity != null ? String(entity.purity) : '',
+    purity: percentage,
   };
 }
 
 export function toAccessoryPurityPayload(
   data: StaticAccessoryPurityFormData
 ): Record<string, unknown> {
+  const pctStr = data.purity.trim();
+  const pctNum = pctStr === '' ? NaN : Number(pctStr);
   return {
     accessory_purity: data.accessory_purity.trim(),
-    purity: data.purity.trim(),
+    accessory_purity_percentage: Number.isNaN(pctNum) ? pctStr : pctNum,
   };
 }
 
@@ -40,7 +49,7 @@ export default function AccessoryPurityCreatePage() {
   const formRef = useRef<StaticAccessoryPurityFormRef>(null);
 
   useEffect(() => {
-    getEntityList('purity', { page: 1, page_size: 500 })
+    getEntityList('purity', { page: 1, page_size: 100 })
       .then((res) => {
         const data = res.data as { items?: Record<string, unknown>[] } | undefined;
         const listItems = Array.isArray(data?.items) ? data.items : [];
@@ -57,9 +66,11 @@ export default function AccessoryPurityCreatePage() {
     async (formData: StaticAccessoryPurityFormData) => {
       setSubmitLoading(true);
       try {
-        await createEntity(ENTITY_NAME, toAccessoryPurityPayload(formData));
+        const payload = toAccessoryPurityPayload(formData);
+        const res = await createEntity(ENTITY_NAME, payload);
         toast.success(`${entityConfig.displayName} created successfully.`);
-        navigate(entityConfig.routes.list);
+        const id = getCreatedEntityId(res, payload as Record<string, unknown>, ['accessory_purity', 'id']);
+        navigate(id != null ? entityConfig.routes.detail.replace(':id', encodeURIComponent(String(id))) : entityConfig.routes.list);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);
@@ -103,7 +114,7 @@ export default function AccessoryPurityCreatePage() {
           Add {entityConfig.displayName}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Create a new accessory purity linked to a purity.
+          Create a new accessory purity with accessory percentage.
         </p>
       </div>
       <form

@@ -12,6 +12,11 @@ import StaticWireSizeForm, {
 } from './wireSizeForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialWireSizeData, toWireSizePayload } from './wireSizeCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'wire_size';
 
@@ -109,7 +114,7 @@ export default function WireSizeEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.wire_size ?? 'Edit Wire Size';
+  const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.wire_size);
 
   return (
     <div className="w-full">
@@ -125,10 +130,10 @@ export default function WireSizeEditPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Edit {entityConfig.displayName}
+          {getEditPageTitle(entityConfig)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update wire size information.
+          {getEditPageDescription(entityConfig)}
         </p>
       </div>
       <form
@@ -162,7 +167,7 @@ export default function WireSizeEditPage() {
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
               } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : 'Update Wire Size'}
+            {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
           </button>
         </div>
       </form>

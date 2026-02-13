@@ -7,6 +7,11 @@ import { useUIStore } from '../../../stores/ui.store';
 import StaticThicknessForm, { type StaticThicknessFormData } from './thicknessForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialThicknessData } from './thicknessCreate';
+import {
+  getViewPageTitle,
+  getViewBreadcrumbLabel,
+  getViewPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 
@@ -64,7 +69,8 @@ export default function ThicknessViewPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.thickness ?? 'View Thickness';
+  const viewPageTitle = getViewPageTitle(entityConfig);
+  const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.thickness);
 
   return (
     <div className="w-full">
@@ -81,10 +87,10 @@ export default function ThicknessViewPage() {
           <h1
             className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
           >
-            View {entityConfig.displayName}
+            {viewPageTitle}
           </h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Read-only thickness information.
+            {getViewPageDescription(entityConfig)}
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -96,7 +102,7 @@ export default function ThicknessViewPage() {
               : 'bg-blue-500 hover:bg-blue-600 text-white'
               }`}
           >
-            Edit Thickness
+            Edit {entityConfig.displayName}
           </Link>
         </div>
       </div>

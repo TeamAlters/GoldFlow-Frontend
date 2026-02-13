@@ -9,6 +9,11 @@ import StaticAccessoryPurityForm, {
 } from './accessoryPurityForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialAccessoryPurityData } from './accessoryPurityCreate';
+import {
+  getViewPageTitle,
+  getViewBreadcrumbLabel,
+  getViewPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 
@@ -69,7 +74,8 @@ export default function AccessoryPurityViewPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.accessory_purity ?? 'View Accessory Purity';
+  const viewPageTitle = getViewPageTitle(entityConfig);
+  const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.accessory_purity);
 
   return (
     <div className="w-full">
@@ -86,10 +92,10 @@ export default function AccessoryPurityViewPage() {
           <h1
             className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
           >
-            View {entityConfig.displayName}
+            {viewPageTitle}
           </h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Read-only accessory purity information.
+            {getViewPageDescription(entityConfig)}
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">

@@ -11,6 +11,11 @@ import StaticItemTypeForm, {
 } from './itemTypeForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialItemTypeData, toItemTypePayload } from './itemTypeCreate';
+import {
+  getEditPageTitle,
+  getEditBreadcrumbLabel,
+  getEditPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'item_type';
 
@@ -94,7 +99,7 @@ export default function ItemTypeEditPage() {
     );
   }
 
-  const breadcrumbLabel = initialData?.item_type ?? 'Edit Item Type';
+  const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.item_type);
 
   return (
     <div className="w-full">
@@ -110,10 +115,10 @@ export default function ItemTypeEditPage() {
         <h1
           className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
         >
-          Edit {entityConfig.displayName}
+          {getEditPageTitle(entityConfig)}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Update item type information.
+          {getEditPageDescription(entityConfig)}
         </p>
       </div>
       <form

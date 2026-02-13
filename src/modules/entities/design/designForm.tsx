@@ -51,7 +51,10 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
     ref
   ) {
     const isDarkMode = useUIStore((state) => state.isDarkMode);
-    const [formData, setFormData] = useState<StaticDesignFormData>({ ...emptyForm });
+    const [formData, setFormData] = useState<StaticDesignFormData>(() => ({
+      ...emptyForm,
+      ...(initialData ?? {}),
+    }));
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useImperativeHandle(ref, () => ({
@@ -98,14 +101,13 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
     };
 
     const inputClass = (key: string) =>
-      `w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${
-        errors[key]
-          ? isDarkMode
-            ? 'border-red-500 focus:ring-red-500/20 bg-red-500/10'
-            : 'border-red-300 focus:ring-red-500/20 bg-red-50'
-          : isDarkMode
-            ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
-            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+      `w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${errors[key]
+        ? isDarkMode
+          ? 'border-red-500 focus:ring-red-500/20 bg-red-500/10'
+          : 'border-red-300 focus:ring-red-500/20 bg-red-50'
+        : isDarkMode
+          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
       }`;
 
     const labelClass = `block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`;
@@ -171,22 +173,20 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
           <button
             type="button"
             onClick={onCancel}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
                 ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                 : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
+              }`}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitLoading}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
-            } disabled:opacity-60`}
+              } disabled:opacity-60`}
           >
             {submitLoading ? 'Saving...' : isEdit ? 'Update Design' : 'Create Design'}
           </button>

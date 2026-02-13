@@ -7,9 +7,26 @@ export const MAX_LENGTH_24 = 24;
 /** Max length 36 for specific entity fields. */
 export const MAX_LENGTH_36 = 36;
 
+/** Max length 4 for product abbreviation (uppercase only). */
+export const MAX_LENGTH_4 = 4;
+
 /** Returns error message when value exceeds max length. Use in form validate(). */
 export function maxLengthError(fieldLabel: string, max = MAX_TEXT_FIELD_LENGTH): string {
   return `${fieldLabel} must be at most ${max} characters`;
+}
+
+/** Returns error message if value contains lowercase; use for uppercase-only fields. */
+export function uppercaseOnlyError(fieldLabel: string): string {
+  return `${fieldLabel} must be uppercase only (lowercase not allowed)`;
+}
+
+/** Validates uppercase-only (A-Z, optional digits). Returns error message or null. */
+export function validateUppercaseOnly(value: string, fieldLabel: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  if (/[a-z]/.test(trimmed)) return uppercaseOnlyError(fieldLabel);
+  if (!/^[A-Z0-9]*$/.test(trimmed)) return `${fieldLabel} must contain only uppercase letters and numbers`;
+  return null;
 }
 
 /**

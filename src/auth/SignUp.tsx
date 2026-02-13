@@ -238,11 +238,11 @@ export default function SignUp() {
     setLoading(true);
     try {
       await registerApi({
-        username: formData.username,
-        name: formData.name,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
-        password: formData.password,
+        username: formData.username.trim(),
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        password: formData.password.trim(),
       });
       toast.success('User has been successfully created.');
       navigate('/login');
@@ -416,14 +416,18 @@ export default function SignUp() {
         }`}
       >
         <div className="mx-auto w-full max-w-md min-w-0 py-4">
-          {/* Logo - visible only when left panel is hidden (e.g. mobile) */}
-          <div className="lg:hidden flex items-center justify-start gap-3 mb-6">
+          {/* Logo/Brand - visible on all screen sizes (matches Login page) */}
+          <div className="flex items-center gap-3 mb-6">
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden shadow-lg ${
-                isDarkMode ? 'bg-slate-800/80' : 'bg-slate-200/80'
+              className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
+                isDarkMode
+                  ? 'bg-gradient-to-br from-amber-500 to-yellow-600'
+                  : 'bg-gradient-to-br from-amber-400 to-yellow-500'
               }`}
             >
-              <img src="/favicon.svg" alt="GoldFlow" className="w-8 h-8 object-contain" />
+              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
             </div>
             <span
               className={`text-2xl font-bold tracking-tight ${

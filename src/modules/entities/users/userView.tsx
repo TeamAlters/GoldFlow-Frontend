@@ -16,6 +16,11 @@ import {
     toInitialUserData,
     capabilitiesFromEntity,
 } from './userCreate';
+import {
+    getViewPageTitle,
+    getViewBreadcrumbLabel,
+    getViewPageDescription,
+} from '../../../shared/utils/entityPageLabels';
 
 const ENTITY_NAME = 'user';
 
@@ -97,6 +102,12 @@ export default function UserViewPage() {
         return <Navigate to={entityConfig.routes.list} replace />;
     }
 
+    const viewPageTitle = getViewPageTitle(entityConfig);
+    const breadcrumbLabel = getViewBreadcrumbLabel(
+        entityConfig,
+        (initialData?.username ?? initialData?.email) as string | undefined
+    );
+
     if (dataLoading) {
         return (
             <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
@@ -116,7 +127,7 @@ export default function UserViewPage() {
                 items={[
                     { label: 'Dashboard', href: '/dashboard' },
                     { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
-                    { label: "View User" },
+                    { label: breadcrumbLabel },
                 ]}
                 className="mb-4"
             />
@@ -124,10 +135,10 @@ export default function UserViewPage() {
                 <h1
                     className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                 >
-                    View {entityConfig.displayName}
+                    {viewPageTitle}
                 </h1>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Read-only user information and permissions.
+                    {getViewPageDescription(entityConfig)}
                 </p>
             </div>
             <div
@@ -211,7 +222,7 @@ export default function UserViewPage() {
                         to={editUrl}
                         className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
                     >
-                        Edit User
+                        Edit {entityConfig.displayName}
                     </Link>
                 </div>
             </div>
