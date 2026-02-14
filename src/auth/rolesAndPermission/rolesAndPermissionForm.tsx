@@ -5,14 +5,26 @@ import {
     getEntityConfig,
 } from '../../config/entity.config';
 
-const PERMISSIONS = ['create', 'read', 'update', 'delete'] as const;
+const PERMISSIONS = ['create', 'read', 'update', 'delete', 'export'] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
 export type TablePermissions = Record<Permission, boolean>;
 export type PermissionsMatrix = Record<string, TablePermissions>;
 
+const PERMISSION_LABELS: Record<Permission, string> = {
+    create: 'Create',
+    read: 'Read',
+    update: 'Edit',
+    delete: 'Delete',
+    export: 'Export',
+};
+
+export function getPermissionLabel(perm: Permission): string {
+    return PERMISSION_LABELS[perm];
+}
+
 export function defaultPermissions(): TablePermissions {
-    return { create: false, read: false, update: false, delete: false };
+    return { create: false, read: false, update: false, delete: false, export: false };
 }
 
 export function buildInitialMatrix(entityNames: string[]): PermissionsMatrix {
@@ -28,20 +40,27 @@ export interface RolesPermissionsTableProps {
     onToggle: (tableKey: string, permission: Permission) => void;
     /** When true, checkboxes are disabled (read-only view). */
     readOnly?: boolean;
+    /** When true, use entity display names for all rows (e.g. "User" instead of "Category" for user entity). Use only on Roles & Permissions page. */
+    useEntityDisplayNames?: boolean;
+    /** Optional entity names for table rows. When provided, used instead of getEntityNamesForRolesTable() (e.g. user view/edit/create pass list including "user"). */
+    entityNames?: string[];
 }
 
 const checkboxClass =
     'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 dark:border-gray-500 dark:bg-gray-700 dark:checked:bg-blue-600 dark:focus:ring-offset-gray-900';
 
-export function RolesPermissionsTable({ matrix, onToggle, readOnly = false }: RolesPermissionsTableProps) {
+export function RolesPermissionsTable({ matrix, onToggle, readOnly = false, useEntityDisplayNames = false, entityNames: entityNamesProp }: RolesPermissionsTableProps) {
     const isDarkMode = useUIStore((state) => state.isDarkMode);
-    const entityNames = useMemo(() => getEntityNamesForRolesTable(), []);
+    const entityNames = useMemo(
+        () => entityNamesProp ?? getEntityNamesForRolesTable(),
+        [entityNamesProp]
+    );
     const tableRows = useMemo(() => {
         return entityNames.map((key) => ({
             key,
-            label: key === 'user' ? 'Category' : getEntityConfig(key).displayName,
+            label: useEntityDisplayNames ? getEntityConfig(key).displayName : (key === 'user' ? 'Category' : getEntityConfig(key).displayName),
         }));
-    }, [entityNames]);
+    }, [entityNames, useEntityDisplayNames]);
 
     const theadBg = isDarkMode ? 'bg-gray-800' : 'bg-gray-100';
     const thText = `text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`;
@@ -65,7 +84,7 @@ export function RolesPermissionsTable({ matrix, onToggle, readOnly = false }: Ro
                             scope="col"
                             className={`${thClass} text-left rounded-tl-xl w-[20%] ${thText}`}
                         >
-                            TABLES
+                            Tables
                         </th>
                         {PERMISSIONS.map((perm) => {
                             const allChecked =
@@ -82,7 +101,7 @@ export function RolesPermissionsTable({ matrix, onToggle, readOnly = false }: Ro
                                     scope="col"
                                     className={`${thClass} text-center w-[20%] ${thText}`}
                                 >
-                                        <label className={`inline-flex items-center justify-center gap-2 select-none ${readOnly ? '' : 'cursor-pointer'}`}>
+                                    <label className={`inline-flex items-center justify-center gap-2 select-none ${readOnly ? '' : 'cursor-pointer'}`}>
                                         <input
                                             type="checkbox"
                                             checked={allChecked}
@@ -91,10 +110,10 @@ export function RolesPermissionsTable({ matrix, onToggle, readOnly = false }: Ro
                                             }}
                                             onChange={() => handleHeaderToggle(perm)}
                                             className={checkboxClass}
-                                            aria-label={`Select all ${perm}`}
+                                            aria-label={`Select all ${getPermissionLabel(perm)}`}
                                             disabled={readOnly}
                                         />
-                                        <span className="capitalize">{perm}</span>
+                                        <span>{getPermissionLabel(perm)}</span>
                                     </label>
                                 </th>
                             );
@@ -119,7 +138,7 @@ export function RolesPermissionsTable({ matrix, onToggle, readOnly = false }: Ro
                                                 checked={checked}
                                                 onChange={() => !readOnly && onToggle(row.key, perm)}
                                                 className={checkboxClass}
-                                                aria-label={`${row.label} - ${perm}`}
+                                                aria-label={`${row.label} - ${getPermissionLabel(perm)}`}
                                                 disabled={readOnly}
                                             />
                                         </label>

@@ -1,16 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
-import { getEntityConfig, getEntityNamesForRolesTable } from '../../../config/entity.config';
+import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticUserForm, { type StaticUserFormData } from './userForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import {
-    RolesPermissionsTable,
-    buildInitialMatrix,
-    type PermissionsMatrix,
-} from '../../admin/RolesPage';
 import {
     type CapabilitiesState,
     toInitialUserData,
@@ -32,14 +27,12 @@ export default function UserViewPage() {
     const [initialData, setInitialData] = useState<Partial<StaticUserFormData> | undefined>(undefined);
     const [dataLoading, setDataLoading] = useState(true);
 
-    const entityNames = useMemo(() => getEntityNamesForRolesTable(), []);
-    const [permissionsMatrix, setPermissionsMatrix] = useState<PermissionsMatrix>(() =>
-        buildInitialMatrix(entityNames)
-    );
     const [capabilities, setCapabilities] = useState<CapabilitiesState>({
         canCreateDepartment: false,
         canViewActivity: false,
     });
+    const [roleName, setRoleName] = useState<string>('');
+
 
     useEffect(() => {
         if (!id) return;
@@ -50,36 +43,14 @@ export default function UserViewPage() {
                     const entity = res.data as Record<string, unknown>;
                     setInitialData(toInitialUserData(entity));
                     setCapabilities(capabilitiesFromEntity(entity));
-                    // If API returns role_permissions in same shape, we could set it here
-                    const rolePerms = entity.role_permissions;
-                    if (
-                        rolePerms &&
-                        typeof rolePerms === 'object' &&
-                        !Array.isArray(rolePerms)
-                    ) {
-                        const next: PermissionsMatrix = {};
-                        for (const key of entityNames) {
-                            const row = (rolePerms as Record<string, unknown>)[key];
-                            if (
-                                row &&
-                                typeof row === 'object' &&
-                                'create' in row &&
-                                'read' in row &&
-                                'update' in row &&
-                                'delete' in row
-                            ) {
-                                next[key] = {
-                                    create: (row as Record<string, unknown>).create === true,
-                                    read: (row as Record<string, unknown>).read === true,
-                                    update: (row as Record<string, unknown>).update === true,
-                                    delete: (row as Record<string, unknown>).delete === true,
-                                };
-                            }
-                        }
-                        if (Object.keys(next).length > 0) {
-                            setPermissionsMatrix((prev) => ({ ...prev, ...next }));
-                        }
+                    let name = '';
+                    if (entity.role_name != null && entity.role_name !== '') {
+                        name = String(entity.role_name);
+                    } else if (entity.role && typeof entity.role === 'object' && 'name' in entity.role) {
+                        const r = entity.role as Record<string, unknown>;
+                        name = r.name != null ? String(r.name) : '';
                     }
+                    setRoleName(name);
                 }
             })
             .catch((err) => {
@@ -87,7 +58,7 @@ export default function UserViewPage() {
                 showErrorToastUnlessAuth(msg);
             })
             .finally(() => setDataLoading(false));
-    }, [id, entityNames]);
+    }, [id]);
 
     const handleBack = useCallback(() => {
         navigate(entityConfig.routes.list);
@@ -156,26 +127,19 @@ export default function UserViewPage() {
                     >
                         Roles and Permissions
                     </h2>
-                    <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Table-level permissions: Create, Read, Update, and Delete per entity.
-                    </p>
-                    <div
-                        className={`overflow-hidden rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
-                    >
-                        <RolesPermissionsTable
-                            matrix={permissionsMatrix}
-                            onToggle={() => { }}
-                            readOnly={true}
-                        />
+                    <div className="mb-4 max-w-xs">
+                        <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Role
+                        </label>
+                        <div
+                            className={`min-h-[42px] px-4 py-2.5 flex items-center rounded-lg border text-sm ${isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
+                        >
+                            {roleName || '—'}
+                        </div>
                     </div>
                 </section>
 
                 <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <h2
-                        className={`text-lg font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-                    >
-                        Capabilities
-                    </h2>
                     <div className="space-y-3">
                         <label className="flex items-center gap-3 select-none">
                             <input

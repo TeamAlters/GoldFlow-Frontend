@@ -295,8 +295,10 @@ export async function getEntityReferences(
   const url = buildEntityUrl(ENTITY_REFERENCES_PATH, entityName);
   console.log('[GoldFlow] [admin.api] getEntityReferences: request', { entityName, url });
   try {
-    const res = await apiClient.get<EntityReferencesResponse>(url);
-    const data = res.data?.data;
+    const res = await apiClient.get<EntityReferencesResponse & { data?: unknown }>(url);
+    const body = res.data;
+    if (Array.isArray(body)) return body;
+    const data = body?.data;
     if (Array.isArray(data)) return data;
     const items = (data as { items?: Record<string, unknown>[] } | undefined)?.items;
     return Array.isArray(items) ? items : [];

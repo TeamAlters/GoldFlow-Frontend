@@ -488,6 +488,32 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     },
   },
 
+  role: {
+    displayName: 'Role',
+    displayNamePlural: 'Roles',
+    api: {
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
+      list: DEFAULT_API_PATHS.list,
+      create: '/api/v1/roles',
+      get: '/api/v1/roles/{id}',
+      update: '/api/v1/roles/{id}',
+      delete: '/api/v1/roles/{id}',
+    },
+    routes: {
+      list: '/roles',
+      add: '/roles/add',
+      edit: '/roles/edit/:id',
+      detail: '/roles/:id',
+    },
+    features: {
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: false,
+    },
+  },
+
   workorder: {
     displayName: 'Work Order',
     displayNamePlural: 'Work Orders',
@@ -559,11 +585,18 @@ export function getAllEntityNames(): string[] {
   return Object.keys(ENTITY_CONFIG);
 }
 
-/** Entity names to show in Roles/Permissions table (excludes work order) */
-const ROLES_TABLE_ENTITY_NAMES = ['user', 'product'] as const;
+/** Entity names for standalone Roles & Permissions page (excludes user) */
+const ROLES_TABLE_ENTITY_NAMES = ['product'] as const;
+
+/** Entity names for user view/create/edit permission matrix (includes user) */
+const USER_PERMISSIONS_ENTITY_NAMES = ['user', 'product'] as const;
 
 export function getEntityNamesForRolesTable(): string[] {
   return [...ROLES_TABLE_ENTITY_NAMES];
+}
+
+export function getEntityNamesForUserPermissionsTable(): string[] {
+  return [...USER_PERMISSIONS_ENTITY_NAMES];
 }
 
 /**
@@ -618,3 +651,16 @@ export function hasEntityFeature(
   const config = getEntityConfig(entityName);
   return config.features?.[feature] ?? true; // Default to true if not specified
 }
+
+/** Routes and API path for Roles & Permissions (no hardcoded URLs in components). */
+export const roleConfig = {
+  routes: {
+      list: '/roles',
+      add: '/roles/add',
+      edit: '/roles/edit/:id',
+      detail: '/roles/:id',
+  },
+  /** Backend roles API path. If you get 404 Not Found, change to match your API (e.g. '/api/roles' or '/roles'). */
+  apiBasePath: '/api/v1/roles',
+} as const;
+
