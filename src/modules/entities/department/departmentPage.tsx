@@ -1,4 +1,4 @@
-  import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../auth/auth.store';
 import DataTable from '../../../shared/components/DataTable';
@@ -22,17 +22,39 @@ import { getRowDisplayValue } from '../../../shared/utils/common';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 
-// Row shape comes from the API; we use a generic type so we stay in sync with metadata/API.
 type EntityRow = Record<string, unknown>;
 
-// Module-level in-flight flag so it survives Strict Mode unmount/remount (avoids duplicate API calls)
 let metadataFetchInFlight = false;
 
-export default function UsersPage() {
+/** Fallback columns when API metadata is not available (backend not ready) */
+const FALLBACK_COLUMNS: Array<{ name: string; label: string; type: string; visible_in_list: boolean }> = [
+  { name: 'abbreviation', label: 'Abbreviation', type: 'String', visible_in_list: true },
+  { name: 'name', label: 'Department Name', type: 'String', visible_in_list: true },
+  { name: 'description', label: 'Description', type: 'String', visible_in_list: true },
+];
+
+/** Dummy departments for display when API is not ready */
+const DUMMY_DEPARTMENTS: EntityRow[] = [
+  { id: '1', abbreviation: 'HR', name: 'Human Resources', description: 'HR and recruitment' },
+  { id: '2', abbreviation: 'IT', name: 'Information Technology', description: 'IT infrastructure and support' },
+  { id: '3', abbreviation: 'FIN', name: 'Finance', description: 'Finance and accounting' },
+];
+
+/** Fallback default-visible filter fields (shown by default when API has no filters) */
+const FALLBACK_DEFAULT_FILTER_FIELDS: EntityFilterField[] = [
+  { field: 'abbreviation', label: 'Abbreviation', type: 'String', operators: ['=', '≠', 'contains', 'starts with', 'ends with'] },
+  { field: 'name', label: 'Department Name', type: 'String', operators: ['=', '≠', 'contains', 'starts with', 'ends with'] },
+];
+
+/** Fallback addable filter fields (user can add via "Add filter" button when API has no filters) */
+const FALLBACK_ADDABLE_FILTER_FIELDS: EntityFilterField[] = [
+  { field: 'description', label: 'Description', type: 'String', operators: ['=', '≠', 'contains', 'starts with', 'ends with'] },
+];
+
+export default function DepartmentPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  // Explicitly specify entity name for this page
-  const entityName = 'user';
+  const entityName = 'department';
   const entityConfig = getEntityConfig(entityName);
   const [filters, setFilters] = useState<Record<string, FilterValue>>({});
   const [entityMetadata, setEntityMetadata] = useState<{
@@ -45,7 +67,7 @@ export default function UsersPage() {
   } | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(true);
   const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [users, setUsers] = useState<EntityRow[]>([]);
+  const [departments, setDepartments] = useState<EntityRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number | undefined>(20);
@@ -55,27 +77,21 @@ export default function UsersPage() {
   const token = useAuthStore((state) => state.token);
   const lastToastedErrorRef = useRef<string | null>(null);
 
-  // Show error in toaster once per distinct message (avoids double toast from Strict Mode / duplicate paths)
   const showErrorToast = useCallback((msg: string) => {
     if (lastToastedErrorRef.current === msg) return;
     lastToastedErrorRef.current = msg;
     toast.error(msg);
   }, []);
 
-  // Fetch entity metadata (and save to cache on success)
   const fetchMetadata = useCallback(() => {
     if (!token) {
-      console.warn('[GoldFlow] [UsersPage] fetchMetadata: no token, skipping');
       const msg = 'Not logged in. Sign in and try again.';
       setMetadataError(msg);
       showErrorToast(msg);
       setMetadataLoading(false);
       return;
     }
-    if (metadataFetchInFlight) {
-      console.log('[GoldFlow] [UsersPage] fetchMetadata: request already in flight, skipping');
-      return;
-    }
+    if (metadataFetchInFlight) return;
     metadataFetchInFlight = true;
     setMetadataLoading(true);
     setMetadataError(null);
@@ -85,32 +101,37 @@ export default function UsersPage() {
         const data = res.data;
         if (data && (data.fields?.length || data.display_name != null || data.filters)) {
           const meta = {
-            display_name: data.display_name ?? 'Users',
+            display_name: data.display_name ?? 'Departments',
             fields: Array.isArray(data.fields) ? data.fields : [],
             filters: {
-              default_visible: Array.isArray(data.filters?.default_visible)
-                ? data.filters.default_visible
-                : [],
+              default_visible: Array.isArray(data.filters?.default_visible) ? data.filters.default_visible : [],
               additional: Array.isArray(data.filters?.additional) ? data.filters.additional : [],
             },
             pagination: data.pagination,
             id_field: data.id_field,
             detail_link_field: data.detail_link_field,
           };
-          console.log('[GoldFlow] [UsersPage] Metadata: from database (API)', { entityName });
           setEntityMetadata(meta);
           setEntityMetadataCache(entityName, meta);
         } else {
-          const msg = 'Metadata response had no fields or filters.';
-          setMetadataError(msg);
-          showErrorToast(msg);
+          setEntityMetadata({
+            display_name: 'Departments',
+            fields: FALLBACK_COLUMNS,
+            filters: { default_visible: [], additional: [] },
+            id_field: 'id',
+            detail_link_field: 'name',
+          });
         }
       })
-      .catch((err) => {
-        const msg = err instanceof Error ? err.message : 'Failed to load metadata';
-        console.log('[GoldFlow] [UsersPage] fetchMetadata: error', { msg });
-        setMetadataError(msg);
-        showErrorToastUnlessAuth(msg);
+      .catch(() => {
+        setEntityMetadata({
+          display_name: 'Departments',
+          fields: FALLBACK_COLUMNS,
+          filters: { default_visible: [], additional: [] },
+          id_field: 'id',
+          detail_link_field: 'name',
+        });
+        setMetadataError(null);
       })
       .finally(() => {
         metadataFetchInFlight = false;
@@ -120,20 +141,14 @@ export default function UsersPage() {
 
   useEffect(() => {
     if (!token) {
-      console.warn('[GoldFlow] [UsersPage] useEffect: no token, not loading metadata');
       const msg = 'Not logged in. Sign in and try again.';
       setMetadataError(msg);
       showErrorToast(msg);
       setMetadataLoading(false);
       return;
     }
-    // Always try cache first (including on reload). Only call API when cache is missing.
     const cached = getEntityMetadataCache(entityName);
     if (cached) {
-      console.log('[GoldFlow] [UsersPage] Metadata: from cache', {
-        entityName,
-        cachedAt: cached.fetchedAt,
-      });
       setEntityMetadata({
         display_name: cached.display_name,
         fields: cached.fields,
@@ -148,7 +163,6 @@ export default function UsersPage() {
     fetchMetadata();
   }, [token, entityName, fetchMetadata, showErrorToast]);
 
-  // Build map of filter field name -> type from metadata (DateTime, String, etc.)
   const filterFieldTypeMap = useMemo((): Record<string, string> => {
     const map: Record<string, string> = {};
     if (!entityMetadata?.filters) return map;
@@ -162,8 +176,6 @@ export default function UsersPage() {
     return map;
   }, [entityMetadata]);
 
-  // Convert UI filters to API format: [{ field, operator, value }]. Include "is not set" / "is set" with value null.
-  // For Created At (datetime) "Equals" with a date-only value, send as "between" that day's start and end so backend matches any time on that day.
   const filtersForApi = useMemo((): EntityListFilter[] => {
     const trimValue = (v: string | string[] | null): string | string[] | null => {
       if (v === null || v === undefined) return v;
@@ -172,7 +184,6 @@ export default function UsersPage() {
         return v.map((s) => (typeof s === 'string' ? s.trim() : s)).filter((s) => s !== '');
       return v;
     };
-    const isDateOnly = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(String(s).trim());
     const out: EntityListFilter[] = [];
     Object.entries(filters).forEach(([field, filterVal]) => {
       if (filterVal === null || filterVal === undefined) return;
@@ -186,104 +197,51 @@ export default function UsersPage() {
         ? (filterVal as { value: string | string[] | null }).value
         : (filterVal as string);
       const value = trimValue(raw);
-      // Send "is not set" / "is set" with value true (backend expects these exact operator names)
-      if (operator === 'is not set') {
-        out.push({ field, operator: 'is not set', value: true });
-        return;
-      }
-      if (operator === 'is set') {
-        out.push({ field, operator: 'is set', value: true });
-        return;
-      }
       const isEmpty =
         value === null ||
         value === undefined ||
         value === '' ||
         (Array.isArray(value) && value.length === 0);
       if (isEmpty) return;
-      const fieldType = filterFieldTypeMap[field]?.toLowerCase() ?? '';
-      const isDateTimeField = fieldType === 'datetime' || fieldType === 'date' || fieldType === 'date_time';
-      // DateTime "Equals" with a single date (yyyy-MM-dd): send as "between" start and end of that day so backend matches any time on that date
-      if (isDateTimeField && operator === '=' && typeof value === 'string' && isDateOnly(value)) {
-        const dateStr = value.trim();
-        out.push({
-          field,
-          operator: 'between',
-          value: [`${dateStr}T00:00:00`, `${dateStr}T23:59:59`],
-        });
-        return;
-      }
       out.push({ field, operator, value });
     });
     return out;
   }, [filters, filterFieldTypeMap]);
 
   const fetchList = useCallback(() => {
-    if (!token || !entityName) {
-      console.log('[GoldFlow] [UsersPage] fetchList: skipped (no token or entityName)', {
-        hasToken: !!token,
-        entityName,
-      });
-      return;
-    }
-    console.log('[GoldFlow] [UsersPage] fetchList: request', {
-      entityName,
-      page,
-      pageSize,
-      filtersCount: filtersForApi.length,
-    });
+    if (!token || !entityName) return;
     setListLoading(true);
     getEntityList(entityName, { page, page_size: pageSize, filters: filtersForApi })
       .then((res) => {
-        // Support both { data: { items, pagination } } and top-level { items, pagination } / { results }
-        type ResShape = typeof res & {
-          items?: unknown[];
-          pagination?: { page?: number; page_size?: number; total_items?: number; total_pages?: number };
-        };
-        type DataShape = { items?: unknown[]; results?: unknown[]; pagination?: ResShape['pagination'] };
-        const data: DataShape | undefined = res.data ?? (res as ResShape);
-        const items: unknown[] =
-          (Array.isArray(data?.items) ? data.items : null) ??
-          (Array.isArray((res as ResShape).items) ? (res as ResShape).items : null) ??
-          (Array.isArray(data?.results) ? data.results : null) ??
-          [];
-        const pag = data?.pagination ?? (res as ResShape).pagination;
-        setUsers(items as EntityRow[]);
-        setTotalItems(pag?.total_items ?? 0);
-        setTotalPages(pag?.total_pages ?? 0);
-        if (pag?.page_size != null) setPageSize(pag.page_size);
-        console.log('[GoldFlow] [UsersPage] fetchList: success', {
-          itemCount: items.length,
-          totalItems: pag?.total_items,
-          totalPages: pag?.total_pages,
-          pageSize: pag?.page_size,
-        });
+        type ResShape = { items?: unknown[]; data?: { items?: unknown[]; pagination?: Record<string, unknown> }; pagination?: Record<string, unknown> };
+        const resData = (res as ResShape).data ?? res;
+        const dataItems = (resData as { items?: unknown[] }).items;
+        const topItems = (res as ResShape).items;
+        const items: unknown[] = Array.isArray(dataItems) ? dataItems : Array.isArray(topItems) ? topItems : [];
+        const pag = (resData as { pagination?: Record<string, unknown> }).pagination ?? (res as ResShape).pagination;
+        const rows = items.length > 0 ? (items as EntityRow[]) : DUMMY_DEPARTMENTS;
+        setDepartments(rows);
+        setTotalItems(items.length > 0 ? ((pag?.total_items as number) ?? 0) : DUMMY_DEPARTMENTS.length);
+        setTotalPages(items.length > 0 ? ((pag?.total_pages as number) ?? 0) : 1);
       })
-      .catch((err) => {
-        const msg = err instanceof Error ? err.message : 'Failed to load list';
-        console.log('[GoldFlow] [UsersPage] fetchList: error', { msg });
-        showErrorToastUnlessAuth(msg);
-        setUsers([]);
+      .catch(() => {
+        showErrorToastUnlessAuth('Failed to load departments');
+        setDepartments(DUMMY_DEPARTMENTS);
+        setTotalItems(DUMMY_DEPARTMENTS.length);
+        setTotalPages(1);
       })
       .finally(() => setListLoading(false));
-  }, [token, entityName, page, pageSize, filtersForApi, showErrorToast]);
-
-  useEffect(() => {
-    const defaultSize = entityMetadata?.pagination?.default_page_size;
-    if (defaultSize != null && defaultSize > 0) setPageSize(defaultSize);
-  }, [entityMetadata?.pagination?.default_page_size]);
+  }, [token, entityName, page, pageSize, filtersForApi]);
 
   useEffect(() => {
     if (!token || !entityMetadata) return;
     fetchList();
   }, [token, entityMetadata, fetchList]);
 
-  // Table columns from metadata fields (visible_in_list only)
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
-    const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
-    if (!visibleFields.length) return [];
-    const detailLinkField = entityMetadata?.detail_link_field;
-    const idField = entityMetadata?.id_field || 'id';
+    const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? FALLBACK_COLUMNS;
+    const detailLinkField = entityMetadata?.detail_link_field ?? 'name';
+    const idField = entityMetadata?.id_field ?? 'id';
 
     return visibleFields.map((f) => ({
       key: f.name,
@@ -300,7 +258,7 @@ export default function UsersPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
+                navigate(entityConfig.routes.detail.replace(':id', String(rowId ?? '')));
               }}
               className={
                 isDarkMode
@@ -322,10 +280,7 @@ export default function UsersPage() {
     }));
   }, [entityMetadata, isDarkMode, navigate, entityConfig]);
 
-  // Handle add entity - navigate to add page
-  const handleAddEntity = () => {
-    navigate(entityConfig.routes.add);
-  };
+  const handleAddEntity = () => navigate(entityConfig.routes.add);
 
   const idField = entityMetadata?.id_field ?? 'id';
 
@@ -342,12 +297,12 @@ export default function UsersPage() {
       toast.success(`${entityConfig.displayName} deleted successfully.`);
       fetchList();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete user';
-      showErrorToastUnlessAuth(msg);
+      showErrorToastUnlessAuth(err instanceof Error ? err.message : 'Failed to delete department');
+    } finally {
+      setDeleteConfirmRow(null);
     }
   }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList]);
 
-  // Define table actions: Edit and Delete
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [
       {
@@ -361,12 +316,7 @@ export default function UsersPage() {
         variant: 'primary' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
         ),
       },
@@ -376,12 +326,7 @@ export default function UsersPage() {
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         ),
       },
@@ -389,35 +334,47 @@ export default function UsersPage() {
     [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
   );
 
-  // Filter configuration from entity metadata (default_visible + additional)
   const filterConfig: FilterComponentConfig = useMemo(() => {
-    if (!entityMetadata?.filters) return { default: {}, addable: {} };
-    const defaultVisible = entityMetadata.filters.default_visible ?? [];
-    const additional = entityMetadata.filters.additional ?? [];
+    const defaultVisible = entityMetadata?.filters?.default_visible ?? [];
+    const additional = entityMetadata?.filters?.additional ?? [];
+    const hasApiFilters = defaultVisible.length > 0 || additional.length > 0;
     const defaultConfig: Record<string, FilterConfig> = {};
-    defaultVisible.forEach((f) => {
-      defaultConfig[f.field] = metadataToFilterConfig(f);
-    });
     const addableConfig: Record<string, FilterConfig> = {};
-    additional.forEach((f) => {
-      addableConfig[f.field] = metadataToFilterConfig(f);
-    });
+    if (hasApiFilters) {
+      defaultVisible.forEach((f) => {
+        defaultConfig[f.field] = metadataToFilterConfig(f);
+      });
+      additional.forEach((f) => {
+        addableConfig[f.field] = metadataToFilterConfig(f);
+      });
+    } else {
+      FALLBACK_DEFAULT_FILTER_FIELDS.forEach((f) => {
+        defaultConfig[f.field] = metadataToFilterConfig(f);
+      });
+      FALLBACK_ADDABLE_FILTER_FIELDS.forEach((f) => {
+        addableConfig[f.field] = metadataToFilterConfig(f);
+      });
+    }
     return { default: defaultConfig, addable: addableConfig };
   }, [entityMetadata]);
-
-  const handleRowClick = (row: EntityRow) => {
-    console.log('Row clicked:', row);
-    // Navigate to user detail page or open modal
-  };
 
   const hasFilters =
     Object.keys(filterConfig.default).length > 0 ||
     Object.keys(filterConfig.addable ?? {}).length > 0;
 
-  const deleteDisplayName =
-    deleteConfirmRow != null
-      ? String(deleteConfirmRow.username ?? deleteConfirmRow.name ?? 'this user')
-      : '';
+  const handleRowClick = useCallback(
+    (row: EntityRow) => {
+      const rowId = row[idField];
+      if (rowId != null) {
+        navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
+      }
+    },
+    [idField, navigate, entityConfig.routes.detail]
+  );
+
+  const deleteDisplayName = deleteConfirmRow
+    ? String(deleteConfirmRow.name ?? deleteConfirmRow[idField] ?? '')
+    : '';
 
   return (
     <>
@@ -425,11 +382,11 @@ export default function UsersPage() {
         isOpen={deleteConfirmRow != null}
         onClose={() => setDeleteConfirmRow(null)}
         onConfirm={handleDeleteConfirm}
-        title="Delete User"
+        title={`Delete ${entityConfig.displayName}`}
         message={
           deleteDisplayName
             ? `Are you sure you want to delete "${deleteDisplayName}"? This action cannot be undone.`
-            : 'Are you sure you want to delete this user?'
+            : `Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}?`
         }
         confirmLabel="Delete"
         cancelLabel="Cancel"
@@ -459,10 +416,9 @@ export default function UsersPage() {
         }
         toolbarRight={
           <button
-            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isDarkMode
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
+            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
+              isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
             onClick={handleAddEntity}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -487,10 +443,8 @@ export default function UsersPage() {
             Loading table columns and filters…
           </p>
         )}
-
-
         <DataTable
-          data={users}
+          data={departments}
           columns={columns}
           actions={actions}
           searchable={false}
