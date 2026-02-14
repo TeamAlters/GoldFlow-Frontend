@@ -13,6 +13,20 @@ export const MAX_LENGTH_36 = 36;
 /** Max length 4 for product abbreviation (uppercase only). */
 export const MAX_LENGTH_4 = 4;
 
+/** Max length for department name. */
+export const MAX_DEPARTMENT_NAME_LENGTH = 36;
+
+/** Max length for department group name. */
+export const MAX_DEPARTMENT_GROUP_NAME_LENGTH = 64;
+
+/** Max value for order field (0-99). */
+export const MAX_ORDER_VALUE = 99;
+
+/** Sanitizes department abbreviation: uppercase letters only, max 4 chars. */
+export function sanitizeDepartmentAbbreviationInput(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, MAX_LENGTH_4);
+}
+
 /** Returns error message when value exceeds max length. Use in form validate(). */
 export function maxLengthError(fieldLabel: string, max = MAX_TEXT_FIELD_LENGTH): string {
   return `${fieldLabel} must be at most ${max} characters`;

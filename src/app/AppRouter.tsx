@@ -67,6 +67,14 @@ import CustomerPage from '../modules/entities/customer/CustomerPage';
 import CustomerCreatePage from '../modules/entities/customer/customerCreate';
 import CustomerEditPage from '../modules/entities/customer/customerEdit';
 import CustomerViewPage from '../modules/entities/customer/customerView';
+import DepartmentPage from '../modules/entities/department/departmentPage';
+import DepartmentCreatePage from '../modules/entities/department/departmentCreate';
+import DepartmentEditPage from '../modules/entities/department/departmentEdit';
+import DepartmentViewPage from '../modules/entities/department/departmentView';
+import DepartmentGroupPage from '../modules/entities/departmentGroup/departmentGroupPage';
+import DepartmentGroupCreatePage from '../modules/entities/departmentGroup/departmentGroupCreate';
+import DepartmentGroupEditPage from '../modules/entities/departmentGroup/departmentGroupEdit';
+import DepartmentGroupViewPage from '../modules/entities/departmentGroup/departmentGroupView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 
@@ -176,6 +184,14 @@ export default function AppRouter() {
           <Route path="customers/add" element={<CustomerCreatePage />} />
           <Route path="customers/edit/:id" element={<CustomerEditPage />} />
           <Route path="customers/:id" element={<CustomerViewPage />} />
+          <Route path="departments" element={<DepartmentPage />} />
+          <Route path="departments/add" element={<DepartmentCreatePage />} />
+          <Route path="departments/edit/:id" element={<DepartmentEditPage />} />
+          <Route path="departments/:id" element={<DepartmentViewPage />} />
+          <Route path="department-groups" element={<DepartmentGroupPage />} />
+          <Route path="department-groups/add" element={<DepartmentGroupCreatePage />} />
+          <Route path="department-groups/edit/:id" element={<DepartmentGroupEditPage />} />
+          <Route path="department-groups/:id" element={<DepartmentGroupViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>

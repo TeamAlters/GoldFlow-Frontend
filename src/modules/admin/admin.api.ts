@@ -326,6 +326,20 @@ export function mapReferenceItemsToOptions(
 }
 
 /**
+ * Fetches entity list via /api/v1/entities/{entity_name}/list and maps to dropdown options.
+ * Use this for Product and Department dropdowns instead of references API.
+ */
+export async function getEntityListOptions(
+  entityName: string,
+  valueKey = 'id',
+  labelKey = 'name'
+): Promise<ReferenceOption[]> {
+  const res = await getEntityList(entityName, { page: 1, page_size: 500 });
+  const items = res.data?.items ?? [];
+  return mapReferenceItemsToOptions(items, valueKey, labelKey);
+}
+
+/**
  * POST /api/v1/entities/{entity_name}
  * Create a new entity item
  */
