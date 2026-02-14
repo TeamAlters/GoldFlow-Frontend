@@ -315,12 +315,6 @@ export default function DepartmentPage() {
       additional.forEach((f) => {
         addableConfig[f.field] = metadataToFilterConfig(f);
       });
-    } else {
-      const defaultConfig: Record<string, FilterConfig> = {
-        abbreviation: { key: 'abbreviation', label: 'Abbreviation', dataType: 'string', operators: ['=', '≠', 'contains', 'starts with', 'ends with'] },
-        name: { key: 'name', label: 'Name', dataType: 'string', operators: ['=', '≠', 'contains', 'starts with', 'ends with'] },
-        description: { key: 'description', label: 'Description', dataType: 'string', operators: ['=', '≠', 'contains', 'starts with', 'ends with'] },
-      };
     }
     return { default: defaultConfig, addable: addableConfig };
   }, [entityMetadata]);
