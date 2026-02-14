@@ -1,6 +1,9 @@
 /** Max length for entity form text fields (add/edit). Do not allow more than this. */
 export const MAX_TEXT_FIELD_LENGTH = 32;
 
+/** Max length for description fields. */
+export const MAX_DESCRIPTION_LENGTH = 256;
+
 /** Max length 24 for specific entity fields. */
 export const MAX_LENGTH_24 = 24;
 

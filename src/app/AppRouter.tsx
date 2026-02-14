@@ -1,6 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import LoginPage from '../auth/LoginPage';
 import SignUp from '../auth/SignUp';
+import RoleAndPermissionPage from '../auth/rolesAndPermission/RoleAndPermissionPage';
+import RolesAndPermissionCreatePage from '../auth/rolesAndPermission/rolesAndPermissionCreate';
+import RolesAndPermissionViewPage from '../auth/rolesAndPermission/rolesAndPermissionView';
+import RolesAndPermissionEditPage from '../auth/rolesAndPermission/rolesAndPermissionEdit';
 import RequireAuth from '../auth/RequireAuth';
 import DashboardIndex from '../modules/dashboard/DashboardPage';
 import UsersPage from '../modules/entities/users/UsersPage';
@@ -112,6 +116,10 @@ export default function AppRouter() {
           <Route path="users/add" element={<UserCreatePage />} />
           <Route path="users/edit/:id" element={<UserEditPage />} />
           <Route path="users/:id" element={<UserViewPage />} />
+          <Route path="roles" element={<RoleAndPermissionPage />} />
+          <Route path="roles/add" element={<RolesAndPermissionCreatePage />} />
+          <Route path="roles/edit/:id" element={<RolesAndPermissionEditPage />} />
+          <Route path="roles/:id" element={<RolesAndPermissionViewPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/add" element={<ProductCreatePage />} />
           <Route path="products/edit/:id" element={<ProductEditPage />} />

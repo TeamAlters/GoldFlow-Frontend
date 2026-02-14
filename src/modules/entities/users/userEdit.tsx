@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { getEntityConfig, getEntityNamesForRolesTable } from '../../../config/entity.config';
-import { getEntity, updateEntity } from '../../admin/admin.api';
+import { getEntityConfig } from '../../../config/entity.config';
+import { getEntity, getEntityReferences, mapReferenceItemsToOptions, updateEntity } from '../../admin/admin.api';
+import type { ReferenceOption } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -10,12 +11,6 @@ import StaticUserForm, {
     type StaticUserFormRef,
 } from './userForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import {
-    RolesPermissionsTable,
-    buildInitialMatrix,
-    type PermissionsMatrix,
-    type Permission,
-} from '../../admin/RolesPage';
 import {
     type CapabilitiesState,
     toInitialUserData,
@@ -41,24 +36,45 @@ export default function EditUserPage() {
     const [dataLoading, setDataLoading] = useState(true);
     const [submitLoading, setSubmitLoading] = useState(false);
 
-    const entityNames = useMemo(() => getEntityNamesForRolesTable(), []);
-    const [permissionsMatrix, setPermissionsMatrix] = useState<PermissionsMatrix>(() =>
-        buildInitialMatrix(entityNames)
-    );
     const [capabilities, setCapabilities] = useState<CapabilitiesState>({
         canCreateDepartment: false,
         canViewActivity: false,
     });
     const userFormRef = useRef<StaticUserFormRef>(null);
+    const [roleOptions, setRoleOptions] = useState<ReferenceOption[]>([]);
+    const [selectedRoleId, setSelectedRoleId] = useState('');
+    const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+    const roleDropdownRef = useRef<HTMLDivElement>(null);
 
-    const handlePermissionToggle = useCallback((tableKey: string, permission: Permission) => {
-        setPermissionsMatrix((prev) => {
-            const next = { ...prev };
-            const row = next[tableKey] ?? { create: false, read: false, update: false, delete: false };
-            next[tableKey] = { ...row, [permission]: !row[permission] };
-            return next;
-        });
+    useEffect(() => {
+        getEntityReferences('role')
+            .then((items) => {
+                const opts = mapReferenceItemsToOptions(items, 'id', 'name');
+                if (opts.length === 0 && items.length > 0) {
+                    const fallback = items.map((row) => {
+                        const val = row.id ?? row.name ?? row.role_id ?? row.role_name;
+                        const label = row.name ?? row.role_name ?? String(val ?? '');
+                        return { value: String(val ?? ''), label: String(label || val || '') };
+                    });
+                    setRoleOptions(fallback);
+                } else {
+                    setRoleOptions(opts);
+                }
+            })
+            .catch(() => setRoleOptions([]));
     }, []);
+
+    useEffect(() => {
+        if (!roleDropdownOpen) return;
+        const handleClick = (e: MouseEvent) => {
+            if (roleDropdownRef.current && !roleDropdownRef.current.contains(e.target as Node)) {
+                setRoleDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [roleDropdownOpen]);
+   
 
     useEffect(() => {
         if (!id) return;
@@ -69,6 +85,8 @@ export default function EditUserPage() {
                     const entity = res.data as Record<string, unknown>;
                     setInitialData(toInitialUserData(entity));
                     setCapabilities(capabilitiesFromEntity(entity));
+                    const roleId = entity.role_id != null ? String(entity.role_id) : (entity.role && typeof entity.role === 'object' && 'id' in entity.role ? String((entity.role as Record<string, unknown>).id ?? '') : '');
+                    setSelectedRoleId(roleId);
                 }
             })
             .catch((err) => {
@@ -82,6 +100,7 @@ export default function EditUserPage() {
         async (formData: StaticUserFormData) => {
             if (!id) return;
             const payload = toUserPayload(formData, true, capabilities);
+            payload.role_id = selectedRoleId;
             setSubmitLoading(true);
             try {
                 await updateEntity(ENTITY_NAME, id, payload);
@@ -94,7 +113,7 @@ export default function EditUserPage() {
                 setSubmitLoading(false);
             }
         },
-        [id, navigate, entityConfig, capabilities]
+        [id, navigate, entityConfig, capabilities, selectedRoleId]
     );
 
     const handleCancel = useCallback(() => {
@@ -174,15 +193,60 @@ export default function EditUserPage() {
                         Roles and Permissions
                     </h2>
                     <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Assign table-level permissions: Create, Read, Update, and Delete per entity.
+                        Assign table-level permissions
                     </p>
-                    <div
-                        className={`overflow-hidden rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
-                    >
-                        <RolesPermissionsTable
-                            matrix={permissionsMatrix}
-                            onToggle={handlePermissionToggle}
-                        />
+                    <div className="mb-4 max-w-xs">
+                        <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Role
+                        </label>
+                        <div ref={roleDropdownRef} className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setRoleDropdownOpen((o) => !o)}
+                                className={`w-full min-h-[42px] px-4 py-2.5 flex items-center justify-between text-left text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 focus:border-blue-500 focus:ring-blue-500/20 ${roleDropdownOpen ? 'ring-2 ring-blue-500/30' : ''} ${isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-900'}`}
+                            >
+                                <span className={!selectedRoleId ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}>
+                                    {roleOptions.find((o) => o.value === selectedRoleId)?.label ?? 'Select role'}
+                                </span>
+                                <svg
+                                    className={`w-4 h-4 shrink-0 transition-transform ${roleDropdownOpen ? 'rotate-180' : ''}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            {roleDropdownOpen && (
+                                <div
+                                    className={`absolute left-0 right-0 top-full z-50 mt-1 py-1 rounded-lg border shadow-lg ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedRoleId('');
+                                            setRoleDropdownOpen(false);
+                                        }}
+                                        className={`w-full px-4 py-2.5 text-left text-sm ${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'} ${!selectedRoleId ? (isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50') : ''}`}
+                                    >
+                                        Select role
+                                    </button>
+                                    {roleOptions.map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedRoleId(opt.value);
+                                                setRoleDropdownOpen(false);
+                                            }}
+                                            className={`w-full px-4 py-2.5 text-left text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} ${selectedRoleId === opt.value ? (isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50') : ''}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </section>
 
