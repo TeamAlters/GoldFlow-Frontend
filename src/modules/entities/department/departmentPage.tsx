@@ -26,31 +26,6 @@ type EntityRow = Record<string, unknown>;
 
 let metadataFetchInFlight = false;
 
-/** Fallback columns when API metadata is not available (backend not ready) */
-const FALLBACK_COLUMNS: Array<{ name: string; label: string; type: string; visible_in_list: boolean }> = [
-  { name: 'abbreviation', label: 'Abbreviation', type: 'String', visible_in_list: true },
-  { name: 'name', label: 'Department Name', type: 'String', visible_in_list: true },
-  { name: 'description', label: 'Description', type: 'String', visible_in_list: true },
-];
-
-/** Dummy departments for display when API is not ready */
-const DUMMY_DEPARTMENTS: EntityRow[] = [
-  { id: '1', abbreviation: 'HR', name: 'Human Resources', description: 'HR and recruitment' },
-  { id: '2', abbreviation: 'IT', name: 'Information Technology', description: 'IT infrastructure and support' },
-  { id: '3', abbreviation: 'FIN', name: 'Finance', description: 'Finance and accounting' },
-];
-
-/** Fallback default-visible filter fields (shown by default when API has no filters) */
-const FALLBACK_DEFAULT_FILTER_FIELDS: EntityFilterField[] = [
-  { field: 'abbreviation', label: 'Abbreviation', type: 'String', operators: ['=', '≠', 'contains', 'starts with', 'ends with'] },
-  { field: 'name', label: 'Department Name', type: 'String', operators: ['=', '≠', 'contains', 'starts with', 'ends with'] },
-];
-
-/** Fallback addable filter fields (user can add via "Add filter" button when API has no filters) */
-const FALLBACK_ADDABLE_FILTER_FIELDS: EntityFilterField[] = [
-  { field: 'description', label: 'Description', type: 'String', operators: ['=', '≠', 'contains', 'starts with', 'ends with'] },
-];
-
 export default function DepartmentPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
@@ -116,7 +91,7 @@ export default function DepartmentPage() {
         } else {
           setEntityMetadata({
             display_name: 'Departments',
-            fields: FALLBACK_COLUMNS,
+            fields: [],
             filters: { default_visible: [], additional: [] },
             id_field: 'id',
             detail_link_field: 'name',
@@ -124,13 +99,6 @@ export default function DepartmentPage() {
         }
       })
       .catch(() => {
-        setEntityMetadata({
-          display_name: 'Departments',
-          fields: FALLBACK_COLUMNS,
-          filters: { default_visible: [], additional: [] },
-          id_field: 'id',
-          detail_link_field: 'name',
-        });
         setMetadataError(null);
       })
       .finally(() => {
@@ -219,15 +187,15 @@ export default function DepartmentPage() {
         const topItems = (res as ResShape).items;
         const items: unknown[] = Array.isArray(dataItems) ? dataItems : Array.isArray(topItems) ? topItems : [];
         const pag = (resData as { pagination?: Record<string, unknown> }).pagination ?? (res as ResShape).pagination;
-        const rows = items.length > 0 ? (items as EntityRow[]) : DUMMY_DEPARTMENTS;
+        const rows = items as EntityRow[];
         setDepartments(rows);
-        setTotalItems(items.length > 0 ? ((pag?.total_items as number) ?? 0) : DUMMY_DEPARTMENTS.length);
-        setTotalPages(items.length > 0 ? ((pag?.total_pages as number) ?? 0) : 1);
+        setTotalItems((pag?.total_items as number) ?? 0);
+        setTotalPages((pag?.total_pages as number) ?? 0);
       })
       .catch(() => {
         showErrorToastUnlessAuth('Failed to load departments');
-        setDepartments(DUMMY_DEPARTMENTS);
-        setTotalItems(DUMMY_DEPARTMENTS.length);
+        setDepartments([]);
+        setTotalItems(0);
         setTotalPages(1);
       })
       .finally(() => setListLoading(false));
@@ -239,7 +207,7 @@ export default function DepartmentPage() {
   }, [token, entityMetadata, fetchList]);
 
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
-    const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? FALLBACK_COLUMNS;
+    const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
     const detailLinkField = entityMetadata?.detail_link_field ?? 'name';
     const idField = entityMetadata?.id_field ?? 'id';
 
@@ -345,13 +313,6 @@ export default function DepartmentPage() {
         defaultConfig[f.field] = metadataToFilterConfig(f);
       });
       additional.forEach((f) => {
-        addableConfig[f.field] = metadataToFilterConfig(f);
-      });
-    } else {
-      FALLBACK_DEFAULT_FILTER_FIELDS.forEach((f) => {
-        defaultConfig[f.field] = metadataToFilterConfig(f);
-      });
-      FALLBACK_ADDABLE_FILTER_FIELDS.forEach((f) => {
         addableConfig[f.field] = metadataToFilterConfig(f);
       });
     }
