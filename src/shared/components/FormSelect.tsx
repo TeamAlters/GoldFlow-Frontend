@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface FormSelectOption {
   value: string;
@@ -28,14 +29,29 @@ export function FormSelect({
   isDarkMode = false,
 }: FormSelectProps) {
   const [open, setOpen] = useState(false);
+  const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLUListElement>(null);
 
   const selectedLabel = value ? options.find((o) => o.value === value)?.label ?? value : '';
 
   useEffect(() => {
+    if (open && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownRect({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    } else {
+      setDropdownRect(null);
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        containerRef.current && !containerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     };
@@ -43,37 +59,17 @@ export function FormSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
-  return (
-    <div ref={containerRef} className="relative min-w-0 max-w-full">
-      <button
-        type="button"
-        onClick={() => !disabled && setOpen((prev) => !prev)}
-        disabled={disabled}
-        className={`w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 text-left flex items-center justify-between gap-2 min-w-0 ${className}`}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <span className="truncate min-w-0">
-          {selectedLabel || <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>{placeholder}</span>}
-        </span>
-        <svg
-          className={`flex-shrink-0 w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      {open && (
-        <ul
-          className={`absolute z-50 left-0 right-0 mt-1 py-1 rounded-lg border shadow-lg max-h-60 overflow-auto min-w-0 ${
-            isDarkMode
-              ? 'bg-gray-700 border-gray-600'
-              : 'bg-white border-gray-200'
-          }`}
-          role="listbox"
-        >
+  const dropdownList = open && dropdownRect && (
+    <ul
+      ref={dropdownRef}
+      className={`fixed z-[9999] py-1 rounded-lg border shadow-lg max-h-60 overflow-auto min-w-0 ${
+        isDarkMode
+          ? 'bg-gray-700 border-gray-600'
+          : 'bg-white border-gray-200'
+      }`}
+      style={{ top: dropdownRect.top, left: dropdownRect.left, width: dropdownRect.width, minWidth: dropdownRect.width }}
+      role="listbox"
+    >
           <li
             role="option"
             aria-selected={value === ''}
@@ -116,8 +112,32 @@ export function FormSelect({
               {opt.label}
             </li>
           ))}
-        </ul>
-      )}
+    </ul>
+  );
+
+  return (
+    <div ref={containerRef} className="relative min-w-0 max-w-full">
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((prev) => !prev)}
+        disabled={disabled}
+        className={`w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 text-left flex items-center justify-between gap-2 min-w-0 ${className}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="truncate min-w-0">
+          {selectedLabel || <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>{placeholder}</span>}
+        </span>
+        <svg
+          className={`flex-shrink-0 w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {dropdownList && createPortal(dropdownList, document.body)}
     </div>
   );
 }

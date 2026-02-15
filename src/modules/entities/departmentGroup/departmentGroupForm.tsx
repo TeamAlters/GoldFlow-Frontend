@@ -52,10 +52,10 @@ const StaticDepartmentGroupFormInner = forwardRef<
     onSubmit,
     onCancel,
     isEdit = false,
-    readOnly = false,
-    submitLoading = false,
-    wrapInForm = true,
-    showActions = true,
+  readOnly = false,
+  submitLoading = false,
+  wrapInForm = true,
+  showActions = true,
   },
   ref
 ) {
@@ -103,6 +103,16 @@ const StaticDepartmentGroupFormInner = forwardRef<
         next.order = `Order must be between 0 and ${MAX_ORDER_VALUE}`;
     }
     if (!formData.product_id.trim()) next.product_id = 'Product is required';
+    const emptyDeptIndex = formData.departments.findIndex((r) => !r.department_id?.trim());
+    if (emptyDeptIndex >= 0) {
+      next.departments = `Select a department for row ${emptyDeptIndex + 1}.`;
+    } else {
+      const deptIds = formData.departments.map((r) => r.department_id?.trim()).filter(Boolean);
+      const uniqueIds = new Set(deptIds);
+      if (uniqueIds.size < deptIds.length) {
+        next.departments = 'Each department can only appear once in the group. Remove duplicates.';
+      }
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -221,6 +231,7 @@ const StaticDepartmentGroupFormInner = forwardRef<
           readOnly={readOnly}
           title="Department"
         />
+        {errors.departments && <p className={`mt-2 ${errorClass}`}>{errors.departments}</p>}
       </section>
     </div>
   );

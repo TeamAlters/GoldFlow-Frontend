@@ -514,6 +514,32 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     },
   },
 
+  product_department_group: {
+    displayName: 'Product Department Group',
+    displayNamePlural: 'Product Department Groups',
+    api: {
+      listingMetadata: '/api/v1/entities/{entity_name}/listing-metadata',
+      formMetadata: '/api/v1/entities/{entity_name}/form-metadata',
+      list: '/api/v1/entities/{entity_name}/list',
+      create: '/api/v1/product/department-groups',
+      get: '/api/v1/product/department-groups/{entity_id}',
+      update: '/api/v1/product/department-groups/{entity_id}',
+      delete: '/api/v1/product/department-groups/{entity_id}',
+    },
+    routes: {
+      list: '/department-groups',
+      add: '/department-groups/add',
+      edit: '/department-groups/edit/:id',
+      detail: '/department-groups/:id',
+    },
+    features: {
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: false,
+    },
+  },
+
   department: {
     displayName: 'Department',
     displayNamePlural: 'Departments',

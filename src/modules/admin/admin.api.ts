@@ -279,11 +279,33 @@ export async function getEntityList(
 
 export type ReferenceOption = { value: string; label: string };
 
-/** Response shape for references API (items may be in data or data.items) */
-type EntityReferencesResponse = {
-  success?: boolean;
-  data?: Record<string, unknown>[] | { items?: Record<string, unknown>[] };
-};
+/**
+ * Extracts items array from references API response (handles various backend shapes).
+ */
+function extractReferenceItems(body: unknown, entityName?: string): Record<string, unknown>[] {
+  if (Array.isArray(body)) return body;
+  const obj = body && typeof body === 'object' ? (body as Record<string, unknown>) : null;
+  if (!obj) return [];
+  const data = obj.data;
+  if (Array.isArray(data)) return data;
+  const dataObj = data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
+  if (dataObj) {
+    const items = dataObj.items;
+    if (Array.isArray(items)) return items;
+    const results = dataObj.results;
+    if (Array.isArray(results)) return results;
+    if (entityName) {
+      const plural = entityName + 's';
+      const arr = dataObj[plural] ?? dataObj[entityName];
+      if (Array.isArray(arr)) return arr;
+    }
+  }
+  const results = obj.results;
+  if (Array.isArray(results)) return results;
+  const items = obj.items;
+  if (Array.isArray(items)) return items;
+  return [];
+}
 
 /**
  * GET /api/v1/entities/references/{entity_name}
@@ -295,13 +317,10 @@ export async function getEntityReferences(
   const url = buildEntityUrl(ENTITY_REFERENCES_PATH, entityName);
   console.log('[GoldFlow] [admin.api] getEntityReferences: request', { entityName, url });
   try {
-    const res = await apiClient.get<EntityReferencesResponse & { data?: unknown }>(url);
-    const body = res.data;
-    if (Array.isArray(body)) return body;
-    const data = body?.data;
-    if (Array.isArray(data)) return data;
-    const items = (data as { items?: Record<string, unknown>[] } | undefined)?.items;
-    return Array.isArray(items) ? items : [];
+    const res = await apiClient.get<unknown>(url);
+    const items = extractReferenceItems(res.data, entityName);
+    console.log('[GoldFlow] [admin.api] getEntityReferences: success', { entityName, count: items.length });
+    return items;
   } catch (err) {
     const errMsg = messageFromAxiosError(err, `Failed to load references for ${entityName}`);
     console.log('[GoldFlow] [admin.api] getEntityReferences: failed', { entityName, errMsg });
@@ -326,8 +345,89 @@ export function mapReferenceItemsToOptions(
 }
 
 /**
+ * Maps product reference items to dropdown options.
+ * References API returns product_name, product_abbreviation (not id/name).
+ */
+export function mapProductReferencesToOptions(items: Record<string, unknown>[]): ReferenceOption[] {
+  return items.map((row) => {
+    const name = row.product_name ?? row.product_abbreviation ?? row.product_abbrevation ?? row.name;
+    const value = String(row.product_name ?? name ?? row.id ?? '');
+    return { value, label: String(name ?? value) };
+  });
+}
+
+/**
+ * Maps department reference items to dropdown options.
+ * API returns { name, abbreviation, is_active } - no id field.
+ * Uses name for value and label; abbreviation as fallback for label.
+ */
+export function mapDepartmentReferencesToOptions(items: Record<string, unknown>[]): ReferenceOption[] {
+  return items.map((row) => {
+    if (row.value != null && row.label != null) {
+      return { value: String(row.value), label: String(row.label) };
+    }
+    const name = row.name ?? row.department_name ?? row.department ?? row.label;
+    const abbrev = row.abbreviation ?? row.abbrev;
+    const label = name ?? abbrev ?? row.id ?? row.pk ?? row.department_id ?? '';
+    const value = String(row.id ?? row.pk ?? row.department_id ?? name ?? abbrev ?? row.value ?? '');
+    return { value, label: String(label || value) };
+  });
+}
+
+/**
+ * Parses department references API response.
+ * API returns: { success, data: [{ name, abbreviation, is_active }] }
+ */
+function parseDepartmentReferencesResponse(body: unknown): ReferenceOption[] {
+  const obj = body && typeof body === 'object' ? (body as Record<string, unknown>) : null;
+  if (!obj) return [];
+  let data = obj.data;
+  if (!Array.isArray(data)) {
+    const inner = data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
+    data = (inner?.data ?? inner?.items ?? inner?.results) as unknown[] | undefined;
+  }
+  if (!Array.isArray(data)) return [];
+  const opts = data
+    .filter((row) => row && typeof row === 'object')
+    .map((row) => {
+      const r = row as Record<string, unknown>;
+      const name = (r.name ?? r.department_name ?? r.department ?? r.abbreviation ?? r.abbrev ?? '') as string;
+      const value = String(name || (r.id ?? r.pk ?? r.department_id ?? ''));
+      const label = String(name || (r.abbreviation ?? r.abbrev ?? value));
+      return { value, label };
+    })
+    .filter((o) => o.value !== '');
+  return opts;
+}
+
+/**
+ * Fetches department options for dropdowns.
+ * Tries list endpoint first (often has same auth as other CRUD), then references endpoint.
+ * Response: { success, data: [{ name, abbreviation, is_active }] } or list items
+ */
+export async function getDepartmentOptions(): Promise<ReferenceOption[]> {
+  // Try list endpoint first - may succeed when references returns 401 (different route permissions)
+  try {
+    const res = await getEntityList('department', { page: 1, page_size: 500 });
+    const items = res.data?.items ?? [];
+    const opts = mapDepartmentReferencesToOptions(items);
+    if (opts.length > 0) return opts;
+  } catch {
+    // Fall through to references
+  }
+  try {
+    const url = buildEntityUrl(ENTITY_REFERENCES_PATH, 'department');
+    const res = await apiClient.get<unknown>(url);
+    const opts = parseDepartmentReferencesResponse(res.data);
+    if (opts.length > 0) return opts;
+  } catch {
+    // Both failed
+  }
+  return [];
+}
+
+/**
  * Fetches entity list via /api/v1/entities/{entity_name}/list and maps to dropdown options.
- * Use this for Product and Department dropdowns instead of references API.
  */
 export async function getEntityListOptions(
   entityName: string,

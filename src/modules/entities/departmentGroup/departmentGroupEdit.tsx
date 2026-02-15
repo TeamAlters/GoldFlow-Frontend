@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, updateEntity, getEntityListOptions } from '../../admin/admin.api';
+import {
+  getEntity,
+  updateEntity,
+  getEntityReferences,
+  getEntityListOptions,
+  getDepartmentOptions,
+  mapProductReferencesToOptions,
+  mapDepartmentReferencesToOptions,
+} from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -10,7 +18,6 @@ import StaticDepartmentGroupForm, {
   type StaticDepartmentGroupFormRef,
 } from './departmentGroupForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toDepartmentGroupPayload } from './departmentGroupCreate';
 import {
   getEditPageTitle,
   getEditBreadcrumbLabel,
@@ -18,25 +25,26 @@ import {
 } from '../../../shared/utils/entityPageLabels';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
 import type { SortableTableRow } from '../../../shared/components/SortableTableWithAdd';
+import { toProductDepartmentGroupPayload } from './departmentGroupCreate';
 
-const ENTITY_NAME = 'department_group';
+const ENTITY_NAME = 'product_department_group';
 
 function parseDepartments(rows: unknown): SortableTableRow[] {
   if (!Array.isArray(rows)) return [];
   return rows.map((r, i) => {
     const obj = r as Record<string, unknown>;
     const dept = obj.department;
-    const departmentId =
-      obj.department_id != null
-        ? String(obj.department_id)
-        : dept && typeof dept === 'object' && dept !== null && 'id' in dept
-          ? String((dept as { id?: unknown }).id ?? '')
-          : '';
+    const departmentVal =
+      typeof dept === 'string'
+        ? dept
+        : dept && typeof dept === 'object' && dept !== null && 'name' in dept
+          ? String((dept as { name?: unknown }).name ?? '')
+          : String(obj.department ?? '');
     return {
-      id: String(obj.id ?? `row-${i}-${Date.now()}`),
-      order: typeof obj.order === 'number' ? obj.order : i + 1,
-      department_id: departmentId,
-      is_active: obj.is_active === true,
+      id: String(obj.id ?? obj.name ?? `row-${i}-${Date.now()}`),
+      order: i + 1,
+      department_id: departmentVal,
+      is_active: true,
     };
   });
 }
@@ -44,12 +52,11 @@ function parseDepartments(rows: unknown): SortableTableRow[] {
 export function toInitialDepartmentGroupData(
   entity: Record<string, unknown>
 ): Partial<StaticDepartmentGroupFormData> {
-  const departments = entity.departments;
   return {
-    name: entity.name != null ? String(entity.name) : '',
-    order: entity.order != null ? String(entity.order) : '',
-    product_id: entity.product_id != null ? String(entity.product_id) : '',
-    departments: parseDepartments(departments),
+    name: entity.department_group_name != null ? String(entity.department_group_name) : '',
+    order: entity.step_no != null ? String(entity.step_no) : '1',
+    product_id: entity.product != null ? String(entity.product) : '',
+    departments: parseDepartments(entity.departments),
   };
 }
 
@@ -69,18 +76,29 @@ export default function DepartmentGroupEditPage() {
   const formRef = useRef<StaticDepartmentGroupFormRef>(null);
 
   useEffect(() => {
-    Promise.all([
-      getEntityListOptions('product', 'id', 'name'),
-      getEntityListOptions('department', 'id', 'name'),
-    ])
-      .then(([products, departments]) => {
-        setProductOptions(products);
-        setDepartmentOptions(departments);
+    getEntityReferences('product')
+      .then((items) => {
+        const opts = mapProductReferencesToOptions(items);
+        if (opts.length > 0) return setProductOptions(opts);
+        return getEntityListOptions('product', 'product_name', 'product_name').then(setProductOptions);
       })
-      .catch(() => {
-        setProductOptions([]);
-        setDepartmentOptions([]);
-      });
+      .catch(() =>
+        getEntityListOptions('product', 'product_name', 'product_name')
+          .then(setProductOptions)
+          .catch(() => setProductOptions([]))
+      );
+
+    getDepartmentOptions()
+      .then((items) => {
+        const opts = mapDepartmentReferencesToOptions(items);
+        if (opts.length > 0) return setDepartmentOptions(opts);
+        return getEntityListOptions('department', 'department_name', 'department_name').then(setDepartmentOptions);
+      })
+      .catch(() =>
+        getEntityListOptions('department', 'department_name', 'department_name')
+          .then(setDepartmentOptions)
+          .catch(() => setDepartmentOptions([]))
+      );
   }, []);
 
   useEffect(() => {
@@ -88,9 +106,10 @@ export default function DepartmentGroupEditPage() {
     setDataLoading(true);
     getEntity(ENTITY_NAME, decodedId)
       .then((res) => {
-        if (res.data && typeof res.data === 'object') {
-          const entity = res.data as Record<string, unknown>;
-          setInitialData(toInitialDepartmentGroupData(entity));
+        type ResShape = { data?: Record<string, unknown> };
+        const data = (res as ResShape).data ?? (res as Record<string, unknown>);
+        if (data && typeof data === 'object') {
+          setInitialData(toInitialDepartmentGroupData(data));
         }
       })
       .catch((err) => {
@@ -104,7 +123,8 @@ export default function DepartmentGroupEditPage() {
       if (!decodedId) return;
       setSubmitLoading(true);
       try {
-        await updateEntity(ENTITY_NAME, decodedId, toDepartmentGroupPayload(formData));
+        const payload = toProductDepartmentGroupPayload(formData, productOptions, departmentOptions);
+        await updateEntity(ENTITY_NAME, decodedId, payload);
         toast.success(`${entityConfig.displayName} updated successfully.`);
         navigate(entityConfig.routes.list);
       } catch (err) {
@@ -113,7 +133,7 @@ export default function DepartmentGroupEditPage() {
         setSubmitLoading(false);
       }
     },
-    [decodedId, navigate, entityConfig]
+    [decodedId, navigate, entityConfig, productOptions, departmentOptions]
   );
 
   const handleCancel = useCallback(() => {
@@ -185,7 +205,7 @@ export default function DepartmentGroupEditPage() {
           wrapInForm={false}
           showActions={false}
         />
-        <div className="flex items-center justify-end gap-3 pt-6 mt-6">
+        <div className={`flex items-center justify-end gap-3 pt-6 mt-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <button
             type="button"
             onClick={handleCancel}

@@ -26,30 +26,10 @@ type EntityRow = Record<string, unknown>;
 
 let metadataFetchInFlight = false;
 
-const FALLBACK_COLUMNS: Array<{ name: string; label: string; type: string; visible_in_list: boolean }> = [
-  { name: 'name', label: 'Department Group Name', type: 'String', visible_in_list: true },
-  { name: 'order', label: 'Order', type: 'Integer', visible_in_list: true },
-  { name: 'product_name', label: 'Product', type: 'String', visible_in_list: true },
-];
-
-const DUMMY_DEPARTMENT_GROUPS: EntityRow[] = [
-  { id: '1', name: 'Production Group', order: 1, product_name: 'Gold' },
-  { id: '2', name: 'Sales Group', order: 2, product_name: 'Silver' },
-];
-
-const FALLBACK_DEFAULT_FILTER_FIELDS: EntityFilterField[] = [
-  { field: 'name', label: 'Department Group Name', type: 'String', operators: ['=', '≠', 'contains'] },
-  { field: 'order', label: 'Order', type: 'Integer', operators: ['=', '≠', '>', '<'] },
-];
-
-const FALLBACK_ADDABLE_FILTER_FIELDS: EntityFilterField[] = [
-  { field: 'product_name', label: 'Product', type: 'String', operators: ['=', '≠', 'contains'] },
-];
-
 export default function DepartmentGroupPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const entityName = 'department_group';
+  const entityName = 'product_department_group';
   const entityConfig = getEntityConfig(entityName);
   const [filters, setFilters] = useState<Record<string, FilterValue>>({});
   const [entityMetadata, setEntityMetadata] = useState<{
@@ -102,21 +82,21 @@ export default function DepartmentGroupPage() {
           setEntityMetadataCache(entityName, meta);
         } else {
           setEntityMetadata({
-            display_name: 'Department Groups',
-            fields: FALLBACK_COLUMNS,
+            display_name: 'Product Department Groups',
+            fields: [],
             filters: { default_visible: [], additional: [] },
             id_field: 'id',
-            detail_link_field: 'name',
+            detail_link_field: 'department_group_name',
           });
         }
       })
       .catch(() => {
         setEntityMetadata({
-          display_name: 'Department Groups',
-          fields: FALLBACK_COLUMNS,
+          display_name: 'Product Department Groups',
+          fields: [], 
           filters: { default_visible: [], additional: [] },
           id_field: 'id',
-          detail_link_field: 'name',
+          detail_link_field: 'department_group_name',
         });
       })
       .finally(() => {
@@ -186,15 +166,15 @@ export default function DepartmentGroupPage() {
         const topItems = (res as ResShape).items;
         const itemsArr: unknown[] = Array.isArray(dataItems) ? dataItems : Array.isArray(topItems) ? topItems : [];
         const pag = (resData as { pagination?: Record<string, unknown> }).pagination ?? (res as ResShape).pagination;
-        const rows = itemsArr.length > 0 ? (itemsArr as EntityRow[]) : DUMMY_DEPARTMENT_GROUPS;
+        const rows = itemsArr.length > 0 ? (itemsArr as EntityRow[]) : [];
         setItems(rows);
-        setTotalItems(itemsArr.length > 0 ? ((pag?.total_items as number) ?? 0) : DUMMY_DEPARTMENT_GROUPS.length);
+        setTotalItems(itemsArr.length > 0 ? ((pag?.total_items as number) ?? 0) : 0);
         setTotalPages(itemsArr.length > 0 ? ((pag?.total_pages as number) ?? 0) : 1);
       })
       .catch(() => {
-        showErrorToastUnlessAuth('Failed to load department groups');
-        setItems(DUMMY_DEPARTMENT_GROUPS);
-        setTotalItems(DUMMY_DEPARTMENT_GROUPS.length);
+        showErrorToastUnlessAuth('Failed to load product department groups');
+        setItems([]);
+        setTotalItems(0);
         setTotalPages(1);
       })
       .finally(() => setListLoading(false));
@@ -206,7 +186,8 @@ export default function DepartmentGroupPage() {
   }, [token, entityMetadata, fetchList]);
 
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
-    const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? FALLBACK_COLUMNS;
+    const visibleFields =
+      entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
     const detailLinkField = entityMetadata?.detail_link_field ?? 'name';
     const idField = entityMetadata?.id_field ?? 'id';
 
@@ -291,16 +272,11 @@ export default function DepartmentGroupPage() {
     if (hasApiFilters) {
       defaultVisible.forEach((f) => { defaultConfig[f.field] = metadataToFilterConfig(f); });
       additional.forEach((f) => { addableConfig[f.field] = metadataToFilterConfig(f); });
-    } else {
-      FALLBACK_DEFAULT_FILTER_FIELDS.forEach((f) => { defaultConfig[f.field] = metadataToFilterConfig(f); });
-      FALLBACK_ADDABLE_FILTER_FIELDS.forEach((f) => { addableConfig[f.field] = metadataToFilterConfig(f); });
     }
     return { default: defaultConfig, addable: addableConfig };
-  }, [entityMetadata]);
+  }, [entityMetadata, metadataToFilterConfig]);
 
   const hasFilters = Object.keys(filterConfig.default).length > 0 || Object.keys(filterConfig.addable ?? {}).length > 0;
-
-  const deleteDisplayName = deleteConfirmRow ? String(deleteConfirmRow.name ?? deleteConfirmRow[idField] ?? '') : '';
 
   return (
     <>
@@ -310,9 +286,7 @@ export default function DepartmentGroupPage() {
         onConfirm={handleDeleteConfirm}
         title={`Delete ${entityConfig.displayName}`}
         message={
-          deleteDisplayName
-            ? `Are you sure you want to delete "${deleteDisplayName}"?`
-            : `Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}?`
+          `Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}?`
         }
         confirmLabel="Delete"
         cancelLabel="Cancel"

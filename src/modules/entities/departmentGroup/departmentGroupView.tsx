@@ -1,10 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, getEntityListOptions } from '../../admin/admin.api';
+import {
+  getEntity,
+  getEntityReferences,
+  getEntityListOptions,
+  getDepartmentOptions,
+  mapProductReferencesToOptions,
+} from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import StaticDepartmentGroupForm, { type StaticDepartmentGroupFormData } from './departmentGroupForm';
+import StaticDepartmentGroupForm, {
+  type StaticDepartmentGroupFormData,
+} from './departmentGroupForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import {
   getViewPageHeading,
@@ -14,7 +22,7 @@ import {
 import { toInitialDepartmentGroupData } from './departmentGroupEdit';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
 
-const ENTITY_NAME = 'department_group';
+const ENTITY_NAME = 'product_department_group';
 
 export default function DepartmentGroupViewPage() {
   const navigate = useNavigate();
@@ -29,29 +37,34 @@ export default function DepartmentGroupViewPage() {
   const [departmentOptions, setDepartmentOptions] = useState<FormSelectOption[]>([]);
 
   useEffect(() => {
-    Promise.all([
-      getEntityListOptions('product', 'id', 'name'),
-      getEntityListOptions('department', 'id', 'name'),
-    ])
-      .then(([products, departments]) => {
-        setProductOptions(products);
-        setDepartmentOptions(departments);
+    getEntityReferences('product')
+      .then((items) => {
+        const opts = mapProductReferencesToOptions(items);
+        if (opts.length > 0) return setProductOptions(opts);
+        return getEntityListOptions('product', 'product_name', 'product_name').then(setProductOptions);
       })
-      .catch(() => {
-        setProductOptions([]);
-        setDepartmentOptions([]);
-      });
+      .catch(() =>
+        getEntityListOptions('product', 'product_name', 'product_name')
+          .then(setProductOptions)
+          .catch(() => setProductOptions([]))
+      );
+
+    getDepartmentOptions()
+      .then(setDepartmentOptions)
+      .catch(() => setDepartmentOptions([]));
   }, []);
 
   useEffect(() => {
     if (!id) return;
     setDataLoading(true);
     setLoadError(null);
-    getEntity(ENTITY_NAME, id)
+    const decodedId = decodeURIComponent(String(id).trim());
+    getEntity(ENTITY_NAME, decodedId)
       .then((res) => {
-        if (res.data && typeof res.data === 'object') {
-          const entity = res.data as Record<string, unknown>;
-          setInitialData(toInitialDepartmentGroupData(entity));
+        type ResShape = { data?: Record<string, unknown> };
+        const data = (res as ResShape).data ?? (res as Record<string, unknown>);
+        if (data && typeof data === 'object') {
+          setInitialData(toInitialDepartmentGroupData(data));
           setLoadError(null);
         }
       })
@@ -122,9 +135,7 @@ export default function DepartmentGroupViewPage() {
           </p>
           {isEntityNotRegistered && (
             <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              The <code className="px-1 py-0.5 rounded bg-gray-700/50 text-sm">department_group</code> API
-              is not created yet. Once you add it to your backend and register the entity,
-              this view page will work automatically.
+              The API may not be available yet. Please check your backend configuration.
             </p>
           )}
           <button
