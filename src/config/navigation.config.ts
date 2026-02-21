@@ -66,42 +66,20 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Department Group', path: '/department-groups', icon: 'layers', entityName: 'department_group' },
     ],
   },
-  {
-    id: 'inventory',
-    category: 'Inventory',
+    {
+    id: 'manufacturing',
+    category: 'Manufacturing',
     icon: 'package',
     items: [
-      { name: 'Materials', path: '/materials', icon: 'box' },
-      { name: 'Stock Levels', path: '/stock-levels', icon: 'chart-bar' },
-      { name: 'Suppliers', path: '/suppliers', icon: 'truck' },
+      { name: 'Metal-Pool', path: '/metal-pool', icon: 'box' },
     ],
   },
   {
-    id: 'receipts',
-    category: 'Receipts',
-    icon: 'receipt',
+    id: 'accounts',
+    category: 'Accounts',
+    icon: 'package',
     items: [
-      { name: 'Create Receipt', path: '/receipts/create', icon: 'plus' },
-      { name: 'All Receipts', path: '/receipts', icon: 'list' },
-    ],
-  },
-  {
-    id: 'users',
-    category: 'Users',
-    icon: 'user',
-    items: [
-      { name: 'All Users', path: '/users', icon: 'list', entityName: 'user' },
-      { name: 'Roles & Permissions', path: '/roles', icon: 'key' },
-    ],
-  },
-  {
-    id: 'quality',
-    category: 'Quality',
-    icon: 'check-circle',
-    items: [
-      { name: 'Inspections', path: '/inspections', icon: 'search' },
-      { name: 'Metrics', path: '/metrics', icon: 'chart-line' },
-      { name: 'Compliance', path: '/compliance', icon: 'shield' },
+      { name: 'Metal-Ledger', path: '/metal-ledger', icon: 'box' },
     ],
   },
   {

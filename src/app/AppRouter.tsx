@@ -77,6 +77,8 @@ import DepartmentGroupEditPage from '../modules/entities/departmentGroup/departm
 import DepartmentGroupViewPage from '../modules/entities/departmentGroup/departmentGroupView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
+import CustomerMetalLedgerPage from '../modules/accounts/VoucherCreatePage';
+import CustomerMetalLedgerTablePage from '../modules/accounts/CustomerMetalLedgerTablePage';
 
 /** Redirects / to /dashboard when logged in, otherwise to /login */
 function RootRedirect() {
@@ -120,6 +122,8 @@ export default function AppRouter() {
           <Route path="receipts/*" element={<DashboardIndex />} />
           <Route path="issues/*" element={<DashboardIndex />} />
           <Route path="reports/*" element={<DashboardIndex />} />
+          <Route path="accounts/customer-metal-ledger" element={<CustomerMetalLedgerPage />} />
+          <Route path="accounts/customer-metal-ledger-table" element={<CustomerMetalLedgerTablePage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="users/add" element={<UserCreatePage />} />
           <Route path="users/edit/:id" element={<UserEditPage />} />
@@ -192,6 +196,8 @@ export default function AppRouter() {
           <Route path="department-groups/add" element={<DepartmentGroupCreatePage />} />
           <Route path="department-groups/edit/:id" element={<DepartmentGroupEditPage />} />
           <Route path="department-groups/:id" element={<DepartmentGroupViewPage />} />
+          <Route path="metal-pool" element={<CustomerMetalLedgerTablePage/>}/>
+          <Route path="metal-ledger" element={<CustomerMetalLedgerPage/>}/>
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>
