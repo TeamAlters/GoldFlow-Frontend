@@ -104,17 +104,12 @@ export default function CustomerMetalLedgerTablePage() {
     console.log('[CustomerMetalLedgerTable] payload:', payload);
   };
 
-  const inputBase =
-    'w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2';
-
-  const inputClass = `${inputBase} ${
-    isDarkMode
-      ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
-      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+  const textClass = `w-full px-3 py-2 text-sm text-center bg-transparent border-none ${
+    isDarkMode ? 'text-white' : 'text-gray-900'
   }`;
 
   const sectionClass = `border rounded-lg p-4 ${
-    isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'
+    isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
   }`;
 
   const sectionTitleClass = `text-lg font-semibold mb-4 pb-2 border-b ${
@@ -125,10 +120,10 @@ export default function CustomerMetalLedgerTablePage() {
     <div className="w-full">
       <div className="mb-6">
         <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-          Customer Metal Ledger - Table
+          Metal Pool - Table
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Maintain metal ledger lines.
+          Maintain metal pool lines.
         </p>
       </div>
 
@@ -140,16 +135,16 @@ export default function CustomerMetalLedgerTablePage() {
       >
         <div className="space-y-6">
           <div className={sectionClass}>
-            <h3 className={sectionTitleClass}>Metal Ledger</h3>
+          
             <div
               className={`overflow-hidden rounded-lg border ${
-                isDarkMode ? 'border-gray-700 bg-gray-900/30' : 'border-gray-300 bg-white'
+                isDarkMode ? 'border-gray-700' : 'border-gray-300 bg-white'
               }`}
             >
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr className={isDarkMode ? 'bg-slate-700 text-gray-100' : 'bg-teal-700 text-white'}>
+                    <tr className={isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-teal-700 text-white'}>
                       {[
                         'Sr.No.',
                         'Weight',
@@ -160,7 +155,7 @@ export default function CustomerMetalLedgerTablePage() {
                         'Refrence',
                         '',
                       ].map((h, i) => (
-                        <th key={i} className="px-3 py-2 font-semibold whitespace-nowrap border-r border-black/10">
+                        <th key={i} className={`px-3 py-2 font-semibold whitespace-nowrap border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'}`}>
                           <div className="flex items-center gap-2">
                             <span>{h}</span>
                             {h && h !== '' && h !== 'Fine Weight' && h !== 'Description' && h !== 'Refrence' && (
@@ -187,33 +182,33 @@ export default function CustomerMetalLedgerTablePage() {
                           className={
                             isDarkMode
                               ? index % 2 === 0
-                                ? 'bg-gray-900/20'
-                                : 'bg-gray-900/10'
+                                ? 'bg-gray-800/50'
+                                : 'bg-gray-800/30'
                               : 'bg-sky-100/40'
                           }
                         >
-                          <td className="px-3 py-2 text-center whitespace-nowrap border-r border-black/10">
+                          <td className={`px-3 py-2 text-center whitespace-nowrap border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'}`}>
                             {index + 1}
                           </td>
-                          <td className="px-2 py-1 border-r border-black/10">
-                            <input className={inputClass} value={row.weight} onChange={setLedger(row.id, 'weight')} placeholder="0" />
+                          <td className={`px-2 py-1 border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'}`}>
+                            <input className={textClass} value={row.weight} onChange={setLedger(row.id, 'weight')} placeholder="0" />
                           </td>
-                          <td className="px-2 py-1 border-r border-black/10">
-                            <input className={inputClass} value={row.balanceWeight} onChange={setLedger(row.id, 'balanceWeight')} placeholder="0" />
+                          <td className={`px-2 py-1 border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'}`}>
+                            <input className={textClass} value={row.balanceWeight} onChange={setLedger(row.id, 'balanceWeight')} placeholder="0" />
                           </td>
-                          <td className="px-2 py-1 border-r border-black/10">
-                            <input className={inputClass} value={row.purity} onChange={setLedger(row.id, 'purity')} placeholder="0" />
+                          <td className={`px-2 py-1 border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'}`}>
+                            <input className={textClass} value={row.purity} onChange={setLedger(row.id, 'purity')} placeholder="0" />
                           </td>
-                          <td className="px-3 py-2 text-right whitespace-nowrap border-r border-black/10">
-                            <span className={isDarkMode ? 'text-gray-200' : 'text-gray-900'}>
+                          <td className={`px-3 py-2 text-right whitespace-nowrap border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'}`}>
+                            <span className={isDarkMode ? 'text-white font-medium' : 'text-gray-900'}>
                               {fine ? fine.toFixed(3) : '0'}
                             </span>
                           </td>
-                          <td className="px-2 py-1 border-r border-black/10 min-w-[220px]">
-                            <input className={inputClass} value={row.description} onChange={setLedger(row.id, 'description')} placeholder="" />
+                          <td className={`px-2 py-1 border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'} min-w-[220px]`}>
+                            <input className={textClass} value={row.description} onChange={setLedger(row.id, 'description')} placeholder="" />
                           </td>
-                          <td className="px-2 py-1 border-r border-black/10 min-w-[200px]">
-                            <input className={inputClass} value={row.reference} onChange={setLedger(row.id, 'reference')} placeholder="" />
+                          <td className={`px-2 py-1 border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'} min-w-[200px]`}>
+                            <input className={textClass} value={row.reference} onChange={setLedger(row.id, 'reference')} placeholder="" />
                           </td>
                           <td className="px-2 py-1 text-right whitespace-nowrap">
                             <button
@@ -231,45 +226,25 @@ export default function CustomerMetalLedgerTablePage() {
                         </tr>
                       );
                     })}
-                    <tr className={isDarkMode ? 'bg-slate-800' : 'bg-sky-200/60'}>
-                      <td className="px-3 py-2 font-semibold border-r border-black/10">Total</td>
-                      <td className="px-3 py-2 font-semibold text-right border-r border-black/10">
+                    <tr className={isDarkMode ? 'bg-gray-700' : 'bg-sky-200/60'}>
+                      <td className={`px-3 py-2 font-semibold border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'} text-white`}>Total</td>
+                      <td className={`px-3 py-2 font-semibold text-right border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'} text-white`}>
                         {ledgerDerived.totals.weight.toFixed(3)}
                       </td>
-                      <td className="px-3 py-2 font-semibold text-right border-r border-black/10">
+                      <td className={`px-3 py-2 font-semibold text-right border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'} text-white`}>
                         {ledgerDerived.totals.balanceWeight.toFixed(3)}
                       </td>
-                      <td className="px-3 py-2 border-r border-black/10" />
-                      <td className="px-3 py-2 font-semibold text-right border-r border-black/10">
+                      <td className={`px-3 py-2 border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'}`} />
+                      <td className={`px-3 py-2 font-semibold text-right border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'} text-white`}>
                         {ledgerDerived.totals.fineWeight.toFixed(3)}
                       </td>
-                      <td className="px-3 py-2 border-r border-black/10" />
-                      <td className="px-3 py-2 border-r border-black/10" />
+                      <td className={`px-3 py-2 border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'}`} />
+                      <td className={`px-3 py-2 border-r ${isDarkMode ? 'border-gray-500' : 'border-gray-300'}`} />
                       <td className="px-3 py-2" />
                     </tr>
                   </tbody>
                 </table>
               </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={handleAddLedgerRow}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-                  isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              >
-                Add Row
-              </button>
-              <button
-                type="submit"
-                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-                  isDarkMode ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                }`}
-              >
-                Save
-              </button>
             </div>
           </div>
         </div>

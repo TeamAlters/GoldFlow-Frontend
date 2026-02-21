@@ -196,6 +196,8 @@ export default function AppRouter() {
           <Route path="department-groups/add" element={<DepartmentGroupCreatePage />} />
           <Route path="department-groups/edit/:id" element={<DepartmentGroupEditPage />} />
           <Route path="department-groups/:id" element={<DepartmentGroupViewPage />} />
+          <Route path="metal-pool" element={<CustomerMetalLedgerTablePage/>}/>
+          <Route path="metal-ledger" element={<CustomerMetalLedgerPage/>}/>
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>
