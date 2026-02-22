@@ -591,6 +591,32 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       canExport: true,
     },
   },
+
+  metal_ledger: {
+    displayName: 'Metal Ledger',
+    displayNamePlural: 'Metal Ledgers',
+    api: {
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
+      list: DEFAULT_API_PATHS.list,
+      create: DEFAULT_API_PATHS.create,
+      get: DEFAULT_API_PATHS.get,
+      update: DEFAULT_API_PATHS.update,
+      delete: DEFAULT_API_PATHS.delete,
+    },
+    routes: {
+      list: '/metal-ledger',
+      add: '/metal-ledger/add',
+      edit: '/metal-ledger/edit/:id',
+      detail: '/metal-ledger/:id',
+    },
+    features: {
+      canCreate: true,
+      canEdit: true,
+      canDelete: false,
+      canExport: false,
+    },
+  },
 };
 
 /**

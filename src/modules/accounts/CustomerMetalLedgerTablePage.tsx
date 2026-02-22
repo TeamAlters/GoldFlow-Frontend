@@ -72,10 +72,6 @@ export default function CustomerMetalLedgerTablePage() {
       setLedgerRows((prev) => prev.map((r) => (r.id === rowId ? { ...r, [key]: value } : r)));
     };
 
-  const handleAddLedgerRow = () => {
-    setLedgerRows((prev) => [...prev, makeLedgerRow()]);
-  };
-
   const handleDeleteLedgerRow = (rowId: string) => {
     setLedgerRows((prev) => prev.filter((r) => r.id !== rowId));
   };
@@ -112,9 +108,6 @@ export default function CustomerMetalLedgerTablePage() {
     isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
   }`;
 
-  const sectionTitleClass = `text-lg font-semibold mb-4 pb-2 border-b ${
-    isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
-  }`;
 
   return (
     <div className="w-full">
