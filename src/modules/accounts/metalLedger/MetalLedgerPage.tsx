@@ -456,7 +456,7 @@ export default function MetalLedgerPage() {
               isDarkMode ? 'text-gray-300' : 'text-gray-700'
             }`}
           >
-            <span>Total {entityConfig.displayNamePlural}:</span>
+            <span>Total Data:</span>
             <span>{listLoading ? '...' : totalItems}</span>
           </h2>
         }

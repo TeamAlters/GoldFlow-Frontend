@@ -1,5 +1,5 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { useUIStore } from '../../stores/ui.store';
+import { useUIStore } from '../../../stores/ui.store';
 
 type LedgerRow = {
   id: string;
