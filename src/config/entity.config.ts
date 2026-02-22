@@ -617,6 +617,32 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       canExport: false,
     },
   },
+
+  melting_pool_transaction: {
+    displayName: 'Melting Pool Transaction',
+    displayNamePlural: 'Melting Pool Transactions',
+    api: {
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
+      list: DEFAULT_API_PATHS.list,
+      create: DEFAULT_API_PATHS.create,
+      get: DEFAULT_API_PATHS.get,
+      update: DEFAULT_API_PATHS.update,
+      delete: DEFAULT_API_PATHS.delete,
+    },
+    routes: {
+      list: '/melting-pool-transaction',
+      add: '/melting-pool-transaction',
+      edit: '/melting-pool-transaction/:id',
+      detail: '/melting-pool-transaction/:id',
+    },
+    features: {
+      canCreate: false,
+      canEdit: false,
+      canDelete: false,
+      canExport: false,
+    },
+  },
 };
 
 /**
@@ -741,4 +767,5 @@ export const roleConfig = {
   /** Backend roles API path. If you get 404 Not Found, change to match your API (e.g. '/api/roles' or '/roles'). */
   apiBasePath: '/api/v1/roles',
 } as const;
+
 

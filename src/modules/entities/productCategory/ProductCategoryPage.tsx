@@ -455,7 +455,7 @@ export default function ProductCategoryPage() {
           <h2
             className={`flex items-center gap-2 flex-nowrap whitespace-nowrap text-xl font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
           >
-            <span>Total {entityConfig.displayNamePlural}:</span>
+            <span>Total Data:</span>
             <span>{listLoading ? '...' : totalItems}</span>
           </h2>
         }

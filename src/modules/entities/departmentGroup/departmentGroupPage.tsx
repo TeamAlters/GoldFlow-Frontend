@@ -324,7 +324,7 @@ export default function DepartmentGroupPage() {
         description={`Manage all ${entityConfig.displayNamePlural.toLowerCase()}`}
         toolbarLeft={
           <h2 className={`flex items-center gap-2 text-xl font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            <span>Total {entityConfig.displayNamePlural}:</span>
+            <span>Total Data:</span>
             <span>{listLoading ? '...' : totalItems}</span>
           </h2>
         }

@@ -81,7 +81,9 @@ import MetalLedgerPage from '../modules/accounts/metalLedger/MetalLedgerPage';
 import MetalLedgerCreatePage from '../modules/accounts/metalLedger/metalLedgerCreate';
 import MetalLedgerEditPage from '../modules/accounts/metalLedger/metalLedgerEdit';
 import MetalLedgerViewPage from '../modules/accounts/metalLedger/metalLedgerView';
-import CustomerMetalLedgerTablePage from '../modules/accounts/CustomerMetalLedgerTablePage';
+import CustomerMetalLedgerTablePage from '../modules/manufacturing/metalPool/CustomerMetalLedgerTablePage';
+import MeltingPoolTransactionPage from '../modules/manufacturing/melting/meltingPoolTransactionPage';
+import MeltingPoolTransactionViewPage from '../modules/manufacturing/melting/meltingPoolTransactionView';
 
 /** Redirects / to /dashboard when logged in, otherwise to /login */
 function RootRedirect() {
@@ -200,6 +202,8 @@ export default function AppRouter() {
           <Route path="department-groups/edit/:id" element={<DepartmentGroupEditPage />} />
           <Route path="department-groups/:id" element={<DepartmentGroupViewPage />} />
           <Route path="metal-pool" element={<CustomerMetalLedgerTablePage />} />
+          <Route path="melting-pool-transaction" element={<MeltingPoolTransactionPage />} />
+          <Route path="melting-pool-transaction/:id" element={<MeltingPoolTransactionViewPage />} />
           <Route path="metal-ledger" element={<MetalLedgerPage />} />
           <Route path="metal-ledger/add" element={<MetalLedgerCreatePage />} />
           <Route path="metal-ledger/edit/:id" element={<MetalLedgerEditPage />} />
