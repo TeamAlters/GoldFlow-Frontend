@@ -100,7 +100,7 @@ export default function MetalLedgerEditPage() {
     );
   }
 
-  const breadcrumbLabel = `Edit ${entityConfig.displayName}`;
+  const breadcrumbLabel = `${initialData?.voucher_no ?? id}`;
 
   return (
     <div className="w-full">
@@ -118,7 +118,7 @@ export default function MetalLedgerEditPage() {
             isDarkMode ? 'text-white' : 'text-gray-900'
           }`}
         >
-          Edit Metal Ledger
+          {initialData?.voucher_no ?? id}
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
           Update the metal ledger details below.

@@ -61,6 +61,7 @@ export function toInitialMetalLedgerData(entity: Record<string, unknown>): Parti
     transaction_type: entity.transaction_type != null ? String(entity.transaction_type) : 'PURCHASE',
     transaction_date: entity.transaction_date != null ? String(entity.transaction_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
     customer: entity.customer != null ? String(entity.customer) : '',
+    status: entity.status != null ? String(entity.status) : '',
     item_name: entity.item_name != null ? String(entity.item_name) : '',
     purity: entity.purity != null ? String(entity.purity) : '',
     purity_percentage: entity.purity_percentage != null ? String(entity.purity_percentage) : '',
@@ -156,7 +157,7 @@ export default function MetalLedgerCreatePage() {
             isDarkMode ? 'text-white' : 'text-gray-900'
           }`}
         >
-          Create a new Metal Ledger
+          New Metal Ledger
         </h1>
         <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
           Enter metal ledger details and save.

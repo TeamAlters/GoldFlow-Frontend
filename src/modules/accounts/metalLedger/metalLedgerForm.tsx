@@ -24,6 +24,7 @@ export type MetalLedgerFormData = {
   transaction_date: string;
   customer: string;
   remarks: string;
+  status: string;
 
   // Item
   item_name: string;
@@ -107,6 +108,7 @@ const emptyForm: MetalLedgerFormData = {
   transaction_date: new Date().toISOString().slice(0, 10),
   customer: '',
   remarks: '',
+  status: '',
   item_name: '',
   purity: '',
   purity_percentage: '',
@@ -309,6 +311,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
           stone_weight: formData.stone_weight || '',
           gold_rate: formData.gold_rate || '',
           remarks: formData.remarks || '',
+          status: formData.status || '',
           // Auto-calculated fields
           purity_percentage: formData.purity_percentage || derived.pureWeight,
           total_purity: derived.totalPurity,

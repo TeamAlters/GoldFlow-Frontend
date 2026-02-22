@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+  import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity } from '../../admin/admin.api';
+import { getEntity, updateEntityStatus } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { toast } from '../../../stores/toast.store';
 import MetalLedgerForm, { type MetalLedgerFormData } from './metalLedgerForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialMetalLedgerData } from './metalLedgerCreate';
+import BackButton from '../../../shared/components/BackButton';
 
 const ENTITY_NAME = 'metal_ledger';
 
@@ -19,8 +21,12 @@ export default function MetalLedgerViewPage() {
     undefined
   );
   const [dataLoading, setDataLoading] = useState(true);
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
-  useEffect(() => {
+  // Check if status is Draft
+  const isDraft = initialData?.status === 'Draft';
+
+  const loadData = useCallback(() => {
     if (!id) return;
     setDataLoading(true);
     getEntity(ENTITY_NAME, id)
@@ -37,9 +43,36 @@ export default function MetalLedgerViewPage() {
       .finally(() => setDataLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const handleBack = useCallback(() => {
     navigate(entityConfig.routes.list);
   }, [navigate, entityConfig.routes.list]);
+
+  const handleSendToManufacturing = useCallback(async () => {
+    if (!id) return;
+    setStatusUpdating(true);
+    console.log('[MetalLedgerView] Sending to Manufacturing:', { entity: ENTITY_NAME, id, voucher_no: id });
+    try {
+      const res = await updateEntityStatus(ENTITY_NAME, id, 'Sent to Manufacturing');
+      console.log('[MetalLedgerView] Update response:', res);
+      if (res.success) {
+        toast.success('Metal Ledger sent to Manufacturing successfully');
+        // Reload data to get updated status
+        loadData();
+      } else {
+        showErrorToastUnlessAuth(res.message || 'Failed to update status');
+      }
+    } catch (err) {
+      console.error('[MetalLedgerView] Update error:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to send to Manufacturing';
+      showErrorToastUnlessAuth(msg);
+    } finally {
+      setStatusUpdating(false);
+    }
+  }, [id, loadData]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
@@ -75,17 +108,48 @@ export default function MetalLedgerViewPage() {
         ]}
         className="mb-4"
       />
-      <div className="mb-6">
-        <h1
-          className={`text-2xl sm:text-3xl font-bold mb-2 ${
-            isDarkMode ? 'text-white' : 'text-gray-900'
-          }`}
-        >
-          {viewPageHeading}
-        </h1>
-        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          View the metal ledger details below.
-        </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1
+            className={`text-2xl sm:text-3xl font-bold mb-2 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}
+          >
+            {displayValue}
+          </h1>
+          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            View the metal ledger details below.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <BackButton onClick={handleBack} />
+          {isDraft && (
+            <>
+              <Link
+                to={editUrl}
+                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+                  isDarkMode
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+              voucher_no: {displayValue}
+              </Link>
+              <button
+                type="button"
+                onClick={handleSendToManufacturing}
+                disabled={statusUpdating}
+                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+                  isDarkMode
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                } disabled:opacity-60`}
+              >
+                {statusUpdating ? 'Sending...' : 'Send to Manufacturing'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
       <div
         className={`p-6 rounded-xl border ${
@@ -99,30 +163,6 @@ export default function MetalLedgerViewPage() {
           wrapInForm={false}
           showActions={false}
         />
-
-        <div className="flex items-center justify-end gap-3 pt-6 mt-6">
-          <button
-            type="button"
-            onClick={handleBack}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode
-                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
-          >
-            Back
-          </button>
-          <Link
-            to={editUrl}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
-          >
-            Edit {entityConfig.displayName}
-          </Link>
-        </div>
       </div>
     </div>
   );
