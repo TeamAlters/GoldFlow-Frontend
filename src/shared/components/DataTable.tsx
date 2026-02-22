@@ -5,6 +5,9 @@ export type TableColumn<T> = {
   key: string;
   header: string;
   accessor?: (row: T) => React.ReactNode;
+  /** Optional function to return raw sortable value (string/number) for sorting.
+   * Use this when accessor returns JSX elements to ensure proper sorting. */
+  sortValue?: (row: T) => string | number | null | undefined;
   sortable?: boolean;
   width?: string;
   align?: 'left' | 'center' | 'right';
@@ -75,14 +78,40 @@ export default function DataTable<T extends Record<string, any>>({
       const column = columns.find((col) => col.key === sortConfig.key);
       if (!column) return 0;
 
-      const aValue = column.accessor ? column.accessor(a) : a[sortConfig.key];
-      const bValue = column.accessor ? column.accessor(b) : b[sortConfig.key];
+      // Use sortValue if provided, otherwise fall back to accessor or raw key value
+      let aValue: string | number | null | undefined;
+      let bValue: string | number | null | undefined;
+
+      if (column.sortValue) {
+        aValue = column.sortValue(a);
+        bValue = column.sortValue(b);
+      } else if (column.accessor) {
+        const aRaw = column.accessor(a);
+        const bRaw = column.accessor(b);
+        // If accessor returns React nodes, try to get text content
+        aValue = aRaw != null ? String(aRaw) : null;
+        bValue = bRaw != null ? String(bRaw) : null;
+      } else {
+        aValue = a[sortConfig.key];
+        bValue = b[sortConfig.key];
+      }
 
       if (aValue === null || aValue === undefined) return 1;
       if (bValue === null || bValue === undefined) return -1;
 
-      const comparison = String(aValue).toLowerCase() > String(bValue).toLowerCase() ? 1 : -1;
+      // Handle numeric sorting
+      const aNum = Number(aValue);
+      const bNum = Number(bValue);
+      const aIsNumeric = !isNaN(aNum) && aValue !== '';
+      const bIsNumeric = !isNaN(bNum) && bValue !== '';
 
+      if (aIsNumeric && bIsNumeric) {
+        const comparison = aNum > bNum ? 1 : -1;
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+      }
+
+      // String sorting
+      const comparison = String(aValue).toLowerCase() > String(bValue).toLowerCase() ? 1 : -1;
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
   }, [filteredData, sortConfig, columns]);

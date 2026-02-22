@@ -4,6 +4,34 @@ export const MAX_TEXT_FIELD_LENGTH = 32;
 /** Max length for description fields. */
 export const MAX_DESCRIPTION_LENGTH = 256;
 
+// ============================================
+// METAL LEDGER FIELD LENGTH CONSTANTS
+// ============================================
+
+/** Max length for voucher_no field (varchar(30)). */
+export const MAX_VOUCHER_NO_LENGTH = 30;
+
+/** Max length for entry_type field (varchar(20)). */
+export const MAX_ENTRY_TYPE_LENGTH = 20;
+
+/** Max length for metal_type field (varchar(20)). */
+export const MAX_METAL_TYPE_LENGTH = 20;
+
+/** Max length for transaction_type field (varchar(50)). */
+export const MAX_TRANSACTION_TYPE_LENGTH = 50;
+
+/** Max length for item_name field (varchar(100)). */
+export const MAX_ITEM_NAME_LENGTH = 100;
+
+/** Max length for created_by/modified_by fields (varchar(255)). */
+export const MAX_USER_NAME_LENGTH = 255;
+
+/**
+ * NUMERIC(18,4): up to 18 digits total; if decimal, max 4 digits after.
+ * Max 19 chars: 18 digits + decimal point (e.g. 123456789012345678.1234).
+ */
+export const MAX_NUMERIC_184_LENGTH = 19;
+
 /** Max length 24 for specific entity fields. */
 export const MAX_LENGTH_24 = 24;
 
@@ -121,6 +149,84 @@ export function sanitizeNumeric63Input(value: string, allowNegative = false): st
   }
   intPart = intPart.slice(0, 6);
   const maxDec = Math.min(3, 6 - intPart.length);
+  decPart = decPart.slice(0, maxDec);
+  return (hasMinus ? '-' : '') + intPart + '.' + decPart;
+}
+
+export interface ValidateNumeric184Options {
+  /** When true, value must be >= 0 (e.g. for weights, amounts). */
+  nonNegative?: boolean;
+  /** When true, allows zero value. Default true. */
+  allowZero?: boolean;
+}
+
+/**
+ * Validates NUMERIC(18,4): up to 18 digits total; if decimal, max 4 digits after.
+ * Returns error message or null.
+ */
+export function validateNumeric184(
+  value: string,
+  fieldLabel: string,
+  options?: ValidateNumeric184Options
+): string | null {
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  const hasMinus = trimmed.startsWith('-');
+  const s = hasMinus ? trimmed.slice(1) : trimmed;
+  if (/[^\d.]/.test(s)) {
+    return `${fieldLabel} must be a number with up to 18 digits (up to 4 decimal places)`;
+  }
+  const dotCount = (s.match(/\./g) || []).length;
+  if (dotCount > 1) {
+    return `${fieldLabel} must be a number with up to 18 digits (up to 4 decimal places)`;
+  }
+  if (dotCount === 0) {
+    if (s.length === 0 || s.length > 18) {
+      return `${fieldLabel} must be a number with up to 18 digits (up to 4 decimal places)`;
+    }
+  } else {
+    const [intPart, decPart] = s.split('.');
+    const intLen = (intPart || '').length;
+    const decLen = (decPart || '').length;
+    if (intLen === 0) {
+      return `${fieldLabel} must be a number with up to 18 digits (up to 4 decimal places)`;
+    }
+    if (decLen > 4) {
+      return `${fieldLabel} must have at most 4 digits after the decimal`;
+    }
+    if (intLen + decLen > 18) {
+      return `${fieldLabel} must have at most 18 digits total`;
+    }
+  }
+  const num = parseFloat(trimmed);
+  if (!Number.isFinite(num)) return `${fieldLabel} must be a valid number`;
+  if (options?.nonNegative && num < 0) {
+    return `${fieldLabel} must be zero or greater`;
+  }
+  if (options?.allowZero === false && num === 0) {
+    return `${fieldLabel} must be greater than zero`;
+  }
+  return null;
+}
+
+/**
+ * Sanitizes input for NUMERIC(18,4): up to 18 digits total; if decimal, max 4 digits after.
+ * Use in onChange so users cannot type more than 18 digits or more than 4 after the decimal.
+ */
+export function sanitizeNumeric184Input(value: string, allowNegative = false): string {
+  const hasMinus = allowNegative && value.startsWith('-');
+  let s = value.replace(allowNegative ? /[^\d.-]/g : /[^\d.]/g, '');
+  if (allowNegative && s.startsWith('-')) s = s.slice(1);
+  const firstDot = s.indexOf('.');
+  let intPart = (firstDot === -1 ? s : s.slice(0, firstDot)).replace(/\D/g, '');
+  let decPart = (firstDot === -1 ? '' : s.slice(firstDot + 1).replace(/\D/g, ''));
+
+  if (firstDot === -1) {
+    intPart = intPart.slice(0, 18);
+    return (hasMinus ? '-' : '') + intPart;
+  }
+  intPart = intPart.slice(0, 18);
+  const maxDec = Math.min(4, 18 - intPart.length);
   decPart = decPart.slice(0, maxDec);
   return (hasMinus ? '-' : '') + intPart + '.' + decPart;
 }

@@ -77,7 +77,10 @@ import DepartmentGroupEditPage from '../modules/entities/departmentGroup/departm
 import DepartmentGroupViewPage from '../modules/entities/departmentGroup/departmentGroupView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
-import CustomerMetalLedgerPage from '../modules/accounts/VoucherCreatePage';
+import MetalLedgerPage from '../modules/accounts/metalLedger/MetalLedgerPage';
+import MetalLedgerCreatePage from '../modules/accounts/metalLedger/metalLedgerCreate';
+import MetalLedgerEditPage from '../modules/accounts/metalLedger/metalLedgerEdit';
+import MetalLedgerViewPage from '../modules/accounts/metalLedger/metalLedgerView';
 import CustomerMetalLedgerTablePage from '../modules/accounts/CustomerMetalLedgerTablePage';
 
 /** Redirects / to /dashboard when logged in, otherwise to /login */
@@ -122,7 +125,7 @@ export default function AppRouter() {
           <Route path="receipts/*" element={<DashboardIndex />} />
           <Route path="issues/*" element={<DashboardIndex />} />
           <Route path="reports/*" element={<DashboardIndex />} />
-          <Route path="accounts/customer-metal-ledger" element={<CustomerMetalLedgerPage />} />
+          <Route path="accounts/customer-metal-ledger" element={<MetalLedgerPage />} />
           <Route path="accounts/customer-metal-ledger-table" element={<CustomerMetalLedgerTablePage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="users/add" element={<UserCreatePage />} />
@@ -196,8 +199,11 @@ export default function AppRouter() {
           <Route path="department-groups/add" element={<DepartmentGroupCreatePage />} />
           <Route path="department-groups/edit/:id" element={<DepartmentGroupEditPage />} />
           <Route path="department-groups/:id" element={<DepartmentGroupViewPage />} />
-          <Route path="metal-pool" element={<CustomerMetalLedgerTablePage/>}/>
-          <Route path="metal-ledger" element={<CustomerMetalLedgerPage/>}/>
+          <Route path="metal-pool" element={<CustomerMetalLedgerTablePage />} />
+          <Route path="metal-ledger" element={<MetalLedgerPage />} />
+          <Route path="metal-ledger/add" element={<MetalLedgerCreatePage />} />
+          <Route path="metal-ledger/edit/:id" element={<MetalLedgerEditPage />} />
+          <Route path="metal-ledger/:id" element={<MetalLedgerViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
         </Route>

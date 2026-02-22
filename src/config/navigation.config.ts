@@ -82,6 +82,15 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Metal-Ledger', path: '/metal-ledger', icon: 'box' },
     ],
   },
+    {
+    id: 'users',
+    category: 'Users',
+    icon: 'user',
+    items: [
+      { name: 'All Users', path: '/users', icon: 'list', entityName: 'user' },
+      { name: 'Roles & Permissions', path: '/roles', icon: 'key' },
+    ],
+  },
   {
     id: 'reports',
     category: 'Reports',

@@ -448,3 +448,32 @@ export async function deleteEntity(
     throw new Error(errMsg);
   }
 }
+
+/**
+ * PUT /api/v1/entities/{entity_name}/{entity_id}
+ * Update specific fields of an entity (e.g. status update)
+ */
+export async function updateEntityStatus(
+  entityName: string,
+  id: string | number,
+  status: string
+): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
+  const config = getEntityConfig(entityName);
+  const url = buildEntityUrl(config.api.update, entityName, { id });
+
+  console.log('[GoldFlow] [admin.api] updateEntityStatus: request', { entityName, id, status, url });
+
+  try {
+    const res = await apiClient.put<{
+      success?: boolean;
+      message?: string;
+      data?: Record<string, unknown>;
+    }>(url, { status });
+    console.log('[GoldFlow] [admin.api] updateEntityStatus: success', { entityName, id });
+    return res.data ?? {};
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, `Failed to update status for ${entityName}`);
+    console.log('[GoldFlow] [admin.api] updateEntityStatus: failed', { entityName, id, errMsg });
+    throw new Error(errMsg);
+  }
+}
