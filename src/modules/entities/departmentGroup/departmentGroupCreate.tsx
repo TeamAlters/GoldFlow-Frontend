@@ -12,7 +12,7 @@ import StaticDepartmentGroupForm, {
 } from './departmentGroupForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
-const ENTITY_NAME = 'department_group';
+const ENTITY_NAME = 'product_department_group';
 
 export function toDepartmentGroupPayload(
   data: StaticDepartmentGroupFormData

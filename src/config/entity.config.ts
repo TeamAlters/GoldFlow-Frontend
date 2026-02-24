@@ -514,6 +514,32 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     },
   },
 
+  product_department_group: {
+    displayName: 'Product Department Group',
+    displayNamePlural: 'Product Department Groups',
+    api: {
+      listingMetadata: '/api/v1/entities/product_department_group/listing-metadata',
+      formMetadata: '/api/v1/entities/product_department_group/form-metadata',
+      list: '/api/v1/entities/product_department_group/list',
+      create: '/api/v1/entities/product_department_group',
+      get: '/api/v1/entities/product_department_group/{id}',
+      update: '/api/v1/entities/product_department_group/{id}',
+      delete: '/api/v1/entities/product_department_group/{id}',
+    },
+    routes: {
+      list: '/product-department-groups',
+      add: '/product-department-groups/add',
+      edit: '/product-department-groups/edit/:id',
+      detail: '/product-department-groups/:id',
+    },
+    features: {
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: false,
+    },
+  },
+
   department: {
     displayName: 'Department',
     displayNamePlural: 'Departments',
@@ -643,6 +669,32 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
       canExport: false,
     },
   },
+
+  melting_lot: {
+    displayName: 'Melting Lot',
+    displayNamePlural: 'Melting Lots',
+    api: {
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
+      list: DEFAULT_API_PATHS.list,
+      create: DEFAULT_API_PATHS.create,
+      get: DEFAULT_API_PATHS.get,
+      update: DEFAULT_API_PATHS.update,
+      delete: DEFAULT_API_PATHS.delete,
+    },
+    routes: {
+      list: '/melting-lot',
+      add: '/melting-lot/add',
+      edit: '/melting-lot/edit/:id',
+      detail: '/melting-lot/:id',
+    },
+    features: {
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: false,
+    },
+  },
 };
 
 /**
@@ -767,5 +819,6 @@ export const roleConfig = {
   /** Backend roles API path. If you get 404 Not Found, change to match your API (e.g. '/api/roles' or '/roles'). */
   apiBasePath: '/api/v1/roles',
 } as const;
+
 
 

@@ -84,6 +84,10 @@ import MetalLedgerViewPage from '../modules/accounts/metalLedger/metalLedgerView
 import CustomerMetalLedgerTablePage from '../modules/manufacturing/metalPool/CustomerMetalLedgerTablePage';
 import MeltingPoolTransactionPage from '../modules/manufacturing/melting/meltingPoolTransactionPage';
 import MeltingPoolTransactionViewPage from '../modules/manufacturing/melting/meltingPoolTransactionView';
+import MeltingLotPage from '../modules/manufacturing/meltingLot/meltingLotPage';
+import MeltingLotCreatePage from '../modules/manufacturing/meltingLot/meltingLotCreate';
+import MeltingLotEditPage from '../modules/manufacturing/meltingLot/meltingLotEdit';
+import MeltingLotViewPage from '../modules/manufacturing/meltingLot/meltingLotView';
 
 /** Redirects / to /dashboard when logged in, otherwise to /login */
 function RootRedirect() {
@@ -197,13 +201,17 @@ export default function AppRouter() {
           <Route path="departments/add" element={<DepartmentCreatePage />} />
           <Route path="departments/edit/:id" element={<DepartmentEditPage />} />
           <Route path="departments/:id" element={<DepartmentViewPage />} />
-          <Route path="department-groups" element={<DepartmentGroupPage />} />
-          <Route path="department-groups/add" element={<DepartmentGroupCreatePage />} />
-          <Route path="department-groups/edit/:id" element={<DepartmentGroupEditPage />} />
-          <Route path="department-groups/:id" element={<DepartmentGroupViewPage />} />
+          <Route path="product-department-groups" element={<DepartmentGroupPage />} />
+          <Route path="product-department-groups/add" element={<DepartmentGroupCreatePage />} />
+          <Route path="product-department-groups/edit/:id" element={<DepartmentGroupEditPage />} />
+          <Route path="product-department-groups/:id" element={<DepartmentGroupViewPage />} />
           <Route path="metal-pool" element={<CustomerMetalLedgerTablePage />} />
           <Route path="melting-pool-transaction" element={<MeltingPoolTransactionPage />} />
           <Route path="melting-pool-transaction/:id" element={<MeltingPoolTransactionViewPage />} />
+          <Route path="melting-lot" element={<MeltingLotPage />} />
+          <Route path="melting-lot/add" element={<MeltingLotCreatePage />} />
+          <Route path="melting-lot/edit/:id" element={<MeltingLotEditPage />} />
+          <Route path="melting-lot/:id" element={<MeltingLotViewPage />} />
           <Route path="metal-ledger" element={<MetalLedgerPage />} />
           <Route path="metal-ledger/add" element={<MetalLedgerCreatePage />} />
           <Route path="metal-ledger/edit/:id" element={<MetalLedgerEditPage />} />

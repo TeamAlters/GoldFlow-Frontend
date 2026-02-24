@@ -49,7 +49,7 @@ const FALLBACK_ADDABLE_FILTER_FIELDS: EntityFilterField[] = [
 export default function DepartmentGroupPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const entityName = 'department_group';
+  const entityName = 'product_department_group';
   const entityConfig = getEntityConfig(entityName);
   const [filters, setFilters] = useState<Record<string, FilterValue>>({});
   const [entityMetadata, setEntityMetadata] = useState<{

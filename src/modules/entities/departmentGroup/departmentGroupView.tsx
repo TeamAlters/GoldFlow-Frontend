@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, getEntityListOptions } from '../../admin/admin.api';
+import { getEntityListOptions, deleteEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { toast } from '../../../stores/toast.store';
 import StaticDepartmentGroupForm, { type StaticDepartmentGroupFormData } from './departmentGroupForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import {
@@ -11,15 +12,70 @@ import {
   getViewBreadcrumbLabel,
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
-import { toInitialDepartmentGroupData } from './departmentGroupEdit';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
+import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import { apiClient } from '../../../api/axios';
 
-const ENTITY_NAME = 'department_group';
+const ENTITY_NAME = 'product_department_group';
+
+interface DepartmentGroupResponse {
+  success: boolean;
+  message: string;
+  data: {
+    name: string;
+    product: string;
+    department_group_name: string;
+    step_no: number;
+    is_active: boolean;
+    departments: Array<{
+      name: string;
+      product: string;
+      department_group: string;
+      department: string;
+      step_no: number;
+      requires_issue: boolean;
+      requires_receive: boolean;
+      allows_loss: boolean;
+      loss_percentage: number;
+      is_optional: boolean;
+      allow_rework: boolean;
+      is_final_department: boolean;
+      is_active?: boolean;
+      created_at: string;
+      modified_at: string;
+      created_by: string;
+      modified_by: string;
+    }>;
+    created_at: string;
+    modified_at: string;
+    created_by: string;
+    modified_by: string;
+  };
+  errors: null;
+  status_code: number;
+}
+
+function parseDepartmentGroupResponse(data: DepartmentGroupResponse['data']): Partial<StaticDepartmentGroupFormData> {
+  const departments = data.departments.map((dept, index) => ({
+    id: `row-${index}-${Date.now()}`,
+    order: dept.step_no || index + 1,
+    department_id: dept.department || '',
+    is_active: data.is_active ?? true,
+  }));
+
+  return {
+    name: data.name || '',
+    order: String(data.step_no || ''),
+    product_id: data.product || '',
+    departments,
+  };
+}
 
 export default function DepartmentGroupViewPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
+  
   const [initialData, setInitialData] = useState<Partial<StaticDepartmentGroupFormData> | undefined>(
     undefined
   );
@@ -27,6 +83,10 @@ export default function DepartmentGroupViewPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [productOptions, setProductOptions] = useState<FormSelectOption[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<FormSelectOption[]>([]);
+  
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -47,26 +107,51 @@ export default function DepartmentGroupViewPage() {
     if (!id) return;
     setDataLoading(true);
     setLoadError(null);
-    getEntity(ENTITY_NAME, id)
-      .then((res) => {
-        if (res.data && typeof res.data === 'object') {
-          const entity = res.data as Record<string, unknown>;
-          setInitialData(toInitialDepartmentGroupData(entity));
+    
+    const fetchDepartmentGroup = async () => {
+      try {
+        const response = await apiClient.get<DepartmentGroupResponse>(
+          `/api/v1/product/department-groups/${encodeURIComponent(id)}`
+        );
+        
+        if (response.data.success && response.data.data) {
+          setInitialData(parseDepartmentGroupResponse(response.data.data));
           setLoadError(null);
+        } else {
+          setLoadError(response.data.message || 'Failed to load department group');
         }
-      })
-      .catch((err) => {
-        const msg = err instanceof Error ? err.message : 'Failed to load department group';
-        showErrorToastUnlessAuth(msg);
-        setLoadError(msg);
-        setInitialData(undefined);
-      })
-      .finally(() => setDataLoading(false));
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load department group';
+        setLoadError(errorMessage);
+        showErrorToastUnlessAuth(errorMessage);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    fetchDepartmentGroup();
   }, [id]);
 
   const handleBack = useCallback(() => {
     navigate(entityConfig.routes.list);
   }, [navigate, entityConfig.routes.list]);
+
+  // Handle delete
+  const handleDelete = useCallback(async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    try {
+      await deleteEntity(ENTITY_NAME, id);
+      toast.success(`${entityConfig.displayName} deleted successfully.`);
+      navigate(entityConfig.routes.list);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `Failed to delete ${entityConfig.displayName}`;
+      showErrorToastUnlessAuth(msg);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  }, [id, entityConfig, navigate]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
@@ -122,9 +207,7 @@ export default function DepartmentGroupViewPage() {
           </p>
           {isEntityNotRegistered && (
             <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              The <code className="px-1 py-0.5 rounded bg-gray-700/50 text-sm">department_group</code> API
-              is not created yet. Once you add it to your backend and register the entity,
-              this view page will work automatically.
+              The department group API is not available. Please check the backend.
             </p>
           )}
           <button
@@ -153,31 +236,18 @@ export default function DepartmentGroupViewPage() {
         ]}
         className="mb-4"
       />
-      <div className="mb-6">
-        <h1
-          className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-        >
-          {viewPageHeading}
-        </h1>
-        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          {getViewPageDescription(entityConfig)}
-        </p>
-      </div>
-      <div
-        className={`p-6 rounded-xl border ${
-          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
-        }`}
-      >
-        <StaticDepartmentGroupForm
-          initialData={initialData}
-          productOptions={productOptions}
-          departmentOptions={departmentOptions}
-          isEdit={true}
-          readOnly={true}
-          wrapInForm={false}
-          showActions={false}
-        />
-        <div className={`flex items-center justify-end gap-3 pt-6 mt-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1
+            className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+          >
+            {viewPageHeading}
+          </h1>
+          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            {getViewPageDescription(entityConfig)}
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={handleBack}
@@ -197,8 +267,44 @@ export default function DepartmentGroupViewPage() {
           >
             Edit {entityConfig.displayName}
           </Link>
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+              isDarkMode
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}
+          >
+            Delete
+          </button>
         </div>
       </div>
+      <div
+        className={`p-6 rounded-xl border ${
+          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
+        }`}
+      >
+        <StaticDepartmentGroupForm
+          initialData={initialData}
+          productOptions={productOptions}
+          departmentOptions={departmentOptions}
+          isEdit={true}
+          readOnly={true}
+          wrapInForm={false}
+          showActions={false}
+        />
+      </div>
+
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDelete}
+        title={`Delete ${entityConfig.displayName}`}
+        message={`Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}? This action cannot be undone.`}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+        cancelLabel="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }
