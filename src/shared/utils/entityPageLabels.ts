@@ -14,7 +14,7 @@ export function getViewPageHeading(
     displayValue != null && String(displayValue).trim() !== ''
       ? String(displayValue).trim()
       : undefined;
-  return value != null ? `View ${value}` : getViewPageTitle(config);
+  return value != null ? ` ${value}` : getViewPageTitle(config);
 }
 
 /** "Edit {displayName}" for edit page heading and fallback breadcrumb */

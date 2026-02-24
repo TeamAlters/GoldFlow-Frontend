@@ -1,8 +1,10 @@
-import { useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
+import { deleteEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { toast } from '../../../stores/toast.store';
 import { useEntityLoad } from '../../../shared/hooks/useEntityLoad';
 import StaticProductCategoryForm from './productCategoryForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -12,6 +14,7 @@ import {
   getViewBreadcrumbLabel,
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
+import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 
 const ENTITY_NAME = 'product_category';
 
@@ -25,6 +28,10 @@ export default function ProductCategoryViewPage() {
     { errorMessage: 'Failed to load product category' }
   );
 
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const initialData = useMemo(
     () => (rawEntity ? toInitialProductCategoryData(rawEntity) : undefined),
     [rawEntity]
@@ -37,6 +44,23 @@ export default function ProductCategoryViewPage() {
   const handleBack = useCallback(() => {
     navigate(entityConfig.routes.list);
   }, [navigate, entityConfig.routes.list]);
+
+  // Handle delete
+  const handleDelete = useCallback(async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    try {
+      await deleteEntity(ENTITY_NAME, id);
+      toast.success(`${entityConfig.displayName} deleted successfully.`);
+      navigate(entityConfig.routes.list);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `Failed to delete ${entityConfig.displayName}`;
+      showErrorToastUnlessAuth(msg);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  }, [id, entityConfig, navigate]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
@@ -138,8 +162,29 @@ export default function ProductCategoryViewPage() {
           >
             Edit {entityConfig.displayName}
           </Link>
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+              isDarkMode
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}
+          >
+            Delete
+          </button>
         </div>
       </div>
+
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDelete}
+        title={`Delete ${entityConfig.displayName}`}
+        message={`Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}? This action cannot be undone.`}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+        cancelLabel="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -19,6 +19,8 @@ export type TableAction<T> = {
   onClick: (row: T) => void;
   variant?: 'primary' | 'secondary' | 'danger';
   className?: string;
+  /** Optional function to determine if this action should be shown for a specific row */
+  shouldShow?: (row: T) => boolean;
 };
 
 export interface DataTableProps<T> {
@@ -210,16 +212,16 @@ export default function DataTable<T extends Record<string, any>>({
           <table className="w-full">
             <thead>
               <tr
-                className={`border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-200 border-gray-200'
+                className={`border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-teal-700 border-teal-800'
                   }`}
               >
                 {columns.map((column) => (
                   <th
                     key={column.key}
                     style={{ width: column.width }}
-                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-300' : 'text-white'
                       } ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left'} ${column.sortable
-                        ? `cursor-pointer ${isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-100'
+                        ? `cursor-pointer ${isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-teal-600'
                         }`
                         : ''
                       }`}
@@ -292,8 +294,10 @@ export default function DataTable<T extends Record<string, any>>({
                     ))}
                     {actions.length > 0 && (
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {actions.map((action, actionIndex) => (
+                        <div className="flex items-center justify-center sm:justify-end gap-1">
+                          {actions
+                            .filter((action) => action.shouldShow === undefined || action.shouldShow(row))
+                            .map((action, actionIndex) => (
                             <button
                               key={actionIndex}
                               onClick={(e) => {

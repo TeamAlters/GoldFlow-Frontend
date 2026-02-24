@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity } from '../../admin/admin.api';
+import { getEntity, deleteEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { toast } from '../../../stores/toast.store';
 import StaticKarigarForm, { type StaticKarigarFormData } from './karigarForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialKarigarData } from './karigarCreate';
@@ -14,6 +15,7 @@ import {
 } from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
+import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 
 const ENTITY_NAME = 'karigar';
 
@@ -27,6 +29,10 @@ export default function KarigarViewPage() {
   );
   const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
   const [dataLoading, setDataLoading] = useState(true);
+  
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -49,6 +55,23 @@ export default function KarigarViewPage() {
   const handleBack = useCallback(() => {
     navigate(entityConfig.routes.list);
   }, [navigate, entityConfig.routes.list]);
+
+  // Handle delete
+  const handleDelete = useCallback(async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    try {
+      await deleteEntity(ENTITY_NAME, id);
+      toast.success(`${entityConfig.displayName} deleted successfully.`);
+      navigate(entityConfig.routes.list);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `Failed to delete ${entityConfig.displayName}`;
+      showErrorToastUnlessAuth(msg);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  }, [id, entityConfig, navigate]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const editUrl = id ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id)) : '';
@@ -106,6 +129,16 @@ export default function KarigarViewPage() {
           >
             Edit {entityConfig.displayName}
           </Link>
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+              isDarkMode
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
+            }`}
+          >
+            Delete
+          </button>
         </div>
       </div>
       <div
@@ -125,6 +158,17 @@ export default function KarigarViewPage() {
         />
         <AuditTrailsCard entity={rawEntity} asSection />
       </div>
+
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDelete}
+        title={`Delete ${entityConfig.displayName}`}
+        message={`Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}? This action cannot be undone.`}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+        cancelLabel="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

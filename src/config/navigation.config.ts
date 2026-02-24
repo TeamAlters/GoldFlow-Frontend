@@ -63,7 +63,7 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Karigar', path: '/karigars', icon: 'users', entityName: 'karigar' },
       { name: 'Customer', path: '/customers', icon: 'user', entityName: 'customer' },
       { name: 'Department', path: '/departments', icon: 'user', entityName: 'department' },
-      { name: 'Department Group', path: '/department-groups', icon: 'layers', entityName: 'department_group' },
+      { name: 'Department Group', path: '/product-department-groups', icon: 'layers', entityName: 'product_department_group' },
     ],
   },
     {
@@ -71,8 +71,9 @@ export const sidebarNavConfig: NavCategory[] = [
     category: 'Manufacturing',
     icon: 'package',
     items: [
-      { name: 'Metal-Pool', path: '/metal-pool', icon: 'box' },
-      { name: 'melting_pool_transaction', path: '/melting-pool-transaction', icon: 'box', entityName: 'melting_pool_transaction' },
+      { name: 'Metal Pool', path: '/metal-pool', icon: 'box' },
+      { name: 'Melting Pool Transaction', path: '/melting-pool-transaction', icon: 'box', entityName: 'melting_pool_transaction' },
+      { name: 'Melting Lots', path: '/melting-lot', icon: 'box', entityName: 'melting_lot' },
     ],
   },
   {
