@@ -88,6 +88,10 @@ import MeltingLotPage from '../modules/manufacturing/meltingLot/meltingLotPage';
 import MeltingLotCreatePage from '../modules/manufacturing/meltingLot/meltingLotCreate';
 import MeltingLotEditPage from '../modules/manufacturing/meltingLot/meltingLotEdit';
 import MeltingLotViewPage from '../modules/manufacturing/meltingLot/meltingLotView';
+import ParentMeltingLotPage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotPage';
+import ParentMeltingLotCreatePage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotCreate';
+import ParentMeltingLotEditPage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotEdit';
+import ParentMeltingLotViewPage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotView';
 
 /** Redirects / to /dashboard when logged in, otherwise to /login */
 function RootRedirect() {
@@ -212,6 +216,10 @@ export default function AppRouter() {
           <Route path="melting-lot/add" element={<MeltingLotCreatePage />} />
           <Route path="melting-lot/edit/:id" element={<MeltingLotEditPage />} />
           <Route path="melting-lot/:id" element={<MeltingLotViewPage />} />
+          <Route path="parent-melting-lot" element={<ParentMeltingLotPage />} />
+          <Route path="parent-melting-lot/add" element={<ParentMeltingLotCreatePage />} />
+          <Route path="parent-melting-lot/edit/:id" element={<ParentMeltingLotEditPage />} />
+          <Route path="parent-melting-lot/:id" element={<ParentMeltingLotViewPage />} />
           <Route path="metal-ledger" element={<MetalLedgerPage />} />
           <Route path="metal-ledger/add" element={<MetalLedgerCreatePage />} />
           <Route path="metal-ledger/edit/:id" element={<MetalLedgerEditPage />} />

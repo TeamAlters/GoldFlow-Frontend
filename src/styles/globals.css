@@ -14,7 +14,14 @@
 }
 
 @layer utilities {
-  /* Add your custom utility classes here */
+  /* Custom utility to hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }
 
 /* Toast enter/exit animations */

@@ -66,7 +66,7 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Department Group', path: '/product-department-groups', icon: 'layers', entityName: 'product_department_group' },
     ],
   },
-    {
+  {
     id: 'manufacturing',
     category: 'Manufacturing',
     icon: 'package',
@@ -74,6 +74,7 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Metal Pool', path: '/metal-pool', icon: 'box' },
       { name: 'Melting Pool Transaction', path: '/melting-pool-transaction', icon: 'box', entityName: 'melting_pool_transaction' },
       { name: 'Melting Lots', path: '/melting-lot', icon: 'box', entityName: 'melting_lot' },
+      { name: 'Parent Melting Lots', path: '/parent-melting-lot', icon: 'box', entityName: 'parent_melting_lot' },
     ],
   },
   {
