@@ -67,7 +67,7 @@ export function FormSelect({
       </button>
       {open && (
         <ul
-          className={`absolute z-50 left-0 right-0 mt-1 py-1 rounded-lg border shadow-lg max-h-60 overflow-auto min-w-0 ${
+          className={`absolute z-50 left-0 right-0 mt-1 py-1 rounded-lg border shadow-lg max-h-60 overflow-y-auto min-w-0 scrollbar-hide ${
             isDarkMode
               ? 'bg-gray-700 border-gray-600'
               : 'bg-white border-gray-200'
