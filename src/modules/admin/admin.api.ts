@@ -236,7 +236,25 @@ export type EntityListResponse = {
 /**
  * GET /api/v1/entities/{entity_name}/list?page=1&page_size=20&filters=...
  * Fetches paginated list with optional filters. Filters are sent as JSON array of { field, operator, value }.
+ * Deduplicates in-flight and caches result for the same entityName + page + page_size + filters so repeated callers share one request.
  */
+const listRequestInFlight = new Map<string, Promise<EntityListResponse>>();
+const listRequestCache = new Map<
+  string,
+  { result: EntityListResponse; expiresAt: number }
+>();
+const LIST_CACHE_TTL_MS = 60_000;
+
+function getEntityListCacheKey(
+  entityName: string,
+  page: number,
+  page_size: number,
+  filters: EntityListFilter[]
+): string {
+  const filterPart = filters.length > 0 ? JSON.stringify(filters) : '';
+  return `${entityName}:${page}:${page_size}:${filterPart}`;
+}
+
 export async function getEntityList(
   entityName: string,
   params: EntityListParams = {}
@@ -244,6 +262,14 @@ export async function getEntityList(
   const config = getEntityConfig(entityName);
   const baseUrl = buildEntityUrl(config.api.list, entityName);
   const { page = 1, page_size = 20, filters = [] } = params;
+  const cacheKey = getEntityListCacheKey(entityName, page, page_size, filters);
+
+  const cached = listRequestCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
+
+  const existing = listRequestInFlight.get(cacheKey);
+  if (existing) return existing;
+
   const search = new URLSearchParams();
   search.set('page', String(page));
   search.set('page_size', String(page_size));
@@ -258,23 +284,34 @@ export async function getEntityList(
     filtersCount: filters.length,
     filters: filters.length > 0 ? filters : undefined,
   });
-  let data: EntityListResponse;
-  try {
-    const res = await apiClient.get<EntityListResponse>(url);
-    data = res.data ?? ({} as EntityListResponse);
-  } catch (err) {
-    const errMsg = messageFromAxiosError(err, 'Failed to load list');
-    console.log('[GoldFlow] [admin.api] getEntityList: failed', { entityName, errMsg });
-    throw new Error(errMsg);
-  }
-  const itemsCount = data.data?.items?.length ?? 0;
-  const totalItems = data.data?.pagination?.total_items;
-  console.log('[GoldFlow] [admin.api] getEntityList: success', {
-    entityName,
-    itemsCount,
-    totalItems,
-  });
-  return data;
+
+  const promise = (async (): Promise<EntityListResponse> => {
+    try {
+      const res = await apiClient.get<EntityListResponse>(url);
+      const data = res.data ?? ({} as EntityListResponse);
+      listRequestCache.set(cacheKey, {
+        result: data,
+        expiresAt: Date.now() + LIST_CACHE_TTL_MS,
+      });
+      const itemsCount = data.data?.items?.length ?? 0;
+      const totalItems = data.data?.pagination?.total_items;
+      console.log('[GoldFlow] [admin.api] getEntityList: success', {
+        entityName,
+        itemsCount,
+        totalItems,
+      });
+      return data;
+    } catch (err) {
+      const errMsg = messageFromAxiosError(err, 'Failed to load list');
+      console.log('[GoldFlow] [admin.api] getEntityList: failed', { entityName, errMsg });
+      throw new Error(errMsg);
+    } finally {
+      listRequestInFlight.delete(cacheKey);
+    }
+  })();
+
+  listRequestInFlight.set(cacheKey, promise);
+  return promise;
 }
 
 export type ReferenceOption = { value: string; label: string };
@@ -384,15 +421,48 @@ export async function getProductReferenceOptions(): Promise<ReferenceOption[]> {
 /**
  * Fetches entity list via /api/v1/entities/{entity_name}/list and maps to dropdown options.
  * Use this for Product and Department dropdowns instead of references API.
+ * Deduplicates concurrent and repeated calls for the same entity so the list API is only called once.
  */
+const entityListOptionsInFlight = new Map<string, Promise<ReferenceOption[]>>();
+const entityListOptionsCache = new Map<
+  string,
+  { result: ReferenceOption[]; expiresAt: number }
+>();
+const ENTITY_LIST_OPTIONS_CACHE_TTL_MS = 60_000;
+
+function getOptionsCacheKey(entityName: string, valueKey: string, labelKey: string): string {
+  return `${entityName}:${valueKey}:${labelKey}`;
+}
+
 export async function getEntityListOptions(
   entityName: string,
   valueKey = 'id',
   labelKey = 'name'
 ): Promise<ReferenceOption[]> {
-  const res = await getEntityList(entityName, { page: 1, page_size: 500 });
-  const items = res.data?.items ?? [];
-  return mapReferenceItemsToOptions(items, valueKey, labelKey);
+  const cacheKey = getOptionsCacheKey(entityName, valueKey, labelKey);
+  const cached = entityListOptionsCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return Promise.resolve(cached.result);
+
+  const existing = entityListOptionsInFlight.get(cacheKey);
+  if (existing) return existing;
+
+  const promise = (async (): Promise<ReferenceOption[]> => {
+    try {
+      const res = await getEntityList(entityName, { page: 1, page_size: 500 });
+      const items = res.data?.items ?? [];
+      const result = mapReferenceItemsToOptions(items, valueKey, labelKey);
+      entityListOptionsCache.set(cacheKey, {
+        result,
+        expiresAt: Date.now() + ENTITY_LIST_OPTIONS_CACHE_TTL_MS,
+      });
+      return result;
+    } finally {
+      entityListOptionsInFlight.delete(cacheKey);
+    }
+  })();
+
+  entityListOptionsInFlight.set(cacheKey, promise);
+  return promise;
 }
 
 /**

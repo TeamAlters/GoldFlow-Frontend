@@ -16,17 +16,39 @@ import type { FormSelectOption } from '../../../shared/components/FormSelect';
 const ENTITY_NAME = 'product_department_group';
 
 export function toDepartmentGroupPayload(
-  data: StaticDepartmentGroupFormData
+  data: StaticDepartmentGroupFormData,
+  existingDepartmentsConfig?: Record<string, unknown>[]
 ): Record<string, unknown> {
-  const departments = data.departments.map((r, i) => ({
-    order: i + 1,
-    department_id: r.department_id || null,
-    is_active: r.is_active,
-  }));
+  const product = data.product_id.trim() || null;
+  const department_group_name = data.name.trim();
+  const step_no = data.order.trim() !== '' ? parseInt(data.order, 10) : 0;
+
+  const departments = data.departments.map((r, i) => {
+    const stepNo = typeof r.order === 'number' ? r.order : i + 1;
+    const existing = existingDepartmentsConfig?.find(
+      (item) =>
+        String(item.department ?? item.department_name ?? '') === String(r.department_id)
+    ) as Record<string, unknown> | undefined;
+    return {
+      department: r.department_id || '',
+      step_no: stepNo,
+      product: product ?? '',
+      department_group: department_group_name,
+      requires_issue: existing?.requires_issue ?? true,
+      requires_receive: existing?.requires_receive ?? true,
+      allows_loss: existing?.allows_loss ?? false,
+      loss_percentage: existing?.loss_percentage ?? 100,
+      is_optional: existing?.is_optional ?? false,
+      allow_rework: existing?.allow_rework ?? true,
+      is_final_department: existing?.is_final_department ?? false,
+      is_active: r.is_active,
+    };
+  });
+
   return {
-    name: data.name.trim(),
-    order: data.order.trim() !== '' ? parseInt(data.order, 10) : 0,
-    product_id: data.product_id.trim() || null,
+    product: product ?? '',
+    department_group_name: department_group_name || '',
+    step_no,
     departments,
   };
 }

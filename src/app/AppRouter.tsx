@@ -75,6 +75,10 @@ import DepartmentGroupPage from '../modules/entities/departmentGroup/departmentG
 import DepartmentGroupCreatePage from '../modules/entities/departmentGroup/departmentGroupCreate';
 import DepartmentGroupEditPage from '../modules/entities/departmentGroup/departmentGroupEdit';
 import DepartmentGroupViewPage from '../modules/entities/departmentGroup/departmentGroupView';
+import ProductDepartmentPage from '../modules/entities/productDepartment/ProductDepartmentPage';
+import ProductDepartmentCreatePage from '../modules/entities/productDepartment/productDepartmentCreate';
+import ProductDepartmentEditPage from '../modules/entities/productDepartment/productDepartmentEdit';
+import ProductDepartmentViewPage from '../modules/entities/productDepartment/productDepartmentView';
 import MainLayout from '../layout/MainLayout';
 import { useAuthStore } from '../auth/auth.store';
 import MetalLedgerPage from '../modules/accounts/metalLedger/MetalLedgerPage';
@@ -209,6 +213,10 @@ export default function AppRouter() {
           <Route path="product-department-groups/add" element={<DepartmentGroupCreatePage />} />
           <Route path="product-department-groups/edit/:id" element={<DepartmentGroupEditPage />} />
           <Route path="product-department-groups/:id" element={<DepartmentGroupViewPage />} />
+          <Route path="product-departments" element={<ProductDepartmentPage />} />
+          <Route path="product-departments/add" element={<ProductDepartmentCreatePage />} />
+          <Route path="product-departments/edit/:id" element={<ProductDepartmentEditPage />} />
+          <Route path="product-departments/:id" element={<ProductDepartmentViewPage />} />
           <Route path="metal-pool" element={<CustomerMetalLedgerTablePage />} />
           <Route path="melting-pool-transaction" element={<MeltingPoolTransactionPage />} />
           <Route path="melting-pool-transaction/:id" element={<MeltingPoolTransactionViewPage />} />

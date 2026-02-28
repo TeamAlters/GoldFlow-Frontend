@@ -63,6 +63,7 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Customer', path: '/customers', icon: 'user', entityName: 'customer' },
       { name: 'Department', path: '/departments', icon: 'user', entityName: 'department' },
       { name: 'Department Group', path: '/product-department-groups', icon: 'layers', entityName: 'product_department_group' },
+      { name: 'Product Department', path: '/product-departments', icon: 'layers', entityName: 'product_department' },
     ],
   },
   {
