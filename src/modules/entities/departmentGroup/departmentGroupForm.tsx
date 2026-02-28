@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import {
   MAX_DEPARTMENT_GROUP_NAME_LENGTH,
@@ -8,6 +9,7 @@ import {
 import { FormSelect } from '../../../shared/components/FormSelect';
 import SortableTableWithAdd, { type SortableTableRow } from '../../../shared/components/SortableTableWithAdd';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticDepartmentGroupFormData = {
   name: string;
@@ -146,7 +148,7 @@ const StaticDepartmentGroupFormInner = forwardRef<
           </label>
           {readOnly ? (
             <div className={readOnlyFieldClass}>
-              {formData.name || '—'}
+              {formData.name || '–'}
             </div>
           ) : (
             <>
@@ -195,11 +197,17 @@ const StaticDepartmentGroupFormInner = forwardRef<
         <label className={labelClass}>
           Product <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
         </label>
-        {readOnly ? (
-          <div className={readOnlyFieldClass}>
-            {productOptions.find((o) => o.value === formData.product_id)?.label ?? (formData.product_id || '—')}
-          </div>
-        ) : (
+        {readOnly ? (() => {
+          const displayLabel = productOptions.find((o) => o.value === formData.product_id)?.label ?? formData.product_id;
+          const route = formData.product_id ? getEntityDetailRoute('product_id', formData.product_id) : null;
+          return route ? (
+            <div className={readOnlyFieldClass}>
+              <Link to={route} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{displayLabel || '–'}</Link>
+            </div>
+          ) : (
+            <div className={readOnlyFieldClass}>{displayLabel || '–'}</div>
+          );
+        })() : (
           <FormSelect
             value={formData.product_id}
             onChange={(v) => handleChange('product_id', v)}
@@ -212,7 +220,7 @@ const StaticDepartmentGroupFormInner = forwardRef<
         {errors.product_id && <p className={`mt-1 ${errorClass}`}>{errors.product_id}</p>}
       </div>
 
-      <section className={`mt-8 pt-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+      <section className={`mt-8 pt-6  ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <SortableTableWithAdd
           rows={formData.departments}
           onChange={handleDepartmentsChange}

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, updateEntity, getEntityListOptions } from '../../admin/admin.api';
+import { getEntity, updateEntity, getEntityReferenceOptions, getProductReferenceOptions } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticDepartmentGroupForm, {
   type StaticDepartmentGroupFormData,
   type StaticDepartmentGroupFormRef,
@@ -19,7 +20,7 @@ import {
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
 import type { SortableTableRow } from '../../../shared/components/SortableTableWithAdd';
 
-const ENTITY_NAME = 'department_group';
+const ENTITY_NAME = 'product_department_group';
 
 function parseDepartments(rows: unknown): SortableTableRow[] {
   if (!Array.isArray(rows)) return [];
@@ -27,14 +28,16 @@ function parseDepartments(rows: unknown): SortableTableRow[] {
     const obj = r as Record<string, unknown>;
     const dept = obj.department;
     const departmentId =
-      obj.department_id != null
-        ? String(obj.department_id)
-        : dept && typeof dept === 'object' && dept !== null && 'id' in dept
-          ? String((dept as { id?: unknown }).id ?? '')
-          : '';
+      obj.department != null
+        ? String(obj.department)
+        : obj.department_id != null
+          ? String(obj.department_id)
+          : dept && typeof dept === 'object' && dept !== null && 'id' in dept
+            ? String((dept as { id?: unknown }).id ?? '')
+            : '';
     return {
       id: String(obj.id ?? `row-${i}-${Date.now()}`),
-      order: typeof obj.order === 'number' ? obj.order : i + 1,
+      order: typeof obj.order === 'number' ? obj.order : (obj.step_no as number) ?? i + 1,
       department_id: departmentId,
       is_active: obj.is_active === true,
     };
@@ -48,7 +51,7 @@ export function toInitialDepartmentGroupData(
   return {
     name: entity.name != null ? String(entity.name) : '',
     order: entity.order != null ? String(entity.order) : '',
-    product_id: entity.product_id != null ? String(entity.product_id) : '',
+    product_id: entity.product != null ? String(entity.product) : entity.product_id != null ? String(entity.product_id) : '',
     departments: parseDepartments(departments),
   };
 }
@@ -69,34 +72,50 @@ export default function DepartmentGroupEditPage() {
   const formRef = useRef<StaticDepartmentGroupFormRef>(null);
 
   useEffect(() => {
+    let ignore = false;
     Promise.all([
-      getEntityListOptions('product', 'id', 'name'),
-      getEntityListOptions('department', 'id', 'name'),
+      getProductReferenceOptions(),
+      getEntityReferenceOptions('department'),
     ])
       .then(([products, departments]) => {
+        if (ignore) return;
         setProductOptions(products);
         setDepartmentOptions(departments);
       })
       .catch(() => {
-        setProductOptions([]);
-        setDepartmentOptions([]);
+        if (!ignore) {
+          setProductOptions([]);
+          setDepartmentOptions([]);
+        }
       });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!decodedId) return;
+    let ignore = false;
     setDataLoading(true);
     getEntity(ENTITY_NAME, decodedId)
       .then((res) => {
+        if (ignore) return;
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
           setInitialData(toInitialDepartmentGroupData(entity));
         }
       })
       .catch((err) => {
-        showErrorToastUnlessAuth(err instanceof Error ? err.message : 'Failed to load department group');
+        if (!ignore) {
+          showErrorToastUnlessAuth(err instanceof Error ? err.message : 'Failed to load department group');
+        }
       })
-      .finally(() => setDataLoading(false));
+      .finally(() => {
+        if (!ignore) setDataLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
   }, [decodedId]);
 
   const handleSubmit = useCallback(
@@ -131,6 +150,7 @@ export default function DepartmentGroupEditPage() {
   );
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
   const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.name);
 
   if (!decodedId) {
@@ -175,6 +195,7 @@ export default function DepartmentGroupEditPage() {
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
           }`}
       >
+        <div className={sectionClass}>
         <StaticDepartmentGroupForm
           ref={formRef}
           initialData={initialData}
@@ -201,8 +222,9 @@ export default function DepartmentGroupEditPage() {
               : 'bg-blue-500 hover:bg-blue-600 text-white'
               } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
+            {submitLoading ? 'Saving...' : 'Update'}
           </button>
+        </div>
         </div>
       </form>
     </div>

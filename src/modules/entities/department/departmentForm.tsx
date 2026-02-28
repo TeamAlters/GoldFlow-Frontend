@@ -128,9 +128,7 @@ const StaticDepartmentFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
-        <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          Uppercase letters only, max 4 characters
-        </p>
+     
         {errors.abbreviation && <p className={`mt-1 ${errorClass}`}>{errors.abbreviation}</p>}
       </div>
       <div>
@@ -147,9 +145,7 @@ const StaticDepartmentFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
-        <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          Max 36 characters
-        </p>
+ 
         {errors.name && <p className={`mt-1 ${errorClass}`}>{errors.name}</p>}
       </div>
       <div className="md:col-span-2">

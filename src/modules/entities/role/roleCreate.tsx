@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityNamesForRolesTable } from '../../../config/entity.config';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import {
     RolesPermissionsTable,
@@ -19,6 +20,7 @@ import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/for
 export default function RoleCreatePage() {
     const navigate = useNavigate();
     const isDarkMode = useUIStore((state) => state.isDarkMode);
+    const sectionClass = getSectionClass(isDarkMode);
     const entityNames = useMemo(() => getEntityNamesForRolesTable(), []);
     const [roleName, setRoleName] = useState('');
     const [isSystemRole, setIsSystemRole] = useState(false);
@@ -111,6 +113,7 @@ export default function RoleCreatePage() {
                 </p>
             </div>
             <form onSubmit={handleSubmit}>
+                <div className={sectionClass}>
                 <div className={`p-6 rounded-xl border ${cardClass}`}>
                     <div className="flex flex-wrap items-center gap-4 mb-6">
                         <div className="w-full max-w-xs">
@@ -179,6 +182,7 @@ export default function RoleCreatePage() {
                             {submitLoading ? 'Saving...' : 'Create role'}
                         </button>
                     </div>
+                </div>
                 </div>
             </form>
         </div>

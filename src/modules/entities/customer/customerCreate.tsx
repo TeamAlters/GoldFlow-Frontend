@@ -1,11 +1,17 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { createEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
+import {
+  createEntity,
+  getEntityReferences,
+  getEntityReferenceOptionsFiltered,
+  mapReferenceItemsToOptions,
+} from '../../admin/admin.api';
 import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticCustomerMasterForm, {
   type StaticCustomerMasterFormData,
   type StaticCustomerMasterFormRef,
@@ -68,6 +74,7 @@ export default function CustomerCreatePage() {
   const [productCategoryOptions, setProductCategoryOptions] = useState<SelectOption[]>([]);
   const [machineOptions, setMachineOptions] = useState<SelectOption[]>([]);
   const [designOptions, setDesignOptions] = useState<SelectOption[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<string>('');
   const formRef = useRef<StaticCustomerMasterFormRef>(null);
 
   useEffect(() => {
@@ -86,13 +93,38 @@ export default function CustomerCreatePage() {
       getEntityReferences('product_category').then((items) =>
         setProductCategoryOptions(mapReferenceItemsToOptions(items, 'product_category'))
       ),
-      getEntityReferences('machine').then((items) =>
-        setMachineOptions(mapReferenceItemsToOptions(items, 'machine_name'))
-      ),
-      getEntityReferences('design').then((items) =>
-        setDesignOptions(mapReferenceItemsToOptions(items, 'design_name'))
-      ),
     ]).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const productName = selectedProduct?.trim();
+    if (!productName) {
+      setMachineOptions([]);
+      setDesignOptions([]);
+      return;
+    }
+    let ignore = false;
+    Promise.all([
+      getEntityReferenceOptionsFiltered('machine', productName, 'machine_name', 'machine_name'),
+      getEntityReferenceOptionsFiltered('design', productName, 'design_name', 'design_name'),
+    ])
+      .then(([machine, design]) => {
+        if (ignore) return;
+        setMachineOptions(machine);
+        setDesignOptions(design);
+      })
+      .catch(() => {
+        if (ignore) return;
+        setMachineOptions([]);
+        setDesignOptions([]);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [selectedProduct]);
+
+  const handleProductNameChange = useCallback((productName: string) => {
+    setSelectedProduct(productName);
   }, []);
 
   const handleSubmit = useCallback(
@@ -129,6 +161,7 @@ export default function CustomerCreatePage() {
   );
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
 
   return (
     <div className="w-full">
@@ -154,6 +187,7 @@ export default function CustomerCreatePage() {
         onSubmit={handleFormSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
+        <div className={sectionClass}>
         <StaticCustomerMasterForm
           ref={formRef}
           initialData={undefined}
@@ -162,6 +196,7 @@ export default function CustomerCreatePage() {
           productCategoryOptions={productCategoryOptions}
           machineOptions={machineOptions}
           designOptions={designOptions}
+          onProductNameChange={handleProductNameChange}
           isEdit={false}
           wrapInForm={false}
           showActions={false}
@@ -181,6 +216,7 @@ export default function CustomerCreatePage() {
           >
             {submitLoading ? 'Saving...' : `Create ${entityConfig.displayName}`}
           </button>
+        </div>
         </div>
       </form>
     </div>

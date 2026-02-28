@@ -6,6 +6,7 @@ import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticItemTypeForm, {
   type StaticItemTypeFormData,
   type StaticItemTypeFormRef,
@@ -68,6 +69,7 @@ export default function ItemTypeCreatePage() {
   );
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
 
   return (
     <div className="w-full">
@@ -93,28 +95,30 @@ export default function ItemTypeCreatePage() {
         onSubmit={handleFormSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
-        <StaticItemTypeForm
-          ref={formRef}
-          initialData={undefined}
-          isEdit={false}
-          wrapInForm={false}
-          showActions={false}
-        />
-        <div className="flex items-center justify-end gap-3 pt-6 mt-6">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitLoading}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} disabled:opacity-60`}
-          >
-            {submitLoading ? 'Saving...' : `Create ${entityConfig.displayName}`}
-          </button>
+        <div className={sectionClass}>
+          <StaticItemTypeForm
+            ref={formRef}
+            initialData={undefined}
+            isEdit={false}
+            wrapInForm={false}
+            showActions={false}
+          />
+          <div className="flex items-center justify-end gap-3 pt-6 mt-6">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitLoading}
+              className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} disabled:opacity-60`}
+            >
+              {submitLoading ? 'Saving...' : `Create ${entityConfig.displayName}`}
+            </button>
+          </div>
         </div>
       </form>
     </div>

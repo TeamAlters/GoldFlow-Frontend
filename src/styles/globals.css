@@ -15,13 +15,30 @@
 
 @layer utilities {
   /* Custom utility to hide scrollbar but keep functionality */
-  .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+  .scrollbar-hide,
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Chrome, Safari and Opera */
+  .scrollbar-hide::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
+}
+
+/* Sidebar: always hide scrollbars across all browsers */
+aside,
+aside nav,
+aside div {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+aside::-webkit-scrollbar,
+aside nav::-webkit-scrollbar,
+aside div::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Toast enter/exit animations */

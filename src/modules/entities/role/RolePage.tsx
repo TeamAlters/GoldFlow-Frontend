@@ -118,7 +118,7 @@ export default function RolePage() {
                                         className={isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'}
                                     >
                                         <td className={`px-5 py-3.5 text-sm font-medium ${tdText}`}>
-                                            {row.role_name ?? '—'}
+                                            {row.role_name ?? '–'}
                                         </td>
                                         <td className={`px-5 py-3.5 text-sm ${tdText}`}>
                                             {row.is_system_role ? 'Yes' : 'No'}

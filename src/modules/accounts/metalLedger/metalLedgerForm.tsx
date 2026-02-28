@@ -542,7 +542,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
       const currentLabel = options.find((o) => o.value === value)?.label ?? `Select ${label}`;
       if (readOnly) {
         return (
-          <div className={readOnlyClass}>{currentLabel === `Select ${label}` ? '—' : currentLabel}</div>
+          <div className={readOnlyClass}>{currentLabel === `Select ${label}` ? '–' : currentLabel}</div>
         );
       }
       const isOpen = openSelectKey === key;
@@ -1017,7 +1017,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
             <input
               type="text"
               value={formData.created_by}
-              placeholder="—"
+              placeholder="–"
               className={readOnlyClass}
               disabled
               readOnly
@@ -1029,7 +1029,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
             <input
               type="text"
               value={formData.modified_by}
-              placeholder="—"
+              placeholder="–"
               className={readOnlyClass}
               disabled
               readOnly

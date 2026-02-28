@@ -289,7 +289,7 @@ export default function DataTable<T extends Record<string, any>>({
                         className={`px-4 py-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-900'
                           } ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : ''}`}
                       >
-                        {column.accessor ? column.accessor(row) : row[column.key] || '-'}
+                        {column.accessor ? column.accessor(row) : row[column.key] || '–'}
                       </td>
                     ))}
                     {actions.length > 0 && (

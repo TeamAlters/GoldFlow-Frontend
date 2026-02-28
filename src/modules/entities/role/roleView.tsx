@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityNamesForRolesTable } from '../../../config/entity.config';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import {
     RolesPermissionsTable,
@@ -11,6 +12,8 @@ import {
 import { roleConfig } from '../../../config/entity.config';
 import { getRole, type RoleDetail } from './role.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
+import BackButton from '../../../shared/components/BackButton';
 
 function permissionsFromRole(role: RoleDetail | null, entityNames: string[]): PermissionsMatrix {
     const base = buildInitialMatrix(entityNames);
@@ -39,6 +42,7 @@ export default function RoleViewPage() {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const isDarkMode = useUIStore((state) => state.isDarkMode);
+    const sectionClass = getSectionClass(isDarkMode);
     const entityNames = useMemo(() => getEntityNamesForRolesTable(), []);
     const [role, setRole] = useState<RoleDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -125,29 +129,49 @@ export default function RoleViewPage() {
                 ]}
                 className="mb-4"
             />
-            <div className="mb-6">
-                <h1
-                    className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-                >
-                    {role.role_name ?? 'Role'}
-                </h1>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    View role details and entity permissions.
-                </p>
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h1
+                        className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+                    >
+                        {role.role_name ?? 'Role'}
+                    </h1>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        View role details and entity permissions.
+                    </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                    <BackButton onClick={handleBack} />
+                    <Link
+                        to={editUrl}
+                        className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+                    >
+                        Edit
+                    </Link>
+                </div>
             </div>
             <div className={`p-6 rounded-xl border ${cardClass}`}>
-                <div className="flex flex-wrap items-center gap-6 mb-6">
-                    <div>
-                        <span className={`text-sm font-medium ${labelClass}`}>Role Name</span>
-                        <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                            {role.role_name ?? '—'}
-                        </p>
-                    </div>
-                    <div>
-                        <span className={`text-sm font-medium ${labelClass}`}>Is System Role</span>
-                        <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                            {role.is_system_role ? 'Yes' : 'No'}
-                        </p>
+                <div className={sectionClass}>
+                    <h2
+                        className={`text-lg font-semibold mb-4 pb-2 border-b ${
+                            isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
+                        }`}
+                    >
+                        Role Info
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-6 mb-6">
+                        <div>
+                            <span className={`text-sm font-medium ${labelClass}`}>Role Name</span>
+                            <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                                {role.role_name ?? '–'}
+                            </p>
+                        </div>
+                        <div>
+                            <span className={`text-sm font-medium ${labelClass}`}>Is System Role</span>
+                            <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                                {role.is_system_role ? 'Yes' : 'No'}
+                            </p>
+                        </div>
                     </div>
                 </div>
                 <section className="pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -169,21 +193,7 @@ export default function RoleViewPage() {
                         />
                     </div>
                 </section>
-                <div className="flex items-center justify-end gap-3 pt-6 mt-6">
-                    <button
-                        type="button"
-                        onClick={handleBack}
-                        className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                    >
-                        Back
-                    </button>
-                    <Link
-                        to={editUrl}
-                        className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
-                    >
-                        Edit
-                    </Link>
-                </div>
+                <AuditTrailsCard entity={role as unknown as Record<string, unknown> | null} asSection />
             </div>
         </div>
     );

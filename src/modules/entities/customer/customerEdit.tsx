@@ -1,10 +1,16 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntityReferences, mapReferenceItemsToOptions, updateEntity } from '../../admin/admin.api';
+import {
+  getEntityReferences,
+  getEntityReferenceOptionsFiltered,
+  mapReferenceItemsToOptions,
+  updateEntity,
+} from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useEntityLoad } from '../../../shared/hooks/useEntityLoad';
 import StaticCustomerMasterForm, {
   type StaticCustomerMasterFormData,
@@ -42,6 +48,7 @@ export default function CustomerEditPage() {
   const [productCategoryOptions, setProductCategoryOptions] = useState<SelectOption[]>([]);
   const [machineOptions, setMachineOptions] = useState<SelectOption[]>([]);
   const [designOptions, setDesignOptions] = useState<SelectOption[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<string>('');
   const formRef = useRef<StaticCustomerMasterFormRef>(null);
 
   useEffect(() => {
@@ -64,13 +71,44 @@ export default function CustomerEditPage() {
       getEntityReferences('product_category').then((items) =>
         setProductCategoryOptions(mapReferenceItemsToOptions(items, 'product_category'))
       ),
-      getEntityReferences('machine').then((items) =>
-        setMachineOptions(mapReferenceItemsToOptions(items, 'machine_name'))
-      ),
-      getEntityReferences('design').then((items) =>
-        setDesignOptions(mapReferenceItemsToOptions(items, 'design_name'))
-      ),
     ]).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (initialData?.product_name) {
+      setSelectedProduct(initialData.product_name);
+    }
+  }, [initialData?.product_name]);
+
+  useEffect(() => {
+    const productName = selectedProduct?.trim();
+    if (!productName) {
+      setMachineOptions([]);
+      setDesignOptions([]);
+      return;
+    }
+    let ignore = false;
+    Promise.all([
+      getEntityReferenceOptionsFiltered('machine', productName, 'machine_name', 'machine_name'),
+      getEntityReferenceOptionsFiltered('design', productName, 'design_name', 'design_name'),
+    ])
+      .then(([machine, design]) => {
+        if (ignore) return;
+        setMachineOptions(machine);
+        setDesignOptions(design);
+      })
+      .catch(() => {
+        if (ignore) return;
+        setMachineOptions([]);
+        setDesignOptions([]);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [selectedProduct]);
+
+  const handleProductNameChange = useCallback((productName: string) => {
+    setSelectedProduct(productName);
   }, []);
 
   const handleSubmit = useCallback(
@@ -106,6 +144,7 @@ export default function CustomerEditPage() {
   );
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
@@ -175,6 +214,7 @@ export default function CustomerEditPage() {
         onSubmit={handleFormSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
+        <div className={sectionClass}>
         <StaticCustomerMasterForm
           ref={formRef}
           initialData={initialData}
@@ -183,6 +223,7 @@ export default function CustomerEditPage() {
           productCategoryOptions={productCategoryOptions}
           machineOptions={machineOptions}
           designOptions={designOptions}
+          onProductNameChange={handleProductNameChange}
           isEdit={true}
           wrapInForm={false}
           showActions={false}
@@ -206,8 +247,9 @@ export default function CustomerEditPage() {
               : 'bg-blue-500 hover:bg-blue-600 text-white'
               } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
+            {submitLoading ? 'Saving...' : 'Update'}
           </button>
+        </div>
         </div>
       </form>
     </div>

@@ -3,6 +3,7 @@ import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, deleteEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import StaticMachineForm, { type StaticMachineFormData } from './machineForm';
@@ -74,6 +75,8 @@ export default function MachineViewPage() {
   }, [id, entityConfig, navigate]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
+
   const editUrl = id ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id)) : '';
 
   if (!id) {
@@ -127,7 +130,7 @@ export default function MachineViewPage() {
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
             }`}
           >
-            Edit {entityConfig.displayName}
+            Edit
           </Link>
           <button
             onClick={() => setShowDeleteDialog(true)}
@@ -144,18 +147,22 @@ export default function MachineViewPage() {
       <div
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
-        <h2
-          className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-        >
-          {entityConfig.displayName} Info
-        </h2>
-        <StaticMachineForm
-          initialData={initialData}
-          isEdit={true}
-          readOnly={true}
-          wrapInForm={false}
-          showActions={false}
-        />
+        <div className={sectionClass}>
+          <h2
+            className={`text-lg font-semibold mb-4 pb-2 border-b ${
+              isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
+            }`}
+          >
+            {entityConfig.displayName} Info
+          </h2>
+          <StaticMachineForm
+            initialData={initialData}
+            isEdit={true}
+            readOnly={true}
+            wrapInForm={false}
+            showActions={false}
+          />
+        </div>
         <AuditTrailsCard entity={rawEntity} asSection />
       </div>
 

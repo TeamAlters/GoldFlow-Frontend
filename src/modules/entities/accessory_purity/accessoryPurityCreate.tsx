@@ -6,6 +6,7 @@ import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticAccessoryPurityForm, {
   type StaticAccessoryPurityFormData,
   type StaticAccessoryPurityFormRef,
@@ -96,6 +97,7 @@ export default function AccessoryPurityCreatePage() {
   );
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
 
   return (
     <div className="w-full">
@@ -121,6 +123,7 @@ export default function AccessoryPurityCreatePage() {
         onSubmit={handleFormSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
+        <div className={sectionClass}>
         <StaticAccessoryPurityForm
           ref={formRef}
           initialData={undefined}
@@ -144,6 +147,7 @@ export default function AccessoryPurityCreatePage() {
           >
             {submitLoading ? 'Saving...' : `Create ${entityConfig.displayName}`}
           </button>
+        </div>
         </div>
       </form>
     </div>

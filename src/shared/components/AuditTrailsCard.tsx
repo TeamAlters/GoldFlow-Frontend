@@ -1,7 +1,7 @@
 import { useUIStore } from '../../stores/ui.store';
 import { formatDateTime } from '../utils/dateUtils';
 
-const EMPTY = '—';
+const EMPTY = '–';
 
 function valueOrEmpty(val: unknown): string {
   if (val === null || val === undefined) return EMPTY;
@@ -24,35 +24,38 @@ export default function AuditTrailsCard({ entity, asSection = false }: AuditTrai
   const modifiedAt = entity ? formatDateTime(entity.modified_at as string | number | null | undefined) : EMPTY;
 
   const labelCls = `block text-sm font-normal mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`;
-  const valueBoxCls = `w-full px-4 py-2.5 text-sm rounded-lg border leading-relaxed ${
-    isDarkMode
+  const valueBoxCls = `w-full px-4 py-2.5 text-sm rounded-lg border leading-relaxed ${isDarkMode
       ? 'bg-gray-700/50 border-gray-600 text-white'
       : 'bg-white border-gray-300 text-gray-900'
-  }`;
+    }`;
+  const sectionClass = `border rounded-lg p-4 mb-4 ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'
+    }`;
 
   const content = (
     <>
-      <h2
-        className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-      >
-        Audit Trails
-      </h2>
-      <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 sm:gap-x-10">
-        <div>
-          <p className={labelCls}>Created By</p>
-          <div className={valueBoxCls}>{createdBy}</div>
-        </div>
-        <div>
-          <p className={labelCls}>Created At</p>
-          <div className={valueBoxCls}>{createdAt}</div>
-        </div>
-        <div>
-          <p className={labelCls}>Modified By</p>
-          <div className={valueBoxCls}>{modifiedBy}</div>
-        </div>
-        <div>
-          <p className={labelCls}>Modified At</p>
-          <div className={valueBoxCls}>{modifiedAt}</div>
+      <div className={sectionClass}>
+        <h2
+          className={`text-lg font-semibold mb-4 pb-2 border-b  ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'}`}
+        >
+          Audit Trails
+        </h2>
+        <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 sm:gap-x-10">
+          <div>
+            <p className={labelCls}>Created By</p>
+            <div className={valueBoxCls}>{createdBy}</div>
+          </div>
+          <div>
+            <p className={labelCls}>Created At</p>
+            <div className={valueBoxCls}>{createdAt}</div>
+          </div>
+          <div>
+            <p className={labelCls}>Modified By</p>
+            <div className={valueBoxCls}>{modifiedBy}</div>
+          </div>
+          <div>
+            <p className={labelCls}>Modified At</p>
+            <div className={valueBoxCls}>{modifiedAt}</div>
+          </div>
         </div>
       </div>
     </>
@@ -60,7 +63,7 @@ export default function AuditTrailsCard({ entity, asSection = false }: AuditTrai
 
   if (asSection) {
     return (
-      <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <section className=" border-gray-200 dark:border-gray-700">
         {content}
       </section>
     );

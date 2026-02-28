@@ -5,6 +5,7 @@ import { getEntity, updateEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticProductForm, {
     type StaticProductFormData,
     type StaticProductFormRef,
@@ -97,6 +98,7 @@ export default function ProductEditPage() {
     );
 
     const isDarkMode = useUIStore((state) => state.isDarkMode);
+    const sectionClass = getSectionClass(isDarkMode);
 
     if (!id) {
         return <Navigate to={entityConfig.routes.list} replace />;
@@ -155,7 +157,7 @@ export default function ProductEditPage() {
     const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.product_name);
 
     return (
-        <div className="w-full max-w-3xl">
+        <div className="w-full">
             <Breadcrumbs
                 items={[
                     { label: 'Dashboard', href: '/dashboard' },
@@ -165,9 +167,9 @@ export default function ProductEditPage() {
                 className="mb-4"
             />
 
-            <div className="mb-6 flex flex-col gap-1">
+            <div className="mb-6">
                 <h1
-                    className={`text-2xl font-bold tracking-tight sm:text-3xl ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+                    className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                 >
                     {getEditPageTitle(entityConfig)}
                 </h1>
@@ -178,16 +180,9 @@ export default function ProductEditPage() {
 
             <form
                 onSubmit={handleFormSubmit}
-                className={`overflow-hidden rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700 shadow-lg' : 'bg-white border-gray-200 shadow-sm'}`}
+                className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
             >
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2
-                        className={`text-base font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
-                    >
-                        Product details
-                    </h2>
-                </div>
-                <div className="p-6">
+                <div className={sectionClass}>
                     <StaticProductForm
                         key={id}
                         ref={formRef}
@@ -196,10 +191,7 @@ export default function ProductEditPage() {
                         wrapInForm={false}
                         showActions={false}
                     />
-                </div>
-                <div
-                    className={`flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t ${isDarkMode ? 'border-gray-700 bg-gray-800/80' : 'border-gray-200 bg-gray-50/80'}`}
-                >
+                    <div className="flex flex-wrap items-center justify-end gap-3 pt-6 mt-6">
                     <button
                         type="button"
                         onClick={handleCancel}
@@ -213,13 +205,14 @@ export default function ProductEditPage() {
                     <button
                         type="submit"
                         disabled={submitLoading}
-                        className={`px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-colors ${isDarkMode
+                        className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
                             ? 'bg-blue-600 hover:bg-blue-700 text-white'
                             : 'bg-blue-500 hover:bg-blue-600 text-white'
-                            } disabled:opacity-60 disabled:cursor-not-allowed`}
+                            } disabled:opacity-60`}
                     >
-                        {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
+                        {submitLoading ? 'Saving...' : 'Update'}
                     </button>
+                    </div>
                 </div>
             </form>
         </div>

@@ -152,7 +152,7 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                     <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
                       {row[col.key] !== undefined && row[col.key] !== null
                         ? String(row[col.key])
-                        : '—'}
+                        : '–'}
                     </span>
                   ) : (
                     <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>

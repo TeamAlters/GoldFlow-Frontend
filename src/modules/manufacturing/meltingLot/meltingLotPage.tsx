@@ -214,8 +214,8 @@ export default function MeltingLotPage() {
                 }}
                 className={
                   isDarkMode
-                    ? 'text-amber-400 hover:text-amber-300 underline'
-                    : 'text-amber-600 hover:text-amber-700 underline'
+                    ? 'text-amber-400 hover:text-amber-300'
+                    : 'text-amber-600 hover:text-amber-700'
                 }
               >
                 {value}

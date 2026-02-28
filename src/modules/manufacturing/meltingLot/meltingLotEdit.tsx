@@ -158,7 +158,7 @@ export default function MeltingLotEditPage() {
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
             } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
+            {submitLoading ? 'Saving...' : 'Update'}
           </button>
         </div>
       </form>

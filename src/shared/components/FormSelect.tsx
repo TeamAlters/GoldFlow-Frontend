@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 export interface FormSelectOption {
   value: string;
@@ -13,6 +14,8 @@ export interface FormSelectProps {
   disabled?: boolean;
   className?: string;
   isDarkMode?: boolean;
+  /** When provided and the select is disabled, renders the value as a navigation link instead of a disabled button. */
+  navigateTo?: string;
 }
 
 /**
@@ -26,11 +29,25 @@ export function FormSelect({
   disabled = false,
   className = '',
   isDarkMode = false,
+  navigateTo,
 }: FormSelectProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedLabel = value ? options.find((o) => o.value === value)?.label ?? value : '';
+
+  if (disabled && navigateTo && selectedLabel) {
+    return (
+      <div className={`w-full min-h-[42px] px-4 py-2.5 flex items-center text-sm rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+        <Link
+          to={navigateTo}
+          className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}
+        >
+          {selectedLabel}
+        </Link>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!open) return;

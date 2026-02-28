@@ -6,7 +6,11 @@ import {
   validateNumeric184,
 } from '../../../shared/utils/formValidation';
 import type { ReferenceOption } from '../../admin/admin.api';
-import { getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
+import {
+  getEntityReferences,
+  getEntityReferenceOptionsFiltered,
+  mapReferenceItemsToOptions,
+} from '../../admin/admin.api';
 import { fetchMetalPoolBalance, type MetalPoolBalance } from './meltingLot.api';
 import EditableWeightTable from '../../../shared/components/EditableWeightTable';
 
@@ -144,50 +148,43 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
       })
       .catch(() => setPurityOptions([]));
 
-    // Load accessory purity
-    getEntityReferences('accessory_purity')
-      .then((items) => {
-        const opts = mapReferenceItemsToOptions(items, 'accessory_purity', 'accessory_purity');
-        setAccessoryPurityOptions(opts.length > 0 ? opts : items.map((row: Record<string, unknown>) => ({
-          value: String(row.accessory_purity ?? ''),
-          label: String(row.accessory_purity ?? ''),
-        })));
-      })
-      .catch(() => setAccessoryPurityOptions([]));
-
-    // Load wire sizes
-    getEntityReferences('wire_size')
-      .then((items) => {
-        const opts = mapReferenceItemsToOptions(items, 'wire_size', 'wire_size');
-        setWireSizeOptions(opts.length > 0 ? opts : items.map((row: Record<string, unknown>) => ({
-          value: String(row.wire_size ?? ''),
-          label: String(row.wire_size ?? ''),
-        })));
-      })
-      .catch(() => setWireSizeOptions([]));
-
-    // Load thicknesses
-    getEntityReferences('thickness')
-      .then((items) => {
-        const opts = mapReferenceItemsToOptions(items, 'thickness', 'thickness');
-        setThicknessOptions(opts.length > 0 ? opts : items.map((row: Record<string, unknown>) => ({
-          value: String(row.thickness ?? ''),
-          label: String(row.thickness ?? ''),
-        })));
-      })
-      .catch(() => setThicknessOptions([]));
-
-    // Load designs
-    getEntityReferences('design')
-      .then((items) => {
-        const opts = mapReferenceItemsToOptions(items, 'design_name', 'design_name');
-        setDesignOptions(opts.length > 0 ? opts : items.map((row: Record<string, unknown>) => ({
-          value: String(row.design_name ?? ''),
-          label: String(row.design_name ?? ''),
-        })));
-      })
-      .catch(() => setDesignOptions([]));
   }, []);
+
+  // Load product-dependent dropdowns (wire_size, thickness, design, accessory_purity) filtered by selected product
+  useEffect(() => {
+    const productName = formData.product?.trim();
+    if (!productName) {
+      setWireSizeOptions([]);
+      setThicknessOptions([]);
+      setDesignOptions([]);
+      setAccessoryPurityOptions([]);
+      return;
+    }
+    let ignore = false;
+    Promise.all([
+      getEntityReferenceOptionsFiltered('wire_size', productName, 'wire_size', 'wire_size'),
+      getEntityReferenceOptionsFiltered('thickness', productName, 'thickness', 'thickness'),
+      getEntityReferenceOptionsFiltered('design', productName, 'design_name', 'design_name'),
+      getEntityReferenceOptionsFiltered('accessory_purity', productName, 'accessory_purity', 'accessory_purity'),
+    ])
+      .then(([wire, thick, design, accessory]) => {
+        if (ignore) return;
+        setWireSizeOptions(wire);
+        setThicknessOptions(thick);
+        setDesignOptions(design);
+        setAccessoryPurityOptions(accessory);
+      })
+      .catch(() => {
+        if (ignore) return;
+        setWireSizeOptions([]);
+        setThicknessOptions([]);
+        setDesignOptions([]);
+        setAccessoryPurityOptions([]);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [formData.product]);
 
   // Fetch metal pool balance
   useEffect(() => {
@@ -278,7 +275,16 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
 
   // Legacy handler for dropdown selections
   const handleChange = (key: keyof MeltingLotFormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === 'product') {
+        next.wire_size = '';
+        next.thickness = '';
+        next.design_name = '';
+        next.accessory_purity = '';
+      }
+      return next;
+    });
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
   };
 
@@ -524,7 +530,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   ) => {
     const currentLabel = options.find((o) => o.value === value)?.label ?? `Select ${label}`;
     if (readOnly) {
-      return <div className={readOnlyClass}>{currentLabel === `Select ${label}` ? '—' : currentLabel}</div>;
+      return <div className={readOnlyClass}>{currentLabel === `Select ${label}` ? '–' : currentLabel}</div>;
     }
     const isOpen = openSelectKey === key;
     return (
@@ -617,7 +623,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
         <div>
           <label className={labelClass}>Purity %</label>
           <div className={readOnlyClass}>
-            {currentPurityPercentage > 0 ? `${currentPurityPercentage}` : '—'}
+            {currentPurityPercentage > 0 ? `${currentPurityPercentage}` : '–'}
           </div>
         </div>
 
@@ -868,32 +874,32 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
         <div>
           <label className={labelClass}>Total Metal Weight</label>
           <div className={readOnlyClass}>
-            {totals.totalMetalWeight > 0 ? totals.totalMetalWeight.toFixed(4) : '—'}
+            {totals.totalMetalWeight > 0 ? totals.totalMetalWeight.toFixed(4) : '–'}
           </div>
         </div>
         <div>
           <label className={labelClass}>Total Fine Weight</label>
           <div className={readOnlyClass}>
-            {totals.totalFineWeight > 0 ? totals.totalFineWeight.toFixed(4) : '—'}
+            {totals.totalFineWeight > 0 ? totals.totalFineWeight.toFixed(4) : '–'}
           </div>
         </div>
         <div>
           <label className={labelClass}>Total Alloy Weight</label>
           <div className={readOnlyClass}>
-            {totals.totalAlloyWeight > 0 ? totals.totalAlloyWeight.toFixed(4) : '—'}
+            {totals.totalAlloyWeight > 0 ? totals.totalAlloyWeight.toFixed(4) : '–'}
           </div>
         </div>
         <div>
           <label className={labelClass}>Total Gross Weight</label>
           <div className={readOnlyClass}>
-            {totals.totalMetalWeight > 0 ? totals.totalMetalWeight.toFixed(4) : '—'}
+            {totals.totalMetalWeight > 0 ? totals.totalMetalWeight.toFixed(4) : '–'}
           </div>
         </div>
         <div>
           <label className={labelClass}>Total Alloy Vadotar</label>
           {readOnly ? (
             <div className={readOnlyClass}>
-              {formData.total_alloy_vadotar || '—'}
+              {formData.total_alloy_vadotar || '–'}
             </div>
           ) : (
             <input

@@ -187,7 +187,7 @@ export default function Navbar() {
                         {String(user?.name ?? user?.username ?? 'User')}
                       </p>
                       <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {user?.email ?? '—'}
+                        {user?.email ?? '–'}
                       </p>
                     </div>
                     {/* Arrow Icon */}

@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityNamesForRolesTable } from '../../../config/entity.config';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import {
     RolesPermissionsTable,
@@ -43,6 +44,7 @@ export default function RoleEditPage() {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const isDarkMode = useUIStore((state) => state.isDarkMode);
+    const sectionClass = getSectionClass(isDarkMode);
     const entityNames = useMemo(() => getEntityNamesForRolesTable(), []);
     const [roleName, setRoleName] = useState('');
     const [isSystemRole, setIsSystemRole] = useState(false);
@@ -171,6 +173,7 @@ export default function RoleEditPage() {
             </div>
             <form onSubmit={handleSubmit}>
                 <div className={`p-6 rounded-xl border ${cardClass}`}>
+                    <div className={sectionClass}>
                     <div className="flex flex-wrap items-center gap-4 mb-6">
                         <div className="w-full max-w-xs">
                             <label
@@ -237,6 +240,7 @@ export default function RoleEditPage() {
                         >
                             {submitLoading ? 'Saving...' : 'Update role'}
                         </button>
+                    </div>
                     </div>
                 </div>
             </form>

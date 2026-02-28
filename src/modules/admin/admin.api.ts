@@ -288,14 +288,18 @@ type EntityReferencesResponse = {
 /**
  * GET /api/v1/entities/references/{entity_name}
  * Fetches reference options for dropdowns (Create/Edit forms).
+ * @param params Optional query params (e.g. { product_name: 'Choco' }) to filter by product.
  */
 export async function getEntityReferences(
-  entityName: string
+  entityName: string,
+  params?: Record<string, string>
 ): Promise<Record<string, unknown>[]> {
   const url = buildEntityUrl(ENTITY_REFERENCES_PATH, entityName);
-  console.log('[GoldFlow] [admin.api] getEntityReferences: request', { entityName, url });
+  console.log('[GoldFlow] [admin.api] getEntityReferences: request', { entityName, url, params });
   try {
-    const res = await apiClient.get<EntityReferencesResponse & { data?: unknown }>(url);
+    const res = await apiClient.get<EntityReferencesResponse & { data?: unknown }>(url, {
+      params,
+    });
     const body = res.data;
     if (Array.isArray(body)) return body;
     const data = body?.data;
@@ -323,6 +327,58 @@ export function mapReferenceItemsToOptions(
     const value = String(val ?? '');
     return { value, label: String((row[label] ?? val) ?? value) };
   });
+}
+
+/**
+ * GET /api/v1/entities/references/{entity_name}
+ * Fetches reference options for dropdowns (Create/Edit forms).
+ */
+export async function getEntityReferenceOptions(
+  entityName: string,
+  valueKey = 'name',
+  labelKey = 'name'
+): Promise<ReferenceOption[]> {
+  const items = await getEntityReferences(entityName);
+  return mapReferenceItemsToOptions(items, valueKey, labelKey);
+}
+
+/**
+ * Fetches reference options filtered by product_name (e.g. wire_size?product_name=Choco).
+ */
+export async function getEntityReferenceOptionsFiltered(
+  entityName: string,
+  productName: string,
+  valueKey = 'name',
+  labelKey = 'name'
+): Promise<ReferenceOption[]> {
+  const items = await getEntityReferences(entityName, { product_name: productName });
+  return mapReferenceItemsToOptions(items, valueKey, labelKey);
+}
+
+/**
+ * Maps product reference items to { value, label }.
+ * Handles API shapes: product_name, name, product_abbreviation, product_id, id.
+ */
+export function mapProductReferencesToOptions(items: Record<string, unknown>[]): ReferenceOption[] {
+  return items
+    .map((row) => {
+      const name =
+        row.product_name ?? row.name ?? row.product_abbreviation ?? row.product_abbrevation ?? '';
+      const value = String(
+        row.product_name ?? name ?? row.product_id ?? row.id ?? ''
+      );
+      const label = String(name || value);
+      return { value, label };
+    })
+    .filter((o) => o.value !== '');
+}
+
+/**
+ * Fetches product options from /api/v1/entities/references/product.
+ */
+export async function getProductReferenceOptions(): Promise<ReferenceOption[]> {
+  const items = await getEntityReferences('product');
+  return mapProductReferencesToOptions(items);
 }
 
 /**
