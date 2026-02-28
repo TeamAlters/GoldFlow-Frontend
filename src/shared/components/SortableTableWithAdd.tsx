@@ -147,7 +147,7 @@ export default function SortableTableWithAdd({
         </h3>
       )}
       <div
-        className={`overflow-hidden rounded-xl border shadow-sm ${
+        className={`rounded-xl border shadow-sm ${
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
         }`}
       >
@@ -200,7 +200,7 @@ export default function SortableTableWithAdd({
                   </td>
                 )}
                 <td className={`${tdClass} text-center font-medium`}>{index + 1}</td>
-                <td className={`${tdClass} overflow-visible`}>
+                <td className={`${tdClass} overflow-visible relative z-10`}>
                   {readOnly ? (
                     <div className={readOnlyCellClass}>
                       {departmentOptions.find((o) => o.value === row.department_id)?.label ?? (row.department_id ? row.department_id : '–')}

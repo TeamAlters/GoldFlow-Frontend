@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { createEntity, getEntityListOptions } from '../../admin/admin.api';
+import { createEntity, getEntityReferenceOptions } from '../../admin/admin.api';
 import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
@@ -105,9 +105,9 @@ export default function ProductDepartmentCreatePage() {
   useEffect(() => {
     let ignore = false;
     Promise.all([
-      getEntityListOptions('product', 'product_name', 'product_name'),
-      getEntityListOptions('product_department_group', 'name', 'name'),
-      getEntityListOptions('department', 'name', 'name'),
+      getEntityReferenceOptions('product', 'product_name', 'product_name'),
+      getEntityReferenceOptions('product_department', 'name', 'name'),
+      getEntityReferenceOptions('department', 'name', 'name'),
     ])
       .then(([products, deptGroups, departments]) => {
         if (ignore) return;

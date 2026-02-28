@@ -63,6 +63,8 @@ function getUserInitials(name?: string, email?: string): string {
 }
 
 // ─── Collapsed Category Popup ─────────────────────────────────────────────────
+// Click-to-open: icon click toggles popup; close on outside click or link navigation.
+// No hover timing, so the menu cannot disappear while moving or clicking.
 function CollapsedCategoryPopup({
   category,
   currentPath,
@@ -74,49 +76,70 @@ function CollapsedCategoryPopup({
 }) {
   const [visible, setVisible] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const show = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+  const open = () => {
     setVisible(true);
     setAnimateIn(false);
   };
-  const hide = () => {
+  const close = () => {
     setAnimateIn(false);
-    timerRef.current = setTimeout(() => setVisible(false), 120);
+    setVisible(false);
+  };
+  const toggle = () => {
+    if (visible) close();
+    else open();
   };
 
   useEffect(() => {
-    if (visible) {
-      const id = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setAnimateIn(true));
-      });
-      return () => cancelAnimationFrame(id);
-    }
+    if (!visible) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setAnimateIn(true));
+    });
+    return () => cancelAnimationFrame(id);
   }, [visible]);
 
-  return (
-    <div
-      className="relative flex items-center justify-center"
-      onMouseEnter={show}
-      onMouseLeave={hide}
-    >
+  useEffect(() => {
+    if (!visible) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        close();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [visible]);
+
+  if (category.items.length === 0) {
+    return (
       <div
-        className={`w-10 h-10 flex items-center justify-center rounded-xl cursor-pointer transition-all duration-200 ease-out ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
-          }`}
+        className={`w-10 h-10 flex items-center justify-center rounded-xl flex-shrink-0 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}
       >
         <NavIcon name={category.icon} className="w-5 h-5" />
       </div>
+    );
+  }
 
-      {visible && category.items.length > 0 && (
+  return (
+    <div ref={containerRef} className="relative flex items-center justify-center">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={visible}
+        aria-haspopup="true"
+        aria-label={`${category.category} menu`}
+        className={`w-10 h-10 flex items-center justify-center rounded-xl cursor-pointer transition-all duration-200 ease-out flex-shrink-0 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
+          }`}
+      >
+        <NavIcon name={category.icon} className="w-5 h-5" />
+      </button>
+      {visible && (
         <div
-          className={`absolute left-full ml-2 top-0 z-50 min-w-[180px] rounded-xl border shadow-xl py-2 flex flex-col
+          className={`absolute left-full top-0 ml-1 z-50 min-w-[180px] rounded-xl border shadow-xl py-2 flex flex-col
             transition-all duration-200 ease-out
             ${animateIn ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-1'}
             ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
             }`}
-          onMouseEnter={show}
-          onMouseLeave={hide}
         >
           <p
             className={`px-3 pb-1 flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest ${isDarkMode ? 'text-gray-500' : 'text-gray-400'
@@ -134,6 +157,7 @@ function CollapsedCategoryPopup({
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={close}
                   className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-all duration-200 ease-out ${active
                       ? isDarkMode
                         ? 'text-amber-400 bg-amber-500/10'

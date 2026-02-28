@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntityListOptions, updateEntity } from '../../admin/admin.api';
+import { getEntityReferenceOptions, updateEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -24,6 +24,9 @@ import {
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
 
 const ENTITY_NAME = 'product_department';
+
+/** Shared options promise across mounts so we only fetch once per edit-page visit (survives Strict Mode remount). */
+let sharedEditPageOptionsPromise: Promise<[FormSelectOption[], FormSelectOption[], FormSelectOption[]]> | null = null;
 
 export default function ProductDepartmentEditPage() {
   const navigate = useNavigate();
@@ -55,12 +58,16 @@ export default function ProductDepartmentEditPage() {
   }, [loadError]);
 
   useEffect(() => {
+    if (dataLoading) return;
+    if (!sharedEditPageOptionsPromise) {
+      sharedEditPageOptionsPromise = Promise.all([
+        getEntityReferenceOptions('product', 'product_name', 'product_name'),
+        getEntityReferenceOptions('product_department', 'name', 'name'),
+        getEntityReferenceOptions('department', 'name', 'name'),
+      ]);
+    }
     let ignore = false;
-    Promise.all([
-      getEntityListOptions('product', 'product_name', 'product_name'),
-      getEntityListOptions('product_department_group', 'name', 'name'),
-      getEntityListOptions('department', 'name', 'name'),
-    ])
+    sharedEditPageOptionsPromise
       .then(([products, deptGroups, departments]) => {
         if (ignore) return;
         setProductOptions(products);
@@ -77,7 +84,7 @@ export default function ProductDepartmentEditPage() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [dataLoading]);
 
   const handleSubmit = useCallback(
     async (formData: ProductDepartmentFormData) => {
