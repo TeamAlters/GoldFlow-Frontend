@@ -19,13 +19,14 @@ export type NavCategory = {
 export type NavbarMenuItem = {
   name: string;
   path: string;
+  icon?: string;
 };
 
 // Top Navbar Menu Items
 export const navbarMenuItems: NavbarMenuItem[] = [
-  { name: 'Dashboard', path: '/dashboard' },
-  { name: 'Reports', path: '/reports' },
-  { name: 'Settings', path: '/settings' },
+  { name: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
+  { name: 'Reports', path: '/reports', icon: 'file-text' },
+  { name: 'Settings', path: '/settings', icon: 'cog' },
 ];
 
 // Sidebar Navigation Configuration
@@ -34,7 +35,6 @@ export const sidebarNavConfig: NavCategory[] = [
     id: 'production',
     category: 'Production',
     icon: 'dashboard',
-    defaultOpen: true,
     items: [
       { name: 'Dashboard', path: '/dashboard', icon: 'home' },
       { name: 'Work Orders', path: '/work-orders', icon: 'clipboard' },
@@ -46,7 +46,6 @@ export const sidebarNavConfig: NavCategory[] = [
     id: 'masters',
     category: 'Masters',
     icon: 'database',
-    defaultOpen: true,
     items: [
       { name: 'Purities', path: '/purities', icon: 'sparkles', entityName: 'purity' },
       { name: 'Purity Range', path: '/purity-ranges', icon: 'ruler', entityName: 'purity_range' },

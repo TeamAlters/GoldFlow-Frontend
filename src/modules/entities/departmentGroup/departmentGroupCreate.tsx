@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { createEntity, getEntityListOptions } from '../../admin/admin.api';
+import { createEntity, getEntityReferenceOptions } from '../../admin/admin.api';
 import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticDepartmentGroupForm, {
   type StaticDepartmentGroupFormData,
   type StaticDepartmentGroupFormRef,
@@ -39,18 +40,25 @@ export default function DepartmentGroupCreatePage() {
   const formRef = useRef<StaticDepartmentGroupFormRef>(null);
 
   useEffect(() => {
+    let ignore = false;
     Promise.all([
-      getEntityListOptions('product', 'id', 'name'),
-      getEntityListOptions('department', 'id', 'name'),
+      getEntityReferenceOptions('product', 'product_name', 'product_name'),
+      getEntityReferenceOptions('department'),
     ])
       .then(([products, departments]) => {
+        if (ignore) return;
         setProductOptions(products);
         setDepartmentOptions(departments);
       })
       .catch(() => {
-        setProductOptions([]);
-        setDepartmentOptions([]);
+        if (!ignore) {
+          setProductOptions([]);
+          setDepartmentOptions([]);
+        }
       });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const handleSubmit = useCallback(
@@ -90,6 +98,7 @@ export default function DepartmentGroupCreatePage() {
   );
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
 
   return (
     <div className="w-full">
@@ -113,10 +122,10 @@ export default function DepartmentGroupCreatePage() {
       </div>
       <form
         onSubmit={handleFormSubmit}
-        className={`p-6 rounded-xl border ${
-          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
-        }`}
+        className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
+          }`}
       >
+        <div className={sectionClass}>
         <StaticDepartmentGroupForm
           ref={formRef}
           initialData={undefined}
@@ -126,27 +135,26 @@ export default function DepartmentGroupCreatePage() {
           wrapInForm={false}
           showActions={false}
         />
-        <div className={`flex items-center justify-end gap-3 pt-6 mt-6 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className={`flex items-center justify-end gap-3 pt-6 mt-6  ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <button
             type="button"
             onClick={handleCancel}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              }`}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitLoading}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
-            } disabled:opacity-60`}
+              } disabled:opacity-60`}
           >
             {submitLoading ? 'Saving...' : `Create ${entityConfig.displayName}`}
           </button>
+        </div>
         </div>
       </form>
     </div>

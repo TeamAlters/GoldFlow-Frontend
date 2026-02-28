@@ -38,6 +38,8 @@ export function buildInitialMatrix(entityNames: string[]): PermissionsMatrix {
 export interface RolesPermissionsTableProps {
     matrix: PermissionsMatrix;
     onToggle: (tableKey: string, permission: Permission) => void;
+    /** When provided, Select All sets all rows to the target value instead of toggling each. */
+    onSelectAll?: (perm: Permission, value: boolean) => void;
     /** When true, checkboxes are disabled (read-only view). */
     readOnly?: boolean;
     /** When true, use entity display names for all rows (e.g. "User" instead of "Category" for user entity). Use only on Roles & Permissions page. */
@@ -49,7 +51,7 @@ export interface RolesPermissionsTableProps {
 const checkboxClass =
     'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 dark:border-gray-500 dark:bg-gray-700 dark:checked:bg-blue-600 dark:focus:ring-offset-gray-900';
 
-export function RolesPermissionsTable({ matrix, onToggle, readOnly = false, useEntityDisplayNames = false, entityNames: entityNamesProp }: RolesPermissionsTableProps) {
+export function RolesPermissionsTable({ matrix, onToggle, onSelectAll, readOnly = false, useEntityDisplayNames = false, entityNames: entityNamesProp }: RolesPermissionsTableProps) {
     const isDarkMode = useUIStore((state) => state.isDarkMode);
     const entityNames = useMemo(
         () => entityNamesProp ?? getEntityNamesForRolesTable(),
@@ -70,9 +72,13 @@ export function RolesPermissionsTable({ matrix, onToggle, readOnly = false, useE
     const rowHover = isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50';
     const tbodyBg = isDarkMode ? 'bg-gray-900/30' : 'bg-white';
 
-    const handleHeaderToggle = (perm: Permission) => {
+    const handleHeaderToggle = (perm: Permission, allChecked: boolean) => {
         if (readOnly) return;
-        tableRows.forEach((row) => onToggle(row.key, perm));
+        if (onSelectAll) {
+            onSelectAll(perm, !allChecked);
+        } else {
+            tableRows.forEach((row) => onToggle(row.key, perm));
+        }
     };
 
     return (
@@ -108,7 +114,10 @@ export function RolesPermissionsTable({ matrix, onToggle, readOnly = false, useE
                                             ref={(el) => {
                                                 if (el) el.indeterminate = someChecked && !allChecked;
                                             }}
-                                            onChange={() => handleHeaderToggle(perm)}
+                                            onChange={(e) => {
+                                                e.preventDefault();
+                                                handleHeaderToggle(perm, allChecked);
+                                            }}
                                             className={checkboxClass}
                                             aria-label={`Select all ${getPermissionLabel(perm)}`}
                                             disabled={readOnly}

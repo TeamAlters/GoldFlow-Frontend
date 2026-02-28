@@ -5,49 +5,74 @@ import SecondNavbar from './SecondNavbar';
 import Sidebar from './Sidebar';
 import { useUIStore } from '../stores/ui.store';
 
+type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
+
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
-  );
-  const location = useLocation();
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-      setIsSidebarOpen(false);
+  const [sidebarMode, setSidebarMode] = useState<SidebarMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebarMode') as SidebarMode | null;
+      if (saved === 'expanded' || saved === 'collapsed') return saved;
+      return window.innerWidth >= 1024 ? 'expanded' : 'hidden';
     }
-  }, [location.pathname]);
+    return 'expanded';
+  });
+  const location = useLocation();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
-  // Don't show layout on login/signup pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signUp';
+  // On mobile route change, close sidebar
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarMode('hidden');
+    }
+  }, [location.pathname]);
 
-  if (isAuthPage) {
-    return <>{children}</>;
-  }
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signUp';
+  if (isAuthPage) return <>{children}</>;
+
+  const handleMobileToggle = () => {
+    setSidebarMode((prev) => (prev === 'hidden' ? 'expanded' : 'hidden'));
+  };
+
+  const handleCollapseToggle = () => {
+    setSidebarMode((prev) => {
+      const next = prev === 'expanded' ? 'collapsed' : 'expanded';
+      localStorage.setItem('sidebarMode', next);
+      return next;
+    });
+  };
+
+  const mainMargin =
+    sidebarMode === 'expanded'
+      ? 'lg:ml-64'
+      : sidebarMode === 'collapsed'
+        ? 'lg:ml-16'
+        : 'ml-0';
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-950' : 'bg-gray-100'}`}>
-      {/* Main Navbar - Logo, User, Theme */}
       <Navbar />
-
-      {/* Second Navbar - Toggle, Menu, Search */}
       <SecondNavbar
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={handleMobileToggle}
+        isSidebarOpen={sidebarMode !== 'hidden'}
       />
-
-      {/* Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-
-      {/* Main Content - smooth shift when sidebar opens/closes */}
+      <Sidebar
+        mode={sidebarMode}
+        onCollapseToggle={handleCollapseToggle}
+        onMobileClose={() => setSidebarMode('hidden')}
+      />
+      {/* Mobile backdrop */}
+      {sidebarMode !== 'hidden' && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={() => setSidebarMode('hidden')}
+        />
+      )}
       <main
-        className={`pt-28 md:pt-28 transition-[margin] duration-300 ease-in-out ${
-          isSidebarOpen ? 'lg:ml-64' : 'ml-0'
-        }`}
+        className={`pt-28 md:pt-28 transition-[margin] duration-300 ease-in-out ${mainMargin}`}
       >
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </main>

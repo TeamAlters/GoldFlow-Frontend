@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { useAuthStore } from '../../../auth/auth.store';
 import DataTable from '../../../shared/components/DataTable';
 import type { TableColumn, TableAction } from '../../../shared/components/DataTable';
@@ -260,7 +261,7 @@ export default function ProductsPage() {
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
     const idField = entityMetadata?.id_field ?? 'id';
-    const detailLinkField = entityMetadata?.detail_link_field;
+    const detailLinkField = entityMetadata?.detail_link_field ?? visibleFields[0]?.name;
 
     const getRowId = (row: EntityRow) =>
       row[idField] ?? row['id'] ?? row['product_name'];
@@ -284,10 +285,18 @@ export default function ProductsPage() {
               }}
               className={
                 isDarkMode
-                  ? 'text-amber-400 hover:text-amber-300 underline'
-                  : 'text-amber-600 hover:text-amber-700 underline'
+                  ? 'text-amber-400 hover:text-amber-300'
+                  : 'text-amber-600 hover:text-amber-700'
               }
             >
+              {value}
+            </button>
+          );
+        }
+        const referenceRoute = typeof value === 'string' && value ? getEntityDetailRoute(fieldKey, value) : null;
+        if (referenceRoute) {
+          return (
+            <button type="button" onClick={(e) => { e.stopPropagation(); navigate(referenceRoute); }} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>
               {value}
             </button>
           );

@@ -1,7 +1,9 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticItemFormData = {
   item_name: string;
@@ -124,28 +126,34 @@ const StaticItemFormInner = forwardRef<StaticItemFormRef, StaticItemFormProps>(
           <label className={labelClass}>
             Item Type <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
           </label>
-          {itemTypeOptions.length > 0 ? (
-            <FormSelect
-              value={formData.item_type}
-              onChange={(v) => handleChange('item_type', v)}
-              options={itemTypeOptions}
-              placeholder="Select item type"
-              disabled={readOnly}
-              className={inputClass('item_type')}
-              isDarkMode={isDarkMode}
-            />
-          ) : (
-            <input
-              type="text"
-              value={formData.item_type}
-              onChange={(e) => handleChange('item_type', e.target.value)}
-              placeholder="Item type"
-              maxLength={MAX_LENGTH_36}
-              className={inputClass('item_type')}
-              disabled={readOnly}
-              readOnly={readOnly}
-            />
-          )}
+          {(() => {
+            if (readOnly && formData.item_type) {
+              const route = getEntityDetailRoute('item_type', formData.item_type);
+              if (route) return <div className={`w-full min-h-[42px] px-4 py-2.5 flex items-center text-sm rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}><Link to={route} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{formData.item_type}</Link></div>;
+            }
+            return itemTypeOptions.length > 0 ? (
+              <FormSelect
+                value={formData.item_type}
+                onChange={(v) => handleChange('item_type', v)}
+                options={itemTypeOptions}
+                placeholder="Select item type"
+                disabled={readOnly}
+                className={inputClass('item_type')}
+                isDarkMode={isDarkMode}
+              />
+            ) : (
+              <input
+                type="text"
+                value={formData.item_type}
+                onChange={(e) => handleChange('item_type', e.target.value)}
+                placeholder="Item type"
+                maxLength={MAX_LENGTH_36}
+                className={inputClass('item_type')}
+                disabled={readOnly}
+                readOnly={readOnly}
+              />
+            );
+          })()}
           {errors.item_type && (
             <p className={`mt-1 ${errorClass}`}>{errors.item_type}</p>
           )}

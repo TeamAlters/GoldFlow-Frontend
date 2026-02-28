@@ -4,11 +4,13 @@ import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
 import { closeParentMeltingLot } from './parentMeltingLot.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { toast } from '../../../stores/toast.store';
 import { useUIStore } from '../../../stores/ui.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import BackButton from '../../../shared/components/BackButton';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import {
   getViewPageHeading,
   getViewBreadcrumbLabel,
@@ -34,6 +36,7 @@ export default function ParentMeltingLotViewPage() {
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
 
   const [data, setData] = useState<ParentMeltingLotData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -105,9 +108,6 @@ export default function ParentMeltingLotViewPage() {
   const viewPageHeading = getViewPageHeading(entityConfig, displayValue);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, displayValue);
 
-  const sectionClass = `border rounded-lg p-4 mb-4 ${
-    isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'
-  }`;
 
   const labelClass = `block text-sm font-semibold mb-1 ${
     isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -118,7 +118,7 @@ export default function ParentMeltingLotViewPage() {
   }`;
 
   const formatDateTime = (dateStr: string | null | undefined) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return '–';
     try {
       const date = new Date(dateStr);
       return date.toLocaleString('en-GB', {
@@ -188,7 +188,7 @@ export default function ParentMeltingLotViewPage() {
                   isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
               >
-                Edit {entityConfig.displayName}
+                Edit
               </Link>
             )}
           </div>
@@ -205,65 +205,38 @@ export default function ParentMeltingLotViewPage() {
       >
         {/* Parent Melting Lot Details Section */}
         <div className={sectionClass}>
-          <h3
+          <h2
             className={`text-lg font-semibold mb-4 pb-2 border-b ${
               isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
             }`}
           >
             Parent Melting Lot Details
-          </h3>
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>Name</label>
-              <div className={valueClass}>{data?.name || '—'}</div>
+              <div className={valueClass}>{data?.name || '–'}</div>
             </div>
             <div>
               <label className={labelClass}>Product</label>
-              <div className={valueClass}>{data?.product || '—'}</div>
+              <div className={valueClass}>{data?.product || '–'}</div>
             </div>
             <div>
               <label className={labelClass}>Product Abbreviation</label>
-              <div className={valueClass}>{data?.product_abbreviation || '—'}</div>
+              <div className={valueClass}>{data?.product_abbreviation || '–'}</div>
             </div>
             <div>
               <label className={labelClass}>Purity</label>
-              <div className={valueClass}>{data?.purity || '—'}</div>
+              <div className={valueClass}>{data?.purity || '–'}</div>
             </div>
             <div>
               <label className={labelClass}>Status</label>
-              <div className={valueClass}>{data?.status || '—'}</div>
+              <div className={valueClass}>{data?.status || '–'}</div>
             </div>
           </div>
         </div>
 
-        {/* Audit Fields Section */}
-        <div className={sectionClass}>
-          <h3
-            className={`text-lg font-semibold mb-4 pb-2 border-b ${
-              isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
-            }`}
-          >
-            Audit Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className={labelClass}>Created At</label>
-              <div className={valueClass}>{formatDateTime(data?.created_at)}</div>
-            </div>
-            <div>
-              <label className={labelClass}>Modified At</label>
-              <div className={valueClass}>{formatDateTime(data?.modified_at)}</div>
-            </div>
-            <div>
-              <label className={labelClass}>Created By</label>
-              <div className={valueClass}>{data?.created_by || '—'}</div>
-            </div>
-            <div>
-              <label className={labelClass}>Modified By</label>
-              <div className={valueClass}>{data?.modified_by || '—'}</div>
-            </div>
-          </div>
-        </div>
+        <AuditTrailsCard entity={data as Record<string, unknown> | null} asSection />
       </div>
 
       <ConfirmationDialog

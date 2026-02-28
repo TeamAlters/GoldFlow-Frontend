@@ -3,6 +3,7 @@ import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { deleteEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { useEntityLoad } from '../../../shared/hooks/useEntityLoad';
@@ -15,6 +16,8 @@ import {
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
+import BackButton from '../../../shared/components/BackButton';
 
 const ENTITY_NAME = 'product_category';
 
@@ -22,11 +25,15 @@ export default function ProductCategoryViewPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const { data: rawEntity, loading: dataLoading, error: loadError } = useEntityLoad(
-    ENTITY_NAME,
-    id ?? undefined,
-    { errorMessage: 'Failed to load product category' }
-  );
+  const {
+    data: rawEntity,
+    loading: dataLoading,
+    error: loadError,
+  } = useEntityLoad(ENTITY_NAME, id ?? undefined, {
+    errorMessage: 'Failed to load product category',
+  });
+  const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
 
   // Delete dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -54,7 +61,8 @@ export default function ProductCategoryViewPage() {
       toast.success(`${entityConfig.displayName} deleted successfully.`);
       navigate(entityConfig.routes.list);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : `Failed to delete ${entityConfig.displayName}`;
+      const msg =
+        err instanceof Error ? err.message : `Failed to delete ${entityConfig.displayName}`;
       showErrorToastUnlessAuth(msg);
     } finally {
       setIsDeleting(false);
@@ -62,7 +70,6 @@ export default function ProductCategoryViewPage() {
     }
   }, [id, entityConfig, navigate]);
 
-  const isDarkMode = useUIStore((state) => state.isDarkMode);
   const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
 
   if (!id) {
@@ -93,7 +100,9 @@ export default function ProductCategoryViewPage() {
           ]}
           className="mb-4"
         />
-        <div className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
+        <div
+          className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
+        >
           <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{loadError}</p>
           <button
             type="button"
@@ -120,38 +129,19 @@ export default function ProductCategoryViewPage() {
         ]}
         className="mb-4"
       />
-      <div className="mb-6">
-        <h1
-          className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
-        >
-          {viewPageHeading}
-        </h1>
-        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          {getViewPageDescription(entityConfig)}
-        </p>
-      </div>
-      <div
-        className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
-      >
-        <StaticProductCategoryForm
-          initialData={initialData}
-          isEdit={true}
-          readOnly={true}
-          wrapInForm={false}
-          showActions={false}
-        />
-        <div className="flex items-center justify-end gap-3 pt-6 mt-6">
-          <button
-            type="button"
-            onClick={handleBack}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode
-                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1
+            className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
           >
-            Back
-          </button>
+            {viewPageHeading}
+          </h1>
+          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            {getViewPageDescription(entityConfig)}
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <BackButton onClick={handleBack} />
           <Link
             to={editUrl}
             className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
@@ -160,7 +150,7 @@ export default function ProductCategoryViewPage() {
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
             }`}
           >
-            Edit {entityConfig.displayName}
+            Edit
           </Link>
           <button
             onClick={() => setShowDeleteDialog(true)}
@@ -173,6 +163,27 @@ export default function ProductCategoryViewPage() {
             Delete
           </button>
         </div>
+      </div>
+      <div
+        className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
+      >
+        <div className={sectionClass}>
+          <h2
+            className={`text-lg font-semibold mb-4 pb-2 border-b ${
+              isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
+            }`}
+          >
+            {entityConfig.displayName} Info
+          </h2>
+          <StaticProductCategoryForm
+            initialData={initialData}
+            isEdit={true}
+            readOnly={true}
+            wrapInForm={false}
+            showActions={false}
+          />
+        </div>
+        <AuditTrailsCard entity={rawEntity} asSection />
       </div>
 
       <ConfirmationDialog

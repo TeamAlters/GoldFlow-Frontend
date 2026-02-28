@@ -6,6 +6,7 @@ import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import type { StaticAccessoriesPurityRangeFormData } from './accessoriesPurityRangeForm';
 import { MAX_NUMERIC_63_LENGTH, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -136,6 +137,7 @@ export default function AccessoriesPurityRangeCreatePage() {
   }, [navigate, entityConfig.routes.list]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
 
   const inputClass = (key: string) =>
     `w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${
@@ -172,6 +174,7 @@ export default function AccessoriesPurityRangeCreatePage() {
         onSubmit={handleSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
+        <div className={sectionClass}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className={labelClass}>
@@ -265,6 +268,7 @@ export default function AccessoriesPurityRangeCreatePage() {
           >
             {submitLoading ? 'Saving...' : `Create ${entityConfig.displayName}`}
           </button>
+        </div>
         </div>
       </form>
     </div>

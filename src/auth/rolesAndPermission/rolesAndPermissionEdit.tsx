@@ -67,6 +67,17 @@ export default function RolesAndPermissionEditPage() {
         });
     }, []);
 
+    const handleSelectAll = useCallback((perm: Permission, value: boolean) => {
+        setPermissionsMatrix((prev) => {
+            const updated = { ...prev };
+            const keys = Object.keys(prev);
+            keys.forEach((key) => {
+                updated[key] = { ...(prev[key] ?? defaultPermissions()), [perm]: value };
+            });
+            return updated;
+        });
+    }, []);
+
     const validate = useCallback((): boolean => {
         const trimmedName = name.trim();
         if (!trimmedName) {
@@ -239,6 +250,7 @@ export default function RolesAndPermissionEditPage() {
                             <RolesPermissionsTable
                                 matrix={permissionsMatrix}
                                 onToggle={handlePermissionToggle}
+                                onSelectAll={handleSelectAll}
                                 useEntityDisplayNames
                                 entityNames={entityNames}
                             />

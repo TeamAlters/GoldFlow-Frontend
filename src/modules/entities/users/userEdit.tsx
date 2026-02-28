@@ -6,6 +6,7 @@ import type { ReferenceOption } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticUserForm, {
     type StaticUserFormData,
     type StaticUserFormRef,
@@ -132,6 +133,7 @@ export default function EditUserPage() {
     );
 
     const isDarkMode = useUIStore((state) => state.isDarkMode);
+    const sectionClass = getSectionClass(isDarkMode);
     const checkboxClass =
         'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-500 dark:bg-gray-700 dark:checked:bg-blue-600';
 
@@ -178,6 +180,7 @@ export default function EditUserPage() {
                 onSubmit={handleFormSubmit}
                 className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
             >
+                <div className={sectionClass}>
                 <StaticUserForm
                     ref={userFormRef}
                     initialData={initialData}
@@ -186,7 +189,7 @@ export default function EditUserPage() {
                     showActions={false}
                 />
 
-                <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <section className="mt-8 pt-6  border-gray-200 dark:border-gray-700">
                     <h2
                         className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                     >
@@ -250,7 +253,7 @@ export default function EditUserPage() {
                     </div>
                 </section>
 
-                <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <section className="mt-8 pt-6  border-gray-200 dark:border-gray-700">
                     <h2
                         className={`text-lg font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                     >
@@ -313,8 +316,9 @@ export default function EditUserPage() {
                         className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
                             } disabled:opacity-60`}
                     >
-                        {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
+                        {submitLoading ? 'Saving...' : 'Update'}
                     </button>
+                </div>
                 </div>
             </form>
         </div>

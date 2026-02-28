@@ -5,6 +5,7 @@ import { getEntity, updateEntity, getEntityReferences, mapReferenceItemsToOption
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_NUMERIC_63_LENGTH, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -103,6 +104,7 @@ export default function AccessoriesPurityRangeEditPage() {
   const handleCancel = useCallback(() => navigate(entityConfig.routes.list), [navigate, entityConfig.routes.list]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
   const inputClass = (key: string) =>
     `w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${
       errors[key]
@@ -143,7 +145,7 @@ export default function AccessoriesPurityRangeEditPage() {
       />
       <div className="mb-6">
         <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-          Edit {entityConfig.displayName}
+          Edit
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
           Update from value, to value and accessory purity.
@@ -153,6 +155,7 @@ export default function AccessoriesPurityRangeEditPage() {
         onSubmit={handleSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
+        <div className={sectionClass}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className={labelClass}>
@@ -236,8 +239,9 @@ export default function AccessoriesPurityRangeEditPage() {
             disabled={submitLoading}
             className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
+            {submitLoading ? 'Saving...' : 'Update'}
           </button>
+        </div>
         </div>
       </form>
     </div>

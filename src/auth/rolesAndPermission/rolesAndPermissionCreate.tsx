@@ -66,6 +66,17 @@ export default function RolesAndPermissionCreatePage() {
         });
     }, []);
 
+    const handleSelectAll = useCallback((perm: Permission, value: boolean) => {
+        setPermissionsMatrix((prev) => {
+            const updated = { ...prev };
+            const keys = Object.keys(prev);
+            keys.forEach((key) => {
+                updated[key] = { ...(prev[key] ?? defaultPermissions()), [perm]: value };
+            });
+            return updated;
+        });
+    }, []);
+
     const validate = useCallback((): boolean => {
         const trimmedName = name.trim();
         if (!trimmedName) {
@@ -240,12 +251,13 @@ export default function RolesAndPermissionCreatePage() {
                             <RolesPermissionsTable
                                 matrix={permissionsMatrix}
                                 onToggle={handlePermissionToggle}
+                                onSelectAll={handleSelectAll}
                                 useEntityDisplayNames
                                 entityNames={entityNames}
                             />
                         )}
                     </div>
-                    <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-end gap-3 pt-6 mt-6  border-gray-200 dark:border-gray-700">
                         <button
                             type="button"
                             onClick={handleCancel}

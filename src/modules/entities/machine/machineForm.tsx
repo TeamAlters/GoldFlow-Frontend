@@ -1,7 +1,9 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticMachineFormData = {
   machine_name: string;
@@ -124,28 +126,34 @@ const StaticMachineFormInner = forwardRef<StaticMachineFormRef, StaticMachineFor
           <label className={labelClass}>
             Product <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
           </label>
-          {productOptions.length > 0 ? (
-            <FormSelect
-              value={formData.product_name}
-              onChange={(v) => handleChange('product_name', v)}
-              options={productOptions}
-              placeholder="Select product"
-              disabled={readOnly}
-              className={inputClass('product_name')}
-              isDarkMode={isDarkMode}
-            />
-          ) : (
-            <input
-              type="text"
-              value={formData.product_name}
-              onChange={(e) => handleChange('product_name', e.target.value)}
-              placeholder="Product name"
-              maxLength={MAX_LENGTH_36}
-              className={inputClass('product_name')}
-              disabled={readOnly}
-              readOnly={readOnly}
-            />
-          )}
+          {(() => {
+            if (readOnly && formData.product_name) {
+              const route = getEntityDetailRoute('product_name', formData.product_name);
+              if (route) return <div className={`w-full min-h-[42px] px-4 py-2.5 flex items-center text-sm rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}><Link to={route} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{formData.product_name}</Link></div>;
+            }
+            return productOptions.length > 0 ? (
+              <FormSelect
+                value={formData.product_name}
+                onChange={(v) => handleChange('product_name', v)}
+                options={productOptions}
+                placeholder="Select product"
+                disabled={readOnly}
+                className={inputClass('product_name')}
+                isDarkMode={isDarkMode}
+              />
+            ) : (
+              <input
+                type="text"
+                value={formData.product_name}
+                onChange={(e) => handleChange('product_name', e.target.value)}
+                placeholder="Product name"
+                maxLength={MAX_LENGTH_36}
+                className={inputClass('product_name')}
+                disabled={readOnly}
+                readOnly={readOnly}
+              />
+            );
+          })()}
           {errors.product_name && (
             <p className={`mt-1 ${errorClass}`}>{errors.product_name}</p>
           )}

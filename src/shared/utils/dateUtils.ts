@@ -1,8 +1,8 @@
 /** Format ISO date-time string for UI (e.g. "31 Jan 2026, 12:37 pm") */
 function formatDateTime(isoOrValue: string | number | null | undefined): string {
-    if (isoOrValue === null || isoOrValue === undefined) return '—';
+    if (isoOrValue === null || isoOrValue === undefined) return '–';
     const s = String(isoOrValue).trim();
-    if (!s) return '—';
+    if (!s) return '–';
     const date = new Date(s);
     if (Number.isNaN(date.getTime())) return s;
     return date.toLocaleString(undefined, {

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_NUMERIC_63_LENGTH, MAX_TEXT_FIELD_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticCustomerMasterFormData = {
   customer_name: string;
@@ -31,6 +33,7 @@ export interface StaticCustomerMasterFormProps {
   productCategoryOptions?: SelectOption[];
   machineOptions?: SelectOption[];
   designOptions?: SelectOption[];
+  onProductNameChange?: (productName: string) => void;
   onSubmit?: (data: StaticCustomerMasterFormData) => void;
   onCancel?: () => void;
   isEdit?: boolean;
@@ -69,6 +72,7 @@ const StaticCustomerMasterFormInner = forwardRef<
     productCategoryOptions = [],
     machineOptions = [],
     designOptions = [],
+    onProductNameChange,
     onSubmit,
     onCancel,
     isEdit = false,
@@ -102,7 +106,15 @@ const StaticCustomerMasterFormInner = forwardRef<
 
   const handleChange = (key: keyof StaticCustomerMasterFormData, value: string) => {
     if (key === 'issue_purity' || key === 'wastage') value = sanitizeNumeric63Input(value);
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === 'product_name') {
+        next.design_name = '';
+        next.machine_size = '';
+        onProductNameChange?.(value);
+      }
+      return next;
+    });
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
   };
 
@@ -151,6 +163,18 @@ const StaticCustomerMasterFormInner = forwardRef<
     placeholder: string
   ) => {
     const value = formData[key];
+    if (readOnly && value) {
+      const route = getEntityDetailRoute(key, value);
+      if (route) {
+        return (
+          <div className={`w-full min-h-[42px] px-4 py-2.5 flex items-center text-sm rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+            <Link to={route} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>
+              {value}
+            </Link>
+          </div>
+        );
+      }
+    }
     if (options.length > 0) {
       return (
         <FormSelect

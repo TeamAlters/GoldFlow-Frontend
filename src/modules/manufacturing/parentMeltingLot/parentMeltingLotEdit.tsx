@@ -134,7 +134,7 @@ export default function ParentMeltingLotEdit() {
             isDarkMode ? 'text-white' : 'text-gray-900'
           }`}
         >
-          Edit {entityConfig.displayName}
+          Edit
         </h1>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
           Update {entityConfig.displayName.toLowerCase()} details below.
@@ -174,7 +174,7 @@ export default function ParentMeltingLotEdit() {
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
             } disabled:opacity-60`}
           >
-            {isLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
+            {isLoading ? 'Saving...' : 'Update'}
           </button>
         </div>
       </div>

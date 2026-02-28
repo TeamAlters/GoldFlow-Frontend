@@ -1,7 +1,9 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticAccessoriesPurityRangeFormData = {
   accessories_purity_range: string;
@@ -111,10 +113,15 @@ const StaticAccessoriesPurityRangeFormInner = forwardRef<
     key: 'purity_range' | 'accessory_purity',
     options: DropdownOption[],
     placeholder: string
-  ) =>
-    options.length > 0 ? (
+  ) => {
+    const value = formData[key];
+    if (readOnly && value) {
+      const route = getEntityDetailRoute(key, value);
+      if (route) return <div className={`w-full min-h-[42px] px-4 py-2.5 flex items-center text-sm rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}><Link to={route} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{value}</Link></div>;
+    }
+    return options.length > 0 ? (
       <FormSelect
-        value={formData[key]}
+        value={value}
         onChange={(v) => handleChange(key, v)}
         options={options}
         placeholder={placeholder}
@@ -125,7 +132,7 @@ const StaticAccessoriesPurityRangeFormInner = forwardRef<
     ) : (
       <input
         type="text"
-        value={formData[key]}
+        value={value}
         onChange={(e) => handleChange(key, e.target.value)}
         placeholder={placeholder}
         maxLength={MAX_TEXT_FIELD_LENGTH}
@@ -134,6 +141,7 @@ const StaticAccessoriesPurityRangeFormInner = forwardRef<
         readOnly={readOnly}
       />
     );
+  };
 
   const fields = (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

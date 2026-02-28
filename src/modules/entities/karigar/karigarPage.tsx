@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { useAuthStore } from '../../../auth/auth.store';
 import DataTable from '../../../shared/components/DataTable';
 import type { TableColumn, TableAction } from '../../../shared/components/DataTable';
@@ -252,7 +253,7 @@ export default function KarigarPage() {
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
     if (!visibleFields.length) return [];
-    const detailLinkField = entityMetadata?.detail_link_field;
+    const detailLinkField = entityMetadata?.detail_link_field ?? visibleFields[0]?.name;
     const idField = entityMetadata?.id_field ?? 'karigar';
 
     return visibleFields.map((f) => ({
@@ -276,8 +277,8 @@ export default function KarigarPage() {
               }}
               className={
                 isDarkMode
-                  ? 'text-amber-400 hover:text-amber-300 underline'
-                  : 'text-amber-600 hover:text-amber-700 underline'
+                  ? 'text-amber-400 hover:text-amber-300'
+                  : 'text-amber-600 hover:text-amber-700'
               }
             >
               {value}
@@ -285,6 +286,14 @@ export default function KarigarPage() {
           );
         }
 
+        const referenceRoute = typeof value === 'string' && value ? getEntityDetailRoute(f.name, value) : null;
+        if (referenceRoute) {
+          return (
+            <button type="button" onClick={(e) => { e.stopPropagation(); navigate(referenceRoute); }} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>
+              {value}
+            </button>
+          );
+        }
         return (
           <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>
         );

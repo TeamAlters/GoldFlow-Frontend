@@ -14,8 +14,14 @@ export default function Navbar() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus();
+  }, [isSearchOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -88,15 +94,23 @@ export default function Navbar() {
 
           {/* Right Section - Search, Theme Toggle & User */}
           <div className="flex items-center gap-3">
-            {/* Search Bar */}
-            <div className="relative hidden sm:block mr-4">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className={`w-4 h-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+            {/* Search - icon expands to input on hover */}
+            <div
+              className="hidden sm:flex items-center overflow-hidden mr-2"
+              onMouseEnter={() => setIsSearchOpen(true)}
+              onMouseLeave={() => setIsSearchOpen(false)}
+            >
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen((prev) => !prev)}
+                className={`p-2 rounded-lg flex-shrink-0 transition-colors ${
+                  isDarkMode
+                    ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                    : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                }`}
+                aria-label="Search"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -104,18 +118,27 @@ export default function Navbar() {
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                   />
                 </svg>
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className={`w-48 lg:w-64 pl-9 pr-4 py-1.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${
-                  isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+              </button>
+              <div
+                className={`overflow-hidden rounded-md transition-all duration-300 ease-in-out will-change-[width,margin] ${
+                  isSearchOpen ? 'w-64 ml-2' : 'w-0 ml-0'
                 }`}
-              />
+              >
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchOpen(true)}
+                  onBlur={() => setIsSearchOpen(false)}
+                  placeholder="Search..."
+                  className={`w-full min-w-0 px-3 py-1.5 text-sm rounded-md border transition-all focus:outline-none focus:ring-2 focus:ring-inset ${
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-amber-400 focus:ring-amber-400/25'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-amber-500 focus:ring-amber-500/20'
+                  }`}
+                />
+              </div>
             </div>
             {/* Theme Toggle */}
             <button
@@ -187,7 +210,7 @@ export default function Navbar() {
                         {String(user?.name ?? user?.username ?? 'User')}
                       </p>
                       <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {user?.email ?? '—'}
+                        {user?.email ?? '–'}
                       </p>
                     </div>
                     {/* Arrow Icon */}

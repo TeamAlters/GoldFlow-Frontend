@@ -5,6 +5,7 @@ import { getEntity, updateEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticItemTypeForm, {
   type StaticItemTypeFormData,
   type StaticItemTypeFormRef,
@@ -81,6 +82,7 @@ export default function ItemTypeEditPage() {
   );
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
@@ -125,6 +127,7 @@ export default function ItemTypeEditPage() {
         onSubmit={handleFormSubmit}
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
       >
+        <div className={sectionClass}>
         <StaticItemTypeForm
           ref={formRef}
           initialData={initialData}
@@ -153,8 +156,9 @@ export default function ItemTypeEditPage() {
                 : 'bg-blue-500 hover:bg-blue-600 text-white'
             } disabled:opacity-60`}
           >
-            {submitLoading ? 'Saving...' : `Update ${entityConfig.displayName}`}
+            {submitLoading ? 'Saving...' : 'Update'}
           </button>
+        </div>
         </div>
       </form>
     </div>

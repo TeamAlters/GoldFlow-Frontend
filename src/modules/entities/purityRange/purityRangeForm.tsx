@@ -1,7 +1,9 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_NUMERIC_63_LENGTH, MAX_TEXT_FIELD_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticPurityRangeFormData = {
   purity_range: string;
@@ -200,28 +202,34 @@ const StaticPurityRangeFormInner = forwardRef<
         <label className={labelClass}>
           Purity <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
         </label>
-        {purityOptions.length > 0 ? (
-          <FormSelect
-            value={formData.purity}
-            onChange={(v) => handleChange('purity', v)}
-            options={purityOptions}
-            placeholder="Select purity"
-            disabled={readOnly}
-            className={inputClass('purity')}
-            isDarkMode={isDarkMode}
-          />
-        ) : (
-          <input
-            type="text"
-            value={formData.purity}
-            onChange={(e) => handleChange('purity', e.target.value)}
-            placeholder="Purity"
-            maxLength={MAX_TEXT_FIELD_LENGTH}
-            className={inputClass('purity')}
-            disabled={readOnly}
-            readOnly={readOnly}
-          />
-        )}
+        {(() => {
+          if (readOnly && formData.purity) {
+            const route = getEntityDetailRoute('purity', formData.purity);
+            if (route) return <div className={`w-full min-h-[42px] px-4 py-2.5 flex items-center text-sm rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}><Link to={route} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{formData.purity}</Link></div>;
+          }
+          return purityOptions.length > 0 ? (
+            <FormSelect
+              value={formData.purity}
+              onChange={(v) => handleChange('purity', v)}
+              options={purityOptions}
+              placeholder="Select purity"
+              disabled={readOnly}
+              className={inputClass('purity')}
+              isDarkMode={isDarkMode}
+            />
+          ) : (
+            <input
+              type="text"
+              value={formData.purity}
+              onChange={(e) => handleChange('purity', e.target.value)}
+              placeholder="Purity"
+              maxLength={MAX_TEXT_FIELD_LENGTH}
+              className={inputClass('purity')}
+              disabled={readOnly}
+              readOnly={readOnly}
+            />
+          );
+        })()}
         {errors.purity && (
           <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>
         )}

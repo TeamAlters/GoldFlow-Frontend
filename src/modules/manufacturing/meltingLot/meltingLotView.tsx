@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { type MeltingLotFormData, type WeightDetail } from './meltiingLotForm';
@@ -19,6 +21,7 @@ import {
 } from '../../../shared/utils/entityPageLabels';
 import EditableWeightTable from '../../../shared/components/EditableWeightTable';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 
 const ENTITY_NAME = 'melting_lot';
 
@@ -39,6 +42,7 @@ export default function MeltingLotViewPage() {
   
   // Submit dialog state
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
 
   useEffect(() => {
     if (!id) return;
@@ -50,7 +54,7 @@ export default function MeltingLotViewPage() {
           
           // Parse basic form data
           setInitialData(toInitialMeltingLotData(entity));
-          
+          setRawEntity(entity);
           // Set additional fields
           setMeltingLotName(entity.name != null ? String(entity.name) : '');
           setTotalAlloyVadotar(entity.total_alloy_vadotar != null ? String(entity.total_alloy_vadotar) : '');
@@ -113,6 +117,8 @@ export default function MeltingLotViewPage() {
   const canEdit = status !== 'Submitted';
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const sectionClass = getSectionClass(isDarkMode);
+
   const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
 
   if (!id) {
@@ -133,9 +139,6 @@ export default function MeltingLotViewPage() {
     { key: 'description', header: 'Description', width: 'w-40', isReadOnly: true },
   ];
 
-  const sectionClass = `border rounded-lg p-4 mb-4 ${
-    isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'
-  }`;
 
   const labelClass = `block text-sm font-semibold mb-1 ${
     isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -186,7 +189,7 @@ export default function MeltingLotViewPage() {
                   isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
               >
-                Edit {entityConfig.displayName}
+                Edit
               </Link>
             )}
             {canEdit && (
@@ -223,43 +226,67 @@ export default function MeltingLotViewPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className={labelClass}>Name</label>
-              <div className={valueClass}>{meltingLotName || '—'}</div>
+              <div className={valueClass}>{meltingLotName || '–'}</div>
             </div>
             <div>
               <label className={labelClass}>Product</label>
-              <div className={valueClass}>{initialData?.product || '—'}</div>
+              <div className={valueClass}>
+                {initialData?.product
+                  ? (() => { const r = getEntityDetailRoute('product', initialData.product); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.product}</Link> : initialData.product; })()
+                  : '–'}
+              </div>
             </div>
             <div>
               <label className={labelClass}>Purity</label>
-              <div className={valueClass}>{initialData?.purity || '—'}</div>
+              <div className={valueClass}>
+                {initialData?.purity
+                  ? (() => { const r = getEntityDetailRoute('purity', initialData.purity); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.purity}</Link> : initialData.purity; })()
+                  : '–'}
+              </div>
             </div>
             <div>
               <label className={labelClass}>Purity %</label>
-              <div className={valueClass}>{purityPercentage ? `${purityPercentage}` : '—'}</div>
+              <div className={valueClass}>{purityPercentage ? `${purityPercentage}` : '–'}</div>
             </div>
             <div>
               <label className={labelClass}>Accessory Purity</label>
-              <div className={valueClass}>{initialData?.accessory_purity || '—'}</div>
+              <div className={valueClass}>
+                {initialData?.accessory_purity
+                  ? (() => { const r = getEntityDetailRoute('accessory_purity', initialData.accessory_purity); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.accessory_purity}</Link> : initialData.accessory_purity; })()
+                  : '–'}
+              </div>
             </div>
             <div>
               <label className={labelClass}>Wire Size</label>
-              <div className={valueClass}>{initialData?.wire_size || '—'}</div>
+              <div className={valueClass}>
+                {initialData?.wire_size
+                  ? (() => { const r = getEntityDetailRoute('wire_size', initialData.wire_size); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.wire_size}</Link> : initialData.wire_size; })()
+                  : '–'}
+              </div>
             </div>
             <div>
               <label className={labelClass}>Thickness</label>
-              <div className={valueClass}>{initialData?.thickness || '—'}</div>
+              <div className={valueClass}>
+                {initialData?.thickness
+                  ? (() => { const r = getEntityDetailRoute('thickness', initialData.thickness); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.thickness}</Link> : initialData.thickness; })()
+                  : '–'}
+              </div>
             </div>
             <div>
               <label className={labelClass}>Design Name</label>
-              <div className={valueClass}>{initialData?.design_name || '—'}</div>
+              <div className={valueClass}>
+                {initialData?.design_name
+                  ? (() => { const r = getEntityDetailRoute('design_name', initialData.design_name); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.design_name}</Link> : initialData.design_name; })()
+                  : '–'}
+              </div>
             </div>
             <div>
               <label className={labelClass}>Status</label>
-              <div className={valueClass}>{status || '—'}</div>
+              <div className={valueClass}>{status || '–'}</div>
             </div>
             <div className="md:col-span-2">
               <label className={labelClass}>Description</label>
-              <div className={valueClass}>{initialData?.description || '—'}</div>
+              <div className={valueClass}>{initialData?.description || '–'}</div>
             </div>
           </div>
         </div>
@@ -303,7 +330,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {weightDetails.length > 0
                   ? weightDetails.reduce((sum, d) => sum + (parseFloat(d.selected_weight) || 0), 0).toFixed(4)
-                  : '—'}
+                  : '–'}
               </div>
             </div>
             <div>
@@ -311,7 +338,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {weightDetails.length > 0
                   ? weightDetails.reduce((sum, d) => sum + (parseFloat(d.fine_weight) || 0), 0).toFixed(4)
-                  : '—'}
+                  : '–'}
               </div>
             </div>
             <div>
@@ -319,7 +346,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {weightDetails.length > 0
                   ? weightDetails.reduce((sum, d) => sum + (parseFloat(d.alloy_weight) || 0), 0).toFixed(4)
-                  : '—'}
+                  : '–'}
               </div>
             </div>
             <div>
@@ -331,16 +358,16 @@ export default function MeltingLotViewPage() {
                       weightDetails.reduce((sum, d) => sum + (parseFloat(d.alloy_weight) || 0), 0) +
                       parseFloat(totalAlloyVadotar || '0')
                     ).toFixed(4)
-                  : '—'}
+                  : '–'}
               </div>
             </div>
             <div>
               <label className={labelClass}>Total Alloy Vadotar</label>
-              <div className={valueClass}>{totalAlloyVadotar || '—'}</div>
+              <div className={valueClass}>{totalAlloyVadotar || '–'}</div>
             </div>
           </div>
         </div>
-
+       <AuditTrailsCard entity={rawEntity} asSection />
       </div>
 
       <ConfirmationDialog

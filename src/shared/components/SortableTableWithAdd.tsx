@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useUIStore } from '../../stores/ui.store';
 import { FormSelect } from './FormSelect';
 import type { FormSelectOption } from './FormSelect';
@@ -40,6 +41,34 @@ export default function SortableTableWithAdd({
   title = 'Department',
 }: SortableTableWithAddProps) {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.setData('text/plain', String(index));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    setDraggedIndex(null);
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (Number.isNaN(fromIndex) || fromIndex === dropIndex) return;
+    const next = [...rows];
+    const [removed] = next.splice(fromIndex, 1);
+    next.splice(dropIndex, 0, removed);
+    const reordered = next.map((r, i) => ({ ...r, order: i + 1 }));
+    onChange(reordered);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
 
   const handleAddRow = () => {
     const maxOrder = rows.length > 0 ? Math.max(...rows.map((r) => r.order), 0) : 0;
@@ -106,13 +135,14 @@ export default function SortableTableWithAdd({
         </h3>
       )}
       <div
-        className={`overflow-hidden rounded-xl border shadow-sm ${
+        className={`overflow-visible rounded-xl border shadow-sm ${
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
         }`}
       >
         <table className="min-w-full">
           <thead>
             <tr>
+              {!readOnly && <th className={`${thClass} w-10`} aria-label="Drag to reorder" />}
               <th className={`${thClass} w-24`}>Order (Sr.No)</th>
               <th className={`${thClass} w-48`}>Department</th>
               <th className={`${thClass} w-28 text-right`}>Is Active</th>
@@ -123,31 +153,55 @@ export default function SortableTableWithAdd({
             {rows.map((row, index) => (
               <tr
                 key={row.id}
-                className={
-                  isDarkMode
-                    ? index % 2 === 0
-                      ? 'bg-gray-800/50'
-                      : 'bg-gray-800/30'
-                    : index % 2 === 0
-                      ? 'bg-white'
-                      : 'bg-gray-50/50'
-                }
+                draggable={!readOnly}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`transition-all duration-200 ${
+                  draggedIndex === index
+                    ? isDarkMode
+                      ? 'opacity-90 ring-2 ring-blue-400/70 bg-gray-700/90'
+                      : 'opacity-90 ring-2 ring-blue-500/60 bg-blue-50/80'
+                    : isDarkMode
+                      ? index % 2 === 0
+                        ? 'bg-gray-800/50'
+                        : 'bg-gray-800/30'
+                      : index % 2 === 0
+                        ? 'bg-white'
+                        : 'bg-gray-50/50'
+                }`}
               >
+                {!readOnly && (
+                  <td className={`${tdClass} w-10 align-middle`}>
+                    <div
+                      className={`inline-flex cursor-grab active:cursor-grabbing touch-none p-1 rounded select-none ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      title="Drag to reorder"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 6h2v2H8V6zm0 5h2v2H8v-2zm0 5h2v2H8v-2zm5-10h2v2h-2V6zm0 5h2v2h-2v-2zm0 5h2v2h-2v-2z" />
+                      </svg>
+                    </div>
+                  </td>
+                )}
                 <td className={`${tdClass} font-medium`}>{index + 1}</td>
-                <td className={tdClass}>
+                <td className={`${tdClass} overflow-visible`}>
                   {readOnly ? (
                     <div className={readOnlyCellClass}>
-                      {departmentOptions.find((o) => o.value === row.department_id)?.label ?? (row.department_id ? row.department_id : '—')}
+                      {departmentOptions.find((o) => o.value === row.department_id)?.label ?? (row.department_id ? row.department_id : '–')}
                     </div>
                   ) : (
-                    <FormSelect
-                      value={row.department_id}
-                      onChange={(v) => handleRowChange(index, 'department_id', v)}
-                      options={departmentOptions}
-                      placeholder="Select department"
-                      className={inputClass}
-                      isDarkMode={isDarkMode}
-                    />
+                    <div className="max-w-[200px] min-w-0 overflow-visible">
+                      <FormSelect
+                        value={row.department_id}
+                        onChange={(v) => handleRowChange(index, 'department_id', v)}
+                        options={departmentOptions}
+                        placeholder="Select department"
+                        className={inputClass}
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
                   )}
                 </td>
                 <td className={`${tdClass} text-right`}>

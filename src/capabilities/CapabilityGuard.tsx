@@ -120,7 +120,7 @@ export default function RolesAndPermissionViewPage() {
                         <div
                             className={`min-h-[42px] px-4 py-2.5 flex items-center rounded-lg border text-sm ${isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
                         >
-                            {role.name ?? '—'}
+                            {role.name ?? '–'}
                         </div>
                     </div>
                     <div>
@@ -171,7 +171,7 @@ export default function RolesAndPermissionViewPage() {
                     )}
                 </div>
 
-                <section className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <section className="mt-8 pt-6  border-gray-200 dark:border-gray-700">
                     <h2 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                         Entity Permissions
                     </h2>
