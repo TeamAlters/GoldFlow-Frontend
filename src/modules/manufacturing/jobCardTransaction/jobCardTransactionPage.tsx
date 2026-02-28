@@ -24,10 +24,10 @@ import { getRowDisplayValue } from '../../../shared/utils/common';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 
-const ENTITY_NAME = 'melting_pool_transaction';
+const ENTITY_NAME = 'job_card_transaction';
 type EntityRow = Record<string, unknown>;
 
-export default function MeltingPoolTransactionPage() {
+export default function JobCardTransactionPage() {
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
   const isDarkMode = useUIStore((state) => state.isDarkMode);

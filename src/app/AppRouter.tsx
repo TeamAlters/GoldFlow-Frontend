@@ -88,6 +88,8 @@ import MetalLedgerViewPage from '../modules/accounts/metalLedger/metalLedgerView
 import CustomerMetalLedgerTablePage from '../modules/manufacturing/metalPool/CustomerMetalLedgerTablePage';
 import MeltingPoolTransactionPage from '../modules/manufacturing/melting/meltingPoolTransactionPage';
 import MeltingPoolTransactionViewPage from '../modules/manufacturing/melting/meltingPoolTransactionView';
+import JobCardTransactionPage from '../modules/manufacturing/jobCardTransaction/jobCardTransactionPage';
+import JobCardTransactionViewPage from '../modules/manufacturing/jobCardTransaction/jobCardTransactionView';
 import MeltingLotPage from '../modules/manufacturing/meltingLot/meltingLotPage';
 import MeltingLotCreatePage from '../modules/manufacturing/meltingLot/meltingLotCreate';
 import MeltingLotEditPage from '../modules/manufacturing/meltingLot/meltingLotEdit';
@@ -220,6 +222,8 @@ export default function AppRouter() {
           <Route path="metal-pool" element={<CustomerMetalLedgerTablePage />} />
           <Route path="melting-pool-transaction" element={<MeltingPoolTransactionPage />} />
           <Route path="melting-pool-transaction/:id" element={<MeltingPoolTransactionViewPage />} />
+          <Route path="job-card-transaction" element={<JobCardTransactionPage />} />
+          <Route path="job-card-transaction/:id" element={<JobCardTransactionViewPage />} />
           <Route path="melting-lot" element={<MeltingLotPage />} />
           <Route path="melting-lot/add" element={<MeltingLotCreatePage />} />
           <Route path="melting-lot/edit/:id" element={<MeltingLotEditPage />} />
