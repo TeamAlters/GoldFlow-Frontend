@@ -16,7 +16,7 @@ function isAbortError(err: unknown): boolean {
  * Normalize getEntity response: entity may be in res.data or at top level.
  * If backend wraps in an entity key (e.g. { data: { customer: { ... } } }), unwrap it.
  */
-function getEntityFromResponse(
+export function getEntityFromResponse(
   res: Record<string, unknown>,
   entityName: string
 ): Record<string, unknown> | undefined {

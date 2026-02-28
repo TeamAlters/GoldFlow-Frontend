@@ -35,11 +35,20 @@ function parseDepartments(rows: unknown): SortableTableRow[] {
           : dept && typeof dept === 'object' && dept !== null && 'id' in dept
             ? String((dept as { id?: unknown }).id ?? '')
             : '';
+    const serverId = obj.id != null ? String(obj.id) : '';
+    const isClientId = serverId.startsWith('row-');
+    const productDepartmentId =
+      obj.product_department_id != null
+        ? String(obj.product_department_id)
+        : serverId && !isClientId
+          ? serverId
+          : undefined;
     return {
-      id: String(obj.id ?? `row-${i}-${Date.now()}`),
+      id: serverId || `row-${i}-${Date.now()}`,
       order: typeof obj.order === 'number' ? obj.order : (obj.step_no as number) ?? i + 1,
       department_id: departmentId,
       is_active: obj.is_active === true,
+      ...(productDepartmentId ? { product_department_id: productDepartmentId } : {}),
     };
   });
 }
@@ -65,6 +74,7 @@ export default function DepartmentGroupEditPage() {
   const [initialData, setInitialData] = useState<Partial<StaticDepartmentGroupFormData> | undefined>(
     undefined
   );
+  const [departmentsConfig, setDepartmentsConfig] = useState<Record<string, unknown>[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [productOptions, setProductOptions] = useState<FormSelectOption[]>([]);
@@ -103,6 +113,8 @@ export default function DepartmentGroupEditPage() {
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
           setInitialData(toInitialDepartmentGroupData(entity));
+          const raw = entity.departments;
+          setDepartmentsConfig(Array.isArray(raw) ? (raw as Record<string, unknown>[]) : []);
         }
       })
       .catch((err) => {
@@ -118,12 +130,26 @@ export default function DepartmentGroupEditPage() {
     };
   }, [decodedId]);
 
+  const refetchDepartmentGroup = useCallback(() => {
+    if (!decodedId) return;
+    getEntity(ENTITY_NAME, decodedId)
+      .then((res) => {
+        if (res.data && typeof res.data === 'object') {
+          const entity = res.data as Record<string, unknown>;
+          setInitialData(toInitialDepartmentGroupData(entity));
+          const raw = entity.departments;
+          setDepartmentsConfig(Array.isArray(raw) ? (raw as Record<string, unknown>[]) : []);
+        }
+      })
+      .catch(() => {});
+  }, [decodedId]);
+
   const handleSubmit = useCallback(
     async (formData: StaticDepartmentGroupFormData) => {
       if (!decodedId) return;
       setSubmitLoading(true);
       try {
-        await updateEntity(ENTITY_NAME, decodedId, toDepartmentGroupPayload(formData));
+        await updateEntity(ENTITY_NAME, decodedId, toDepartmentGroupPayload(formData, departmentsConfig));
         toast.success(`${entityConfig.displayName} updated successfully.`);
         navigate(entityConfig.routes.list);
       } catch (err) {
@@ -204,6 +230,9 @@ export default function DepartmentGroupEditPage() {
           isEdit={true}
           wrapInForm={false}
           showActions={false}
+          departmentsConfig={departmentsConfig}
+          departmentGroupId={decodedId}
+          onConfigSaved={refetchDepartmentGroup}
         />
         <div className="flex items-center justify-end gap-3 pt-6 mt-6">
           <button

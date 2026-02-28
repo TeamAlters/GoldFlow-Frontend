@@ -10,6 +10,9 @@ import { FormSelect } from '../../../shared/components/FormSelect';
 import SortableTableWithAdd, { type SortableTableRow } from '../../../shared/components/SortableTableWithAdd';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
+import ProductDepartmentConfigModalContent from '../productDepartment/ProductDepartmentConfigModalContent';
+import ProductDepartmentConfigModalContentFromData from '../productDepartment/ProductDepartmentConfigModalContentFromData';
+import { toInitialProductDepartmentData } from '../productDepartment/productDepartmentCreate';
 
 export type StaticDepartmentGroupFormData = {
   name: string;
@@ -34,6 +37,12 @@ export interface StaticDepartmentGroupFormProps {
   submitLoading?: boolean;
   wrapInForm?: boolean;
   showActions?: boolean;
+  /** Raw department config objects from department group GET API; used to show Configurations modal without extra API call */
+  departmentsConfig?: Record<string, unknown>[];
+  /** When provided (e.g. on edit), used to resolve product_department id via lookup when config has no id */
+  departmentGroupId?: string;
+  /** Called after saving a department configuration in the modal; use to refetch department group data */
+  onConfigSaved?: () => void;
 }
 
 const emptyForm: StaticDepartmentGroupFormData = {
@@ -58,6 +67,9 @@ const StaticDepartmentGroupFormInner = forwardRef<
     submitLoading = false,
     wrapInForm = true,
     showActions = true,
+    departmentsConfig,
+    departmentGroupId,
+    onConfigSaved,
   },
   ref
 ) {
@@ -228,6 +240,51 @@ const StaticDepartmentGroupFormInner = forwardRef<
           addButtonLabel="Add Department"
           readOnly={readOnly}
           title="Department"
+          renderViewContent={(row, onCloseModal) => {
+            const productDepartmentId = row.product_department_id ?? (row.id.startsWith('row-') ? undefined : row.id);
+            if (productDepartmentId) {
+              return (
+                <ProductDepartmentConfigModalContent
+                  productDepartmentId={productDepartmentId}
+                  onClose={onCloseModal}
+                  onSaved={onConfigSaved}
+                />
+              );
+            }
+            if (departmentsConfig && departmentsConfig.length > 0 && row.department_id) {
+              const match = departmentsConfig.find(
+                (item) =>
+                  String(item.department ?? item.department_name ?? '') === String(row.department_id)
+              );
+              if (match) {
+                const matchName = match.name != null ? String(match.name) : '';
+                const configInitialData = toInitialProductDepartmentData(match);
+                return (
+                  <ProductDepartmentConfigModalContentFromData
+                    initialData={configInitialData}
+                    productDepartmentName={matchName}
+                    readOnly={readOnly}
+                    departmentGroupIdOrName={departmentGroupId ?? formData.name ?? ''}
+                    productId={formData.product_id}
+                    departmentId={row.department_id}
+                    onClose={onCloseModal}
+                    onSaved={onConfigSaved}
+                    productOptions={productOptions}
+                    departmentOptions={departmentOptions}
+                  />
+                );
+              }
+            }
+            return (
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Save the department group first to edit configurations for this department.
+              </p>
+            );
+          }}
+          getViewModalTitle={(row) => {
+            const deptLabel = departmentOptions.find((o) => o.value === row.department_id)?.label ?? row.department_id ?? 'Department';
+            return `Configurations: ${deptLabel}`;
+          }}
         />
       </section>
     </div>

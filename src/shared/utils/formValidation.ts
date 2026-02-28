@@ -75,6 +75,84 @@ export function validateUppercaseOnly(value: string, fieldLabel: string): string
 }
 
 /**
+ * NUMERIC(5,2): up to 5 digits total; if decimal, max 2 digits after. e.g. 999.99, 123.45.
+ * Max 6 chars: 5 digits + decimal point (e.g. 999.99).
+ */
+export const MAX_NUMERIC_52_LENGTH = 6;
+
+export interface ValidateNumeric52Options {
+  /** When true, value must be >= 0 (e.g. for percentages). */
+  nonNegative?: boolean;
+}
+
+/**
+ * Validates NUMERIC(5,2): up to 5 digits total; if decimal, max 2 digits after. Max 999.99.
+ * Returns error message or null.
+ */
+export function validateNumeric52(
+  value: string,
+  fieldLabel: string,
+  options?: ValidateNumeric52Options
+): string | null {
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  const hasMinus = trimmed.startsWith('-');
+  const s = hasMinus ? trimmed.slice(1) : trimmed;
+  if (/[^\d.]/.test(s)) {
+    return `${fieldLabel} must be a number with up to 5 digits (up to 2 decimal places), e.g. 999.99`;
+  }
+  const dotCount = (s.match(/\./g) || []).length;
+  if (dotCount > 1) {
+    return `${fieldLabel} must be a number with up to 5 digits (up to 2 decimal places), e.g. 999.99`;
+  }
+  if (dotCount === 0) {
+    if (s.length === 0 || s.length > 5) {
+      return `${fieldLabel} must be a number with up to 5 digits (up to 2 decimal places), e.g. 999.99`;
+    }
+  } else {
+    const [intPart, decPart] = s.split('.');
+    const intLen = (intPart || '').length;
+    const decLen = (decPart || '').length;
+    if (intLen === 0) {
+      return `${fieldLabel} must be a number with up to 5 digits (up to 2 decimal places), e.g. 999.99`;
+    }
+    if (decLen > 2) {
+      return `${fieldLabel} must have at most 2 digits after the decimal`;
+    }
+    if (intLen + decLen > 5) {
+      return `${fieldLabel} must have at most 5 digits total (e.g. 999.99 or 99.99)`;
+    }
+  }
+  const num = parseFloat(trimmed);
+  if (!Number.isFinite(num)) return `${fieldLabel} must be a valid number`;
+  if (options?.nonNegative && num < 0) {
+    return `${fieldLabel} must be zero or greater`;
+  }
+  return null;
+}
+
+/**
+ * Sanitizes input for NUMERIC(5,2): up to 5 digits total; if decimal, max 2 digits after.
+ */
+export function sanitizeNumeric52Input(value: string, allowNegative = false): string {
+  const hasMinus = allowNegative && value.startsWith('-');
+  let s = value.replace(allowNegative ? /[^\d.-]/g : /[^\d.]/g, '');
+  if (allowNegative && s.startsWith('-')) s = s.slice(1);
+  const firstDot = s.indexOf('.');
+  let intPart = (firstDot === -1 ? s : s.slice(0, firstDot)).replace(/\D/g, '');
+  let decPart = (firstDot === -1 ? '' : s.slice(firstDot + 1).replace(/\D/g, ''));
+
+  if (firstDot === -1) {
+    intPart = intPart.slice(0, 5);
+    return (hasMinus ? '-' : '') + intPart;
+  }
+  intPart = intPart.slice(0, 5);
+  const maxDec = Math.min(2, 5 - intPart.length);
+  decPart = decPart.slice(0, maxDec);
+  return (hasMinus ? '-' : '') + intPart + '.' + decPart;
+}
+
+/**
  * NUMERIC(6,3): up to 6 digits total; if decimal, max 3 digits after. e.g. 123456, 1.234, 123.456, 12345.6.
  * Max 7 chars: 6 digits + decimal point (e.g. 12345.6).
  */

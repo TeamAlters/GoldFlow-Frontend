@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntityReferenceOptions, deleteEntity } from '../../admin/admin.api';
+import { getEntity, getEntityReferenceOptions, deleteEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
@@ -15,7 +15,6 @@ import {
 } from '../../../shared/utils/entityPageLabels';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
-import { apiClient } from '../../../api/axios';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 
@@ -59,12 +58,24 @@ interface DepartmentGroupResponse {
 }
 
 function parseDepartmentGroupResponse(data: DepartmentGroupResponse['data']): Partial<StaticDepartmentGroupFormData> {
-  const departments = data.departments.map((dept, index) => ({
-    id: `row-${index}-${Date.now()}`,
-    order: dept.step_no || index + 1,
-    department_id: dept.department || '',
-    is_active: data.is_active ?? true,
-  }));
+  const departments = data.departments.map((dept, index) => {
+    const obj = dept as Record<string, unknown>;
+    const serverId = obj.id != null ? String(obj.id) : '';
+    const isClientId = serverId.startsWith('row-');
+    const productDepartmentId =
+      obj.product_department_id != null
+        ? String(obj.product_department_id)
+        : serverId && !isClientId
+          ? serverId
+          : undefined;
+    return {
+      id: serverId || `row-${index}-${Date.now()}`,
+      order: dept.step_no || index + 1,
+      department_id: dept.department || '',
+      is_active: data.is_active ?? true,
+      ...(productDepartmentId ? { product_department_id: productDepartmentId } : {}),
+    };
+  });
 
   return {
     name: data.name || '',
@@ -121,16 +132,15 @@ export default function DepartmentGroupViewPage() {
 
     const fetchDepartmentGroup = async () => {
       try {
-        const response = await apiClient.get<DepartmentGroupResponse>(
-          `/api/v1/product/department-groups/${encodeURIComponent(id)}`
-        );
+        const res = await getEntity(ENTITY_NAME, id);
 
-        if (response.data.success && response.data.data) {
-          setInitialData(parseDepartmentGroupResponse(response.data.data));
-          setRawEntity(response.data.data as Record<string, unknown>);
+        if (res.data && typeof res.data === 'object') {
+          const group = res.data as DepartmentGroupResponse['data'];
+          setInitialData(parseDepartmentGroupResponse(group));
+          setRawEntity(group as Record<string, unknown>);
           setLoadError(null);
         } else {
-          setLoadError(response.data.message || 'Failed to load department group');
+          setLoadError((res as { message?: string }).message || 'Failed to load department group');
         }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load department group';
@@ -298,6 +308,9 @@ export default function DepartmentGroupViewPage() {
             readOnly={true}
             wrapInForm={false}
             showActions={false}
+            departmentsConfig={
+              Array.isArray(rawEntity?.departments) ? (rawEntity.departments as Record<string, unknown>[]) : []
+            }
           />
         </div>
         <AuditTrailsCard entity={rawEntity} asSection />

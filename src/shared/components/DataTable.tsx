@@ -298,31 +298,31 @@ export default function DataTable<T extends Record<string, any>>({
                           {actions
                             .filter((action) => action.shouldShow === undefined || action.shouldShow(row))
                             .map((action, actionIndex) => (
-                            <button
-                              key={actionIndex}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                action.onClick(row);
-                              }}
-                              className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 active:scale-95 ${action.variant === 'danger'
-                                ? isDarkMode
-                                  ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/30 hover:border-red-500/50'
-                                  : 'text-red-600 hover:bg-red-50 hover:text-red-700 border border-red-200 hover:border-red-300'
-                                : action.variant === 'secondary'
+                              <button
+                                key={actionIndex}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  action.onClick(row);
+                                }}
+                                className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 active:scale-95 ${action.variant === 'danger'
                                   ? isDarkMode
-                                    ? 'text-gray-400 hover:bg-gray-700 hover:text-gray-300 border border-gray-600/30 hover:border-gray-500/50'
-                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-700 border border-gray-300 hover:border-gray-400'
-                                  : isDarkMode
-                                    ? 'text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/30 hover:border-blue-500/50'
-                                    : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700 border border-blue-200 hover:border-blue-300'
-                                } ${action.className || ''}`}
-                            >
-                              <div className="flex items-center gap-1.5">
-                                {action.icon}
-                                <span>{action.label}</span>
-                              </div>
-                            </button>
-                          ))}
+                                    ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/30 hover:border-red-500/50'
+                                    : 'text-red-600 hover:bg-red-50 hover:text-red-700 border border-red-200 hover:border-red-300'
+                                  : action.variant === 'secondary'
+                                    ? isDarkMode
+                                      ? 'text-gray-400 hover:bg-gray-700 hover:text-gray-300 border border-gray-600/30 hover:border-gray-500/50'
+                                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-700 border border-gray-300 hover:border-gray-400'
+                                    : isDarkMode
+                                      ? 'text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/30 hover:border-blue-500/50'
+                                      : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700 border border-blue-200 hover:border-blue-300'
+                                  } ${action.className || ''}`}
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  {action.icon}
+                                  <span>{action.label}</span>
+                                </div>
+                              </button>
+                            ))}
                         </div>
                       </td>
                     )}
