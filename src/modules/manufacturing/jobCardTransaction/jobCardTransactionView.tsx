@@ -9,9 +9,9 @@ import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import BackButton from '../../../shared/components/BackButton';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 
-const ENTITY_NAME = 'melting_pool_transaction';
+const ENTITY_NAME = 'job_card_transaction';
 
-export default function MeltingPoolTransactionViewPage() {
+export default function JobCardTransactionViewPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
@@ -34,7 +34,7 @@ export default function MeltingPoolTransactionViewPage() {
             : null
         );
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to load transaction view';
+        const msg = err instanceof Error ? err.message : 'Failed to load job card transaction view';
         showErrorToastUnlessAuth(msg);
       } finally {
         if (mounted) setLoading(false);
@@ -74,16 +74,15 @@ export default function MeltingPoolTransactionViewPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Loading melting pool transaction...
+            Loading job card transaction...
           </p>
         </div>
       </div>
     );
   }
 
-  // Get all fields from entity, excluding audit fields (they're shown in separate card)
   const auditFields = ['created_at', 'modified_at', 'created_by', 'modified_by'];
-  const fields = entity ? Object.keys(entity).filter(key => !auditFields.includes(key)) : [];
+  const fields = entity ? Object.keys(entity).filter((key) => !auditFields.includes(key)) : [];
 
   return (
     <div className="w-full">
@@ -109,7 +108,7 @@ export default function MeltingPoolTransactionViewPage() {
           </div>
         </div>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          View melting pool transaction details
+          View job card transaction details
         </p>
       </div>
 
@@ -118,7 +117,6 @@ export default function MeltingPoolTransactionViewPage() {
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
         }`}
       >
-        {/* Transaction Details Section */}
         <div className={sectionClass}>
           <h3
             className={`text-lg font-semibold mb-4 pb-2 border-b ${
@@ -139,8 +137,6 @@ export default function MeltingPoolTransactionViewPage() {
           </div>
         </div>
 
-        {/* Audit Details Section */}
-      
         <AuditTrailsCard entity={entity} asSection />
       </div>
     </div>

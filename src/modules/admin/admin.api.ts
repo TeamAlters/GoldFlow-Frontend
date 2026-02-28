@@ -474,6 +474,9 @@ export async function createEntity(
   data: Record<string, unknown>
 ): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
   const config = getEntityConfig(entityName);
+  if (!config.api.create) {
+    throw new Error(`Entity ${entityName} does not support create`);
+  }
   const url = buildEntityUrl(config.api.create, entityName);
 
   console.log('[GoldFlow] [admin.api] createEntity: request', { entityName, url });
@@ -532,6 +535,9 @@ export async function updateEntity(
   data: Record<string, unknown>
 ): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
   const config = getEntityConfig(entityName);
+  if (!config.api.update) {
+    throw new Error(`Entity ${entityName} does not support update`);
+  }
   const url = buildEntityUrl(config.api.update, entityName, { id });
 
   console.log('[GoldFlow] [admin.api] updateEntity: request', { entityName, id, url });
@@ -560,6 +566,9 @@ export async function deleteEntity(
   id: string | number
 ): Promise<{ success?: boolean; message?: string }> {
   const config = getEntityConfig(entityName);
+  if (!config.api.delete) {
+    throw new Error(`Entity ${entityName} does not support delete`);
+  }
   const url = buildEntityUrl(config.api.delete, entityName, { id });
 
   console.log('[GoldFlow] [admin.api] deleteEntity: request', { entityName, id, url });
@@ -584,7 +593,10 @@ export async function updateEntityStatus(
   id: string | number,
   status: string
 ): Promise<{ success?: boolean; message?: string; data?: Record<string, unknown> }> {
-  const config = getEntityConfig(entityName);
+  const config = getEntityConfig(entityName); 
+  if (!config.api.update) {
+    throw new Error(`Entity ${entityName} does not support update`);
+  }
   const url = buildEntityUrl(config.api.update, entityName, { id });
 
   console.log('[GoldFlow] [admin.api] updateEntityStatus: request', { entityName, id, status, url });

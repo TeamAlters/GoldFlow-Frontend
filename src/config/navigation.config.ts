@@ -73,6 +73,7 @@ export const sidebarNavConfig: NavCategory[] = [
     items: [
       { name: 'Metal Pool', path: '/metal-pool', icon: 'box' },
       { name: 'Melting Pool Transaction', path: '/melting-pool-transaction', icon: 'box', entityName: 'melting_pool_transaction' },
+      { name: 'Job Card Transaction', path: '/job-card-transaction', icon: 'box', entityName: 'job_card_transaction' },
       { name: 'Melting Lots', path: '/melting-lot', icon: 'box', entityName: 'melting_lot' },
       { name: 'Parent Melting Lots', path: '/parent-melting-lot', icon: 'box', entityName: 'parent_melting_lot' },
     ],

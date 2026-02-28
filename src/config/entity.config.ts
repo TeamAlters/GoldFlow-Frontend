@@ -31,17 +31,17 @@ export type EntityConfig = {
     /** GET list endpoint */
     list: string;
 
-    /** POST create endpoint */
-    create: string;
+    /** POST create endpoint (optional for read-only entities) */
+    create?: string;
 
     /** GET single item endpoint (use {id} or {entity_id} placeholder) */
     get: string;
 
-    /** PUT/PATCH update endpoint (use {id} or {entity_id} placeholder) */
-    update: string;
+    /** PUT/PATCH update endpoint (optional for read-only entities) */
+    update?: string;
 
-    /** DELETE endpoint (use {id} or {entity_id} placeholder) */
-    delete: string;
+    /** DELETE endpoint (optional for read-only entities) */
+    delete?: string;
   };
 
   /** Route paths in the app */
@@ -49,11 +49,11 @@ export type EntityConfig = {
     /** List page route */
     list: string;
 
-    /** Add new item route */
-    add: string;
+    /** Add new item route (optional for read-only entities) */
+    add?: string;
 
-    /** Edit item route (use :id for route param) */
-    edit: string;
+    /** Edit item route (optional for read-only entities) */
+    edit?: string;
 
     /** Detail/view item route (use :id for route param) */
     detail: string;
@@ -696,6 +696,27 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     },
   },
 
+  job_card_transaction: {
+    displayName: 'Job Card Transaction',
+    displayNamePlural: 'Job Card Transactions',
+    api: {
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
+      list: DEFAULT_API_PATHS.list,
+      get: DEFAULT_API_PATHS.get,
+    },
+    routes: {
+      list: '/job-card-transaction',
+      detail: '/job-card-transaction/:id',
+    },
+    features: {
+      canCreate: false,
+      canEdit: false,
+      canDelete: false,
+      canExport: false,
+    },
+  },
+
   melting_lot: {
     displayName: 'Melting Lot',
     displayNamePlural: 'Melting Lots',
@@ -842,10 +863,16 @@ export function getEntityApiUrls(entityName: string) {
     listingMetadata: buildEntityUrl(config.api.listingMetadata, entityName),
     formMetadata: buildEntityUrl(config.api.formMetadata, entityName),
     list: buildEntityUrl(config.api.list, entityName),
-    create: buildEntityUrl(config.api.create, entityName),
+    ...(config.api.create != null && {
+      create: buildEntityUrl(config.api.create, entityName),
+    }),
     get: (id: string | number) => buildEntityUrl(config.api.get, entityName, { id }),
-    update: (id: string | number) => buildEntityUrl(config.api.update, entityName, { id }),
-    delete: (id: string | number) => buildEntityUrl(config.api.delete, entityName, { id }),
+    ...(config.api.update != null && {
+      update: (id: string | number) => buildEntityUrl(config.api.update!, entityName, { id }),
+    }),
+    ...(config.api.delete != null && {
+      delete: (id: string | number) => buildEntityUrl(config.api.delete!, entityName, { id }),
+    }),
   };
 }
 
