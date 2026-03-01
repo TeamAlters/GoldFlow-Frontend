@@ -3,7 +3,7 @@ import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { deleteEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
-import { getSectionClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { useEntityLoad } from '../../../shared/hooks/useEntityLoad';
@@ -91,7 +91,7 @@ export default function ProductCategoryViewPage() {
 
   if (loadError && !initialData) {
     return (
-      <div className="w-full">
+      <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
         <Breadcrumbs
           items={[
             { label: 'Dashboard', href: '/dashboard' },
@@ -120,7 +120,7 @@ export default function ProductCategoryViewPage() {
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.product_category);
 
   return (
-    <div className="w-full">
+    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

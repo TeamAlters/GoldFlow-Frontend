@@ -104,9 +104,6 @@ export default function CustomerMetalLedgerTablePage() {
     isDarkMode ? 'text-white' : 'text-gray-900'
   }`;
 
-  const sectionClass = `border rounded-lg p-4 ${
-    isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-  }`;
 
 
   return (
@@ -125,9 +122,7 @@ export default function CustomerMetalLedgerTablePage() {
         className={`p-6 rounded-xl border ${
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
         }`}
-      >
-        <div className="space-y-6">
-          <div className={sectionClass}>
+      >  
           
             <div
               className={`overflow-hidden rounded-lg border ${
@@ -239,8 +234,7 @@ export default function CustomerMetalLedgerTablePage() {
                 </table>
               </div>
             </div>
-          </div>
-        </div>
+          
       </form>
     </div>
   );

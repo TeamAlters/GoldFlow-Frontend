@@ -19,6 +19,14 @@ export const getSectionHeaderClass = (isDarkMode: boolean): string =>
   `text-sm font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'
   }`;
 
+/**
+ * Root page wrapper class for Create, Edit, and View pages.
+ * Light mode: warm off-white background #F5F2EE and min-height. Dark mode: no extra classes.
+ */
+export function getCreateEditViewPageWrapperClass(isDarkMode: boolean): string {
+  return `w-full ${!isDarkMode ? 'bg-[#F5F2EE] min-h-[calc(100vh-8rem)]' : ''}`;
+}
+
 export const TAG_VARIANT_CLASSES: Record<string, string> = {
   product: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   melting_lot: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',

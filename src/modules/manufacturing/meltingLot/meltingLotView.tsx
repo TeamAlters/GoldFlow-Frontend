@@ -4,7 +4,7 @@ import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
-import { getSectionClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { type MeltingLotFormData, type WeightDetail } from './meltiingLotForm';
@@ -162,7 +162,7 @@ export default function MeltingLotViewPage() {
   }
 
   return (
-    <div className="w-full">
+    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

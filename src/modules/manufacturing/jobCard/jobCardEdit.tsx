@@ -10,7 +10,7 @@ import {
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { toast } from '../../../stores/toast.store';
 import { formatDateTime } from '../../../shared/utils/dateUtils';
-import { getSectionHeaderClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionHeaderClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { useUIStore } from '../../../stores/ui.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -347,7 +347,7 @@ export default function JobCardEditPage() {
   }
 
   return (
-    <div className={`w-full ${!isDarkMode ? 'bg-[#F5F2EE] min-h-[calc(100vh-8rem)]' : ''}`}>
+    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

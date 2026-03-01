@@ -6,7 +6,7 @@ import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import { getSectionClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import type { StaticAccessoriesPurityRangeFormData } from './accessoriesPurityRangeForm';
 import { MAX_NUMERIC_63_LENGTH, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -153,7 +153,7 @@ export default function AccessoriesPurityRangeCreatePage() {
   const errorClass = `text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`;
 
   return (
-    <div className="w-full">
+    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

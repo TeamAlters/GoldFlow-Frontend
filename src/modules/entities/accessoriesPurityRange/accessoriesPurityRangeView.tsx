@@ -3,7 +3,7 @@ import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, deleteEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
-import { getSectionClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -32,7 +32,7 @@ export default function AccessoriesPurityRangeViewPage() {
   } | undefined>(undefined);
   const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
   const [dataLoading, setDataLoading] = useState(true);
-  
+
   // Delete dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,7 +81,7 @@ export default function AccessoriesPurityRangeViewPage() {
   const sectionClass = getSectionClass(isDarkMode);
 
   const editUrl = id
-    ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id))
+    ? entityConfig.routes?.edit?.replace(':id', encodeURIComponent(id)) ?? '' 
     : '';
 
   if (!id) {
@@ -103,14 +103,14 @@ export default function AccessoriesPurityRangeViewPage() {
 
   const labelClass = `block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`;
   const readOnlyInputClass = `w-full px-4 py-2.5 text-sm rounded-lg border ${isDarkMode
-      ? 'bg-gray-700/50 border-gray-600 text-white'
-      : 'bg-white border-gray-300 text-gray-900'
+    ? 'bg-gray-700/50 border-gray-600 text-white'
+    : 'bg-white border-gray-300 text-gray-900'
     }`;
   const viewPageHeading = getViewPageHeading(entityConfig, data?.purity_range);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, data?.purity_range);
 
   return (
-    <div className="w-full">
+    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },
@@ -135,19 +135,18 @@ export default function AccessoriesPurityRangeViewPage() {
           <Link
             to={editUrl}
             className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
               }`}
           >
             Edit
           </Link>
           <button
             onClick={() => setShowDeleteDialog(true)}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
                 ? 'bg-red-600 hover:bg-red-700 text-white'
                 : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
+              }`}
           >
             Delete
           </button>
@@ -158,9 +157,8 @@ export default function AccessoriesPurityRangeViewPage() {
       >
         <div className={sectionClass}>
           <h2
-            className={`text-lg font-semibold mb-4 pb-2 border-b ${
-              isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
-            }`}
+            className={`text-lg font-semibold mb-4 pb-2 border-b ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
+              }`}
           >
             {entityConfig.displayName} Info
           </h2>
@@ -180,7 +178,7 @@ export default function AccessoriesPurityRangeViewPage() {
           </div>
         </div>
         <AuditTrailsCard entity={rawEntity} asSection />
-      </div>  
+      </div>
       <ConfirmationDialog
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}

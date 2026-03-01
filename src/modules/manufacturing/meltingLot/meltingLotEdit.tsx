@@ -6,6 +6,7 @@ import { updateMeltingLot } from './meltingLot.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
+import { getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import MeltingLotForm, {
   type MeltingLotFormData,
   type MeltingLotFormRef,
@@ -102,7 +103,7 @@ export default function MeltingLotEditPage() {
   const breadcrumbLabel = initialData?.product ?? id;
 
   return (
-    <div className="w-full">
+    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

@@ -13,9 +13,11 @@ export interface AuditTrailsCardProps {
   entity?: Record<string, unknown> | null;
   /** When true, render as a section inside another card (no outer card wrapper). */
   asSection?: boolean;
+  /** When 'darker', section header uses a slightly darker background. */
+  headerVariant?: 'default' | 'darker';
 }
 
-export default function AuditTrailsCard({ entity, asSection = false }: AuditTrailsCardProps) {
+export default function AuditTrailsCard({ entity, asSection = false, headerVariant = 'default' }: AuditTrailsCardProps) {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
   const createdBy = entity ? valueOrEmpty(entity.created_by) : EMPTY;
@@ -35,7 +37,11 @@ export default function AuditTrailsCard({ entity, asSection = false }: AuditTrai
     <>
       <div className={sectionClass}>
         <h2
-          className={`text-lg font-semibold mb-4 pb-2 border-b  ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'}`}
+          className={
+            headerVariant === 'darker'
+              ? `text-lg font-semibold mb-4 py-2 border-b ${isDarkMode ? 'bg-gray-700/50 text-white border-gray-600' : 'bg-gray-100 text-gray-900 border-gray-300'}`
+              : `text-lg font-semibold mb-4 pb-2 border-b  ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'}`
+          }
         >
           Audit Trails
         </h2>

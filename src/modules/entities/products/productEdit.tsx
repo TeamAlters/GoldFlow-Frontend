@@ -5,7 +5,7 @@ import { getEntity, updateEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import { getSectionClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import StaticProductForm, {
     type StaticProductFormData,
     type StaticProductFormRef,
@@ -157,7 +157,7 @@ export default function ProductEditPage() {
     const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.product_name);
 
     return (
-        <div className="w-full">
+        <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
             <Breadcrumbs
                 items={[
                     { label: 'Dashboard', href: '/dashboard' },

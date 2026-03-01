@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { useUIStore } from '../../stores/ui.store';
-import { getSectionClass } from '../../shared/utils/viewPageStyles';
+import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../shared/utils/viewPageStyles';
 import Breadcrumbs from '../../layout/Breadcrumbs';
 import { RolesPermissionsTable, type PermissionsMatrix, buildInitialMatrix, type TablePermissions } from './rolesAndPermissionForm';
 import { roleConfig, getEntityNamesForRolesTable } from '../../config/entity.config';
@@ -81,7 +81,7 @@ export default function RolesAndPermissionViewPage() {
 
     if (!role) {
         return (
-            <div className="w-full">
+            <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
                 <Breadcrumbs
                     items={[
                         { label: 'Dashboard', href: '/dashboard' },
@@ -111,7 +111,7 @@ export default function RolesAndPermissionViewPage() {
         : 'bg-white border-gray-200 shadow-sm';
 
     return (
-        <div className="w-full">
+        <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
             <Breadcrumbs
                 items={[
                     { label: 'Dashboard', href: '/dashboard' },

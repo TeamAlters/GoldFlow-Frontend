@@ -5,7 +5,7 @@ import { getEntityReferences, updateEntity } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import { getSectionClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import { useEntityLoad } from '../../../shared/hooks/useEntityLoad';
 import StaticProductCategoryForm, {
   type StaticProductCategoryFormData,
@@ -116,7 +116,7 @@ export default function ProductCategoryEditPage() {
 
   if (loadError && !initialData) {
     return (
-      <div className="w-full">
+      <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
         <Breadcrumbs
           items={[
             { label: 'Dashboard', href: '/dashboard' },
@@ -142,7 +142,7 @@ export default function ProductCategoryEditPage() {
   const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.product_category);
 
   return (
-    <div className="w-full">
+    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

@@ -5,7 +5,7 @@ import { getEntity, updateEntity, getEntityReferenceOptions, getProductReference
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import { getSectionClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import StaticDepartmentGroupForm, {
   type StaticDepartmentGroupFormData,
   type StaticDepartmentGroupFormRef,
@@ -197,7 +197,7 @@ export default function DepartmentGroupEditPage() {
   }
 
   return (
-    <div className="w-full">
+    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },
