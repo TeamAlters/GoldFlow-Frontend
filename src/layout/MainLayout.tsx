@@ -53,7 +53,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         : 'ml-0';
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-950' : 'bg-gray-100'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-950' : 'bg-[#F5F2EE]'}`}>
       <Navbar />
       <SecondNavbar
         onToggleSidebar={handleMobileToggle}
