@@ -212,39 +212,23 @@ export default function DataTable<T extends Record<string, any>>({
           <table className="w-full">
             <thead>
               <tr
-                className={`border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-teal-700 border-teal-800'
+                className={`border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-[#F2EFE9] border-gray-200'
                   }`}
               >
-                {columns.map((column, colIdx) => {
-                  // #region agent log
-                  const headerEmpty = column.header == null || String(column.header).trim() === '';
-                  if (headerEmpty) {
-                    fetch('http://127.0.0.1:7242/ingest/9e661e4b-dcf6-42e4-a9d4-87b9c1be1cf9', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        location: 'DataTable.tsx:thead',
-                        message: 'Column has empty header',
-                        data: {
-                          columnKey: column.key,
-                          columnIdx: colIdx,
-                          headerValue: column.header,
-                          totalColumns: columns.length,
-                          hypothesisId: 'H4',
-                        },
-                        timestamp: Date.now(),
-                      }),
-                    }).catch(() => {});
-                  }
-                  // #endregion
+                {columns.map((column) => {
+                  const thBgClass = isDarkMode ? 'bg-gray-700' : 'bg-[#F2EFE9]';
+                  const thHoverClass = column.sortable
+                    ? isDarkMode
+                      ? 'hover:bg-gray-600'
+                      : 'hover:bg-gray-200'
+                    : '';
                   return (
                   <th
                     key={column.key}
                     style={{ width: column.width }}
-                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-300' : 'text-white'
+                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${thBgClass} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'
                       } ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left'} ${column.sortable
-                        ? `cursor-pointer ${isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-teal-600'
-                        }`
+                        ? `cursor-pointer ${thHoverClass}`
                         : ''
                       }`}
                     onClick={() => column.sortable && handleSort(column.key)}
@@ -260,7 +244,7 @@ export default function DataTable<T extends Record<string, any>>({
                 })}
                 {actions.length > 0 && (
                   <th
-                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-white'
+                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#F2EFE9] text-gray-800'
                       }`}
                   >
                     Actions

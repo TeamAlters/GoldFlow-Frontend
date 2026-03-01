@@ -72,7 +72,7 @@ export default function ProductDepartmentConfigModalContentFromData({
       setSaving(false);
     }
   }, [readOnly, productDepartmentName, entityConfig.displayName, onClose, onSaved]);
-  
+
   return (
     <>
       <ProductDepartmentForm

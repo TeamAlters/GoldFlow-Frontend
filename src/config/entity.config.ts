@@ -696,6 +696,30 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
     },
   },
 
+  job_card: {
+    displayName: 'Job Card',
+    displayNamePlural: 'Job Cards',
+    api: {
+      listingMetadata: DEFAULT_API_PATHS.listingMetadata,
+      formMetadata: DEFAULT_API_PATHS.formMetadata,
+      list: DEFAULT_API_PATHS.list,
+      get: '/api/v1/manufacturing/job-cards/{entity_id}',
+      update: '/api/v1/manufacturing/job-cards/{entity_id}',
+      delete: '/api/v1/manufacturing/job-cards/{entity_id}',
+    },
+    routes: {
+      list: '/job-card',
+      edit: '/job-card/edit/:id',
+      detail: '/job-card/:id',
+    },
+    features: {
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canExport: false,
+    },
+  },
+
   job_card_transaction: {
     displayName: 'Job Card Transaction',
     displayNamePlural: 'Job Card Transactions',

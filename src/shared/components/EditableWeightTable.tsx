@@ -1,4 +1,5 @@
 import { useUIStore } from '../../stores/ui.store';
+import { FormSelect } from './FormSelect';
 
 export type ColumnDef<T> = {
   key: string;
@@ -21,6 +22,7 @@ export interface EditableWeightTableProps<T> {
   showActions?: boolean;
   onAddRow?: () => void;
   onDeleteRow?: (index: number) => void;
+  onDuplicateRow?: (index: number) => void;
   onClearRow?: (index: number) => void;
   getRowId?: (row: T, index: number) => string | number;
   onCellChange?: (index: number, key: string, value: string) => void;
@@ -36,14 +38,15 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
   showActions = true,
   onAddRow,
   onDeleteRow,
+  onDuplicateRow,
   onClearRow,
   getRowId,
   onCellChange,
 }: EditableWeightTableProps<T>) {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  
+
   // Determine if actions should be shown
-  const showActionButtons = showActions && (onDeleteRow || onClearRow);
+  const showActionButtons = showActions && (onDeleteRow || onClearRow || onDuplicateRow);
 
   // Handler type for cell changes - accepts string key for flexibility
   const handleCellChange = (index: number, key: string, value: string) => {
@@ -66,12 +69,12 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
           : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
       }`;
 
-  const thClass = `px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border-r ${
-    isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-500' : 'bg-teal-700 text-white border-teal-600'
+  const thClass = `px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${
+    isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-[#F2EFE9] text-gray-800 border-gray-200'
   }`;
 
-  const tdClass = `px-4 py-3 text-sm border-r ${
-    isDarkMode ? 'border-gray-500' : 'border-gray-300'
+  const tdClass = `px-4 py-3 text-sm ${
+    isDarkMode ? 'border-gray-600' : 'border-gray-200'
   }`;
 
   const handleInputChange = (index: number, key: string, value: string) => {
@@ -97,15 +100,15 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
   }, {});
 
   return (
-    <div className={`overflow-x-auto rounded-lg border ${
-      isDarkMode ? 'border-gray-700' : 'border-gray-200'
+    <div className={`overflow-x-auto rounded-lg border w-full ${
+      isDarkMode ? 'border-gray-600' : 'border-gray-200'
     }`}>
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className="min-w-full">
         <thead>
-          <tr>
-            <th className={`${thClass} w-12`}>Sr.no</th>
-            {columns.map((col) => (
-              <th key={col.key} className={`${thClass} ${col.width || ''}`}>
+          <tr className={isDarkMode ? 'border-b border-gray-600' : 'border-b border-gray-200'}>
+            <th className={`${thClass} border-r w-12`}>Sr.no</th>
+            {columns.map((col, i) => (
+              <th key={col.key} className={`${thClass} ${i < columns.length - 1 ? 'border-r' : ''} ${col.width || ''}`}>
                 {col.header}
               </th>
             ))}
@@ -117,29 +120,25 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
         <tbody className={isDarkMode ? 'divide-y divide-gray-600 bg-gray-800' : 'divide-y divide-gray-200 bg-white'}>
           {data.map((row, index) => (
             <tr key={getRowId ? getRowId(row, index) : index}>
-              <td className={`${tdClass} text-center font-medium ${
+              <td className={`${tdClass} border-r text-center font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-500'
               }`}>
                 {index + 1}
               </td>
-              {columns.map((col) => (
-                <td key={col.key} className={tdClass}>
+              {columns.map((col, colIndex) => (
+                <td key={col.key} className={`${tdClass} ${colIndex < columns.length - 1 ? 'border-r' : ''}`}>
                   {col.renderCell ? (
                     col.renderCell(row, index)
                   ) : col.isDropdown && col.dropdownOptions ? (
-                    <select
+                    <FormSelect
                       value={String(row[col.key] || '')}
-                      onChange={(e) => handleInputChange(index, col.key, e.target.value)}
+                      onChange={(v) => handleInputChange(index, col.key, v)}
+                      options={col.dropdownOptions}
+                      placeholder="Select"
                       disabled={readOnly}
-                      className={inputClass}
-                    >
-                      <option value="">Select</option>
-                      {col.dropdownOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                      isDarkMode={isDarkMode}
+                      className={`min-w-0 w-full ${isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-900'}`}
+                    />
                   ) : col.isEditable ? (
                     <input
                       type="text"
@@ -164,6 +163,22 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
               {showActionButtons && (
                 <td className={`${tdClass} text-center`}>
                   <div className="flex items-center justify-center gap-1">
+                    {onDuplicateRow && (
+                      <button
+                        type="button"
+                        onClick={() => onDuplicateRow(index)}
+                        className={`p-1.5 rounded transition-colors ${
+                          isDarkMode
+                            ? 'text-blue-400 hover:bg-blue-500/20'
+                            : 'text-blue-600 hover:bg-blue-50'
+                        }`}
+                        title="Duplicate row"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    )}
                     {onClearRow && (
                       <button
                         type="button"
