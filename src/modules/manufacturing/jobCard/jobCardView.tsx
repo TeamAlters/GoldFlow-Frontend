@@ -6,7 +6,6 @@ import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import {
   getSectionHeaderClass,
-  getCreateEditViewPageWrapperClass,
 } from '../../../shared/utils/viewPageStyles';
 import { formatDateTime } from '../../../shared/utils/dateUtils';
 import { useUIStore } from '../../../stores/ui.store';
@@ -227,7 +226,7 @@ export default function JobCardViewPage() {
   }
 
   return (
-    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
+    <div className={`w-full ${!isDarkMode ? 'bg-[#F5F2EE] min-h-[calc(100vh-8rem)]' : ''}`}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

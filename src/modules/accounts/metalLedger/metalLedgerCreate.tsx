@@ -6,7 +6,6 @@ import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import { getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import MetalLedgerForm, {
   type MetalLedgerFormData,
   type MetalLedgerFormRef,
@@ -143,7 +142,7 @@ export default function MetalLedgerCreatePage() {
   const breadcrumbLabel = `Add ${entityConfig.displayName}`;
 
   return (
-    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
+    <div className="w-full">
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

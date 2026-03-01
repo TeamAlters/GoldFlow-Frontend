@@ -17,7 +17,6 @@ import {
     MAX_DESCRIPTION_LENGTH,
     maxLengthError,
 } from '../../shared/utils/formValidation';
-import { getCreateEditViewPageWrapperClass } from '../../shared/utils/viewPageStyles';
 
 export default function RolesAndPermissionEditPage() {
     const navigate = useNavigate();
@@ -153,7 +152,7 @@ export default function RolesAndPermissionEditPage() {
     }
 
     return (
-        <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
+        <div className="w-full">
             <Breadcrumbs
                 items={[
                     { label: 'Dashboard', href: '/dashboard' },

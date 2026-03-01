@@ -5,7 +5,7 @@ import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { getEntity } from '../../admin/admin.api';
 import { closeParentMeltingLot } from './parentMeltingLot.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
-import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { toast } from '../../../stores/toast.store';
 import { useUIStore } from '../../../stores/ui.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -148,7 +148,7 @@ export default function ParentMeltingLotViewPage() {
   }
 
   return (
-    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
+    <div className="w-full">
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

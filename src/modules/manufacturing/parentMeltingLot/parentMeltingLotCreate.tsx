@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { createEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
-import { getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
 import { toast } from '../../../stores/toast.store';
 import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { useUIStore } from '../../../stores/ui.store';
@@ -78,7 +77,7 @@ export default function ParentMeltingLotCreate() {
   }, [navigate, entityConfig.routes.list]);
 
   return (
-    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
+    <div className="w-full">
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

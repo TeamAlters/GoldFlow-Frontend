@@ -5,7 +5,7 @@ import { getEntity, updateEntity, getEntityReferences } from '../../admin/admin.
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import { getSectionClass, getCreateEditViewPageWrapperClass } from '../../../shared/utils/viewPageStyles';
+import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticMachineForm, {
   type StaticMachineFormData,
   type StaticMachineFormRef,
@@ -119,7 +119,7 @@ export default function MachineEditPage() {
   const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.machine_name);
 
   return (
-    <div className={getCreateEditViewPageWrapperClass(isDarkMode)}>
+    <div className="w-full">
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },
