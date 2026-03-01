@@ -116,7 +116,11 @@ export default function MeltingLotCreatePage() {
       try {
         const res = await createEntity(ENTITY_NAME, payload);
         toast.success(`${entityConfig.displayName} created successfully.`);
-        const id = getCreatedEntityId(res, payload as Record<string, unknown>, ['id', 'melting_lot_id']);
+        const id = getCreatedEntityId(res, payload as Record<string, unknown>, [
+          'name',
+          'id',
+          'melting_lot_id',
+        ]);
         navigate(
           id != null
             ? entityConfig.routes.detail.replace(':id', encodeURIComponent(String(id)))

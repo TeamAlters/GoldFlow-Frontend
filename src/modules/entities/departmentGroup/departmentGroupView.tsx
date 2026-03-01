@@ -178,7 +178,7 @@ export default function DepartmentGroupViewPage() {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
 
-  const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+  const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
   }

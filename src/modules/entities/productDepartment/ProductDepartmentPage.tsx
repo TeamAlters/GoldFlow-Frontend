@@ -316,7 +316,7 @@ export default function ProductDepartmentPage() {
   }, [entityMetadata, isDarkMode, navigate, entityConfig]);
 
   const handleAddEntity = () => {
-    navigate(entityConfig.routes.add);
+    navigate(entityConfig.routes.add ?? '');
   };
 
   const idField = entityMetadata?.id_field ?? 'id';
@@ -352,7 +352,7 @@ export default function ProductDepartmentPage() {
         onClick: (row) => {
           const rowId = getRowId(row);
           if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit.replace(':id', encodeURIComponent(String(rowId))));
+            navigate(entityConfig.routes.edit?.replace(':id', encodeURIComponent(String(rowId))) ?? '');
           }
         },
         variant: 'primary' as const,

@@ -81,7 +81,7 @@ export default function MetalLedgerViewPage() {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
 
-  const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+  const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
@@ -139,7 +139,7 @@ export default function MetalLedgerViewPage() {
                     : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
               >
-              voucher_no: {displayValue}
+                Edit
               </Link>
               <button
                 type="button"

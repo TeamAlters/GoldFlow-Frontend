@@ -24,6 +24,7 @@ import {
 } from '../../admin/admin.api';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getRowDisplayValue } from '../../../shared/utils/common';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 
@@ -193,38 +194,63 @@ export default function ParentMeltingLotPage() {
 
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = metadata?.fields?.filter((field) => field.visible_in_list) ?? [];
-    const detailLinkField = metadata?.detail_link_field;
+    const detailLinkField = metadata?.detail_link_field ?? visibleFields[0]?.name;
+
+    const makeAccessor = (fieldKey: string, fieldType: string, isDetailLink: boolean) => {
+      return (row: EntityRow) => {
+        const value = getRowDisplayValue(row, fieldKey, fieldType);
+        if (isDetailLink) {
+          const rowId = row[idField] ?? row.id;
+          if (rowId === undefined || rowId === null) {
+            return (
+              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>
+            );
+          }
+          return (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(String(rowId))));
+              }}
+              className={
+                isDarkMode
+                  ? 'text-amber-400 hover:text-amber-300'
+                  : 'text-amber-600 hover:text-amber-700'
+              }
+            >
+              {value}
+            </button>
+          );
+        }
+        const referenceRoute = typeof value === 'string' && value ? getEntityDetailRoute(fieldKey, value) : null;
+        if (referenceRoute) {
+          return (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(referenceRoute);
+              }}
+              className={
+                isDarkMode
+                  ? 'text-amber-400 hover:text-amber-300'
+                  : 'text-amber-600 hover:text-amber-700'
+              }
+            >
+              {value}
+            </button>
+          );
+        }
+        return <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>;
+      };
+    };
 
     return visibleFields.map((field) => ({
       key: field.name,
       header: field.label,
       sortable: true,
-      accessor: (row: EntityRow) => {
-        const value = getRowDisplayValue(row, field.name, field.type);
-        const isDetailLink = field.name === detailLinkField;
-        if (isDetailLink) {
-          const rowId = row[idField] ?? row.id;
-          if (rowId != null) {
-            return (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(String(rowId))));
-                }}
-                className={
-                  isDarkMode
-                    ? 'text-amber-400 hover:text-amber-300'
-                    : 'text-amber-600 hover:text-amber-700'
-                }
-              >
-                {value}
-              </button>
-            );
-          }
-        }
-        return <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>;
-      },
+      accessor: makeAccessor(field.name, field.type, field.name === detailLinkField),
     }));
   }, [metadata, isDarkMode, navigate, entityConfig.routes.detail, idField]);
 
@@ -258,7 +284,7 @@ export default function ParentMeltingLotPage() {
           if (rowStatus === 'Closed') return; // Don't navigate if closed
           const rowId = row[idField];
           if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
+            navigate(entityConfig.routes.edit?.replace(':id', String(rowId)) ?? '');
           }
         },
         variant: 'primary' as const,
@@ -315,7 +341,7 @@ export default function ParentMeltingLotPage() {
     Object.keys(filterConfig.addable ?? {}).length > 0;
 
   const handleAddEntity = () => {
-    navigate(entityConfig.routes.add);
+    navigate(entityConfig.routes.add ?? '' as string);
   };
 
   const deleteDisplayName =

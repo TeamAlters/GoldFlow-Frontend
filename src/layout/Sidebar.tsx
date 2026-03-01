@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUIStore } from '../stores/ui.store';
 import { useAuthStore } from '../auth/auth.store';
@@ -63,8 +63,7 @@ function getUserInitials(name?: string, email?: string): string {
 }
 
 // ─── Collapsed Category Popup ─────────────────────────────────────────────────
-// Click-to-open: icon click toggles popup; close on outside click or link navigation.
-// No hover timing, so the menu cannot disappear while moving or clicking.
+// Hover-to-open: expandable wrapper keeps cursor inside hover zone when moving from icon to popup.
 function CollapsedCategoryPopup({
   category,
   currentPath,
@@ -76,7 +75,6 @@ function CollapsedCategoryPopup({
 }) {
   const [visible, setVisible] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const open = () => {
     setVisible(true);
@@ -86,10 +84,6 @@ function CollapsedCategoryPopup({
     setAnimateIn(false);
     setVisible(false);
   };
-  const toggle = () => {
-    if (visible) close();
-    else open();
-  };
 
   useEffect(() => {
     if (!visible) return;
@@ -97,17 +91,6 @@ function CollapsedCategoryPopup({
       requestAnimationFrame(() => setAnimateIn(true));
     });
     return () => cancelAnimationFrame(id);
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        close();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [visible]);
 
   if (category.items.length === 0) {
@@ -121,21 +104,22 @@ function CollapsedCategoryPopup({
   }
 
   return (
-    <div ref={containerRef} className="relative flex items-center justify-center">
-      <button
-        type="button"
-        onClick={toggle}
-        aria-expanded={visible}
-        aria-haspopup="true"
-        aria-label={`${category.category} menu`}
+    <div
+      className={`relative flex items-center transition-all duration-150 ${visible ? 'min-w-[240px]' : 'w-10'}`}
+      onMouseEnter={open}
+      onMouseLeave={close}
+    >
+      <div
         className={`w-10 h-10 flex items-center justify-center rounded-xl cursor-pointer transition-all duration-200 ease-out flex-shrink-0 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
           }`}
       >
         <NavIcon name={category.icon} className="w-5 h-5" />
-      </button>
+      </div>
       {visible && (
-        <div
-          className={`absolute left-full top-0 ml-1 z-50 min-w-[180px] rounded-xl border shadow-xl py-2 flex flex-col
+        <>
+          <div className="w-[200px] h-10 flex-shrink-0" aria-hidden />
+          <div
+            className={`absolute left-14 top-0 z-50 min-w-[180px] rounded-l-none rounded-r-xl border-l-0 border shadow-lg py-2 flex flex-col
             transition-all duration-200 ease-out
             ${animateIn ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-1'}
             ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
@@ -157,7 +141,6 @@ function CollapsedCategoryPopup({
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={close}
                   className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-all duration-200 ease-out ${active
                       ? isDarkMode
                         ? 'text-amber-400 bg-amber-500/10'
@@ -174,6 +157,7 @@ function CollapsedCategoryPopup({
             })}
           </div>
         </div>
+        </>
       )}
     </div>
   );
@@ -414,7 +398,7 @@ export default function Sidebar({ mode, onCollapseToggle, onMobileClose: _onMobi
             )}
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-1 px-2 py-1">
+          <div className="flex flex-col items-start gap-1 px-2 py-1">
             {sidebarNavConfig.map((category) => (
               <CollapsedCategoryPopup
                 key={category.id}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { getEntity } from '../../admin/admin.api';
 import { closeParentMeltingLot } from './parentMeltingLot.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
@@ -98,7 +99,7 @@ export default function ParentMeltingLotViewPage() {
 
   // Check if status allows editing
   const canEdit = data?.status !== 'Closed';
-  const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+  const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
@@ -219,7 +220,27 @@ export default function ParentMeltingLotViewPage() {
             </div>
             <div>
               <label className={labelClass}>Product</label>
-              <div className={valueClass}>{data?.product || '–'}</div>
+              <div className={valueClass}>
+                {data?.product
+                  ? (() => {
+                      const r = getEntityDetailRoute('product', data.product);
+                      return r ? (
+                        <Link
+                          to={r}
+                          className={
+                            isDarkMode
+                              ? 'text-amber-400 hover:text-amber-300'
+                              : 'text-amber-600 hover:text-amber-700'
+                          }
+                        >
+                          {data.product}
+                        </Link>
+                      ) : (
+                        data.product
+                      );
+                    })()
+                  : '–'}
+              </div>
             </div>
             <div>
               <label className={labelClass}>Product Abbreviation</label>
@@ -227,7 +248,27 @@ export default function ParentMeltingLotViewPage() {
             </div>
             <div>
               <label className={labelClass}>Purity</label>
-              <div className={valueClass}>{data?.purity || '–'}</div>
+              <div className={valueClass}>
+                {data?.purity
+                  ? (() => {
+                      const r = getEntityDetailRoute('purity', data.purity);
+                      return r ? (
+                        <Link
+                          to={r}
+                          className={
+                            isDarkMode
+                              ? 'text-amber-400 hover:text-amber-300'
+                              : 'text-amber-600 hover:text-amber-700'
+                          }
+                        >
+                          {data.purity}
+                        </Link>
+                      ) : (
+                        data.purity
+                      );
+                    })()
+                  : '–'}
+              </div>
             </div>
             <div>
               <label className={labelClass}>Status</label>

@@ -215,7 +215,29 @@ export default function DataTable<T extends Record<string, any>>({
                 className={`border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-teal-700 border-teal-800'
                   }`}
               >
-                {columns.map((column) => (
+                {columns.map((column, colIdx) => {
+                  // #region agent log
+                  const headerEmpty = column.header == null || String(column.header).trim() === '';
+                  if (headerEmpty) {
+                    fetch('http://127.0.0.1:7242/ingest/9e661e4b-dcf6-42e4-a9d4-87b9c1be1cf9', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        location: 'DataTable.tsx:thead',
+                        message: 'Column has empty header',
+                        data: {
+                          columnKey: column.key,
+                          columnIdx: colIdx,
+                          headerValue: column.header,
+                          totalColumns: columns.length,
+                          hypothesisId: 'H4',
+                        },
+                        timestamp: Date.now(),
+                      }),
+                    }).catch(() => {});
+                  }
+                  // #endregion
+                  return (
                   <th
                     key={column.key}
                     style={{ width: column.width }}
@@ -234,10 +256,11 @@ export default function DataTable<T extends Record<string, any>>({
                       {column.sortable && getSortIcon(column.key)}
                     </div>
                   </th>
-                ))}
+                );
+                })}
                 {actions.length > 0 && (
                   <th
-                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-white'
                       }`}
                   >
                     Actions

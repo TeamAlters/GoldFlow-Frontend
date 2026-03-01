@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { useUIStore } from '../../../stores/ui.store';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { getEntityConfig } from '../../../config/entity.config';
@@ -126,14 +127,34 @@ export default function JobCardTransactionViewPage() {
             Transaction Details
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fields.map((key) => (
-              <div key={key}>
-                <label className={labelClass}>
-                  {key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                </label>
-                <div className={valueClass}>{formatValue(entity?.[key])}</div>
-              </div>
-            ))}
+            {fields.map((key) => {
+              const value = entity?.[key];
+              const referenceRoute =
+                typeof value === 'string' && value ? getEntityDetailRoute(key, value) : null;
+              return (
+                <div key={key}>
+                  <label className={labelClass}>
+                    {key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </label>
+                  <div className={valueClass}>
+                    {referenceRoute ? (
+                      <Link
+                        to={referenceRoute}
+                        className={
+                          isDarkMode
+                            ? 'text-amber-400 hover:text-amber-300'
+                            : 'text-amber-600 hover:text-amber-700'
+                        }
+                      >
+                        {formatValue(value)}
+                      </Link>
+                    ) : (
+                      formatValue(value)
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
