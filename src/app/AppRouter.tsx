@@ -90,7 +90,6 @@ import MeltingPoolTransactionPage from '../modules/manufacturing/melting/melting
 import MeltingPoolTransactionViewPage from '../modules/manufacturing/melting/meltingPoolTransactionView';
 import JobCardPage from '../modules/manufacturing/jobCard/JobCardPage';
 import JobCardViewPage from '../modules/manufacturing/jobCard/jobCardView';
-import JobCardCreatePage from '../modules/manufacturing/jobCard/jobCardCreate';
 import JobCardEditPage from '../modules/manufacturing/jobCard/jobCardEdit';
 import JobCardTransactionPage from '../modules/manufacturing/jobCardTransaction/jobCardTransactionPage';
 import JobCardTransactionViewPage from '../modules/manufacturing/jobCardTransaction/jobCardTransactionView';
@@ -227,7 +226,6 @@ export default function AppRouter() {
           <Route path="melting-pool-transaction" element={<MeltingPoolTransactionPage />} />
           <Route path="melting-pool-transaction/:id" element={<MeltingPoolTransactionViewPage />} />
           <Route path="job-card" element={<JobCardPage />} />
-          <Route path="job-card/add" element={<JobCardCreatePage />} />
           <Route path="job-card/edit/:id" element={<JobCardEditPage />} />
           <Route path="job-card/:id" element={<JobCardViewPage />} />
           <Route path="job-card-transaction" element={<JobCardTransactionPage />} />

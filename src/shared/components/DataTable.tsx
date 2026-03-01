@@ -212,21 +212,21 @@ export default function DataTable<T extends Record<string, any>>({
           <table className="w-full">
             <thead>
               <tr
-                className={`border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-teal-700 border-teal-800'
+                className={`border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-[#F2EFE9] border-gray-200'
                   }`}
               >
                 {columns.map((column) => {
-                  const thBgClass = isDarkMode ? 'bg-gray-700' : 'bg-teal-700';
+                  const thBgClass = isDarkMode ? 'bg-gray-700' : 'bg-[#F2EFE9]';
                   const thHoverClass = column.sortable
                     ? isDarkMode
                       ? 'hover:bg-gray-600'
-                      : 'hover:bg-teal-600'
+                      : 'hover:bg-gray-200'
                     : '';
                   return (
                   <th
                     key={column.key}
                     style={{ width: column.width }}
-                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${thBgClass} ${isDarkMode ? 'text-gray-300' : 'text-white'
+                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${thBgClass} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'
                       } ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left'} ${column.sortable
                         ? `cursor-pointer ${thHoverClass}`
                         : ''
@@ -244,7 +244,7 @@ export default function DataTable<T extends Record<string, any>>({
                 })}
                 {actions.length > 0 && (
                   <th
-                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-teal-700 text-white'
+                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#F2EFE9] text-gray-800'
                       }`}
                   >
                     Actions

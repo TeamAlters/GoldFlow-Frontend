@@ -331,9 +331,6 @@ export default function JobCardPage() {
     Object.keys(filterConfig.default).length > 0 ||
     Object.keys(filterConfig.addable ?? {}).length > 0;
 
-  const handleAddEntity = () => {
-    navigate(entityConfig.routes.add ?? '');
-  };
 
   const deleteDisplayName =
     deleteConfirmRow != null
@@ -375,21 +372,6 @@ export default function JobCardPage() {
             <span>Total Data:</span>
             <span>{listLoading ? '...' : totalItems}</span>
           </h2>
-        }
-        toolbarRight={
-          <button
-            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
-            onClick={handleAddEntity}
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Add {entityConfig.displayName}</span>
-          </button>
         }
         filters={
           hasFilters ? (
