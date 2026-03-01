@@ -81,11 +81,13 @@ export default function Modal({
   const backdropClass = `fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${
     exiting || entering ? 'opacity-0' : 'opacity-100'
   }`;
-  const panelClass = `relative w-full ${sizeClasses[size]} ${className} ${
+  const panelClass = `relative w-full overflow-hidden ${sizeClasses[size]} ${className} ${
     isDarkMode ? 'bg-gray-800' : 'bg-white'
-  } rounded-xl shadow-2xl transition-all duration-200 ease-out ${
+  } rounded-2xl shadow-2xl transition-all duration-200 ease-out ${
     exiting ? 'opacity-0 scale-[0.98]' : entering ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
   }`;
+
+  const headerBgClass = isDarkMode ? 'bg-gray-700/50 border-gray-700' : 'bg-gray-100 border-gray-200';
 
   return (
     <div
@@ -110,9 +112,7 @@ export default function Modal({
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between gap-4 px-6 py-4 border-b ${
-            isDarkMode ? 'border-gray-700' : 'border-gray-200'
-          }`}
+          className={`flex items-center justify-between gap-4 px-6 py-4 border-b ${headerBgClass}`}
         >
           <h2 className={`text-lg font-semibold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             {title}
@@ -134,7 +134,7 @@ export default function Modal({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 max-h-[min(70vh,500px)] overflow-y-auto overscroll-contain">
+        <div className="px-6 py-6 max-h-[min(70vh,500px)] overflow-y-auto overscroll-contain">
           {children}
         </div>
       </div>

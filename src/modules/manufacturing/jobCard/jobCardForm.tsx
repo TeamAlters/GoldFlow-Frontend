@@ -50,7 +50,7 @@ function validateInteger(value: string, fieldLabel: string): string | null {
 export default function JobCardForm({
   initialData,
   onSubmit,
-  isLoading = false,
+  isLoading: _isLoading = false,
   isEdit = false,
   productOptions,
   parentMeltingLotOptions,
@@ -157,10 +157,6 @@ export default function JobCardForm({
       : 'bg-white border-gray-300 text-gray-900'
     }`;
 
-  const formTagClass =
-    'inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium ' +
-    (isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-black');
-
   const linkClass = isDarkMode
     ? 'text-amber-400 hover:text-amber-300'
     : 'text-amber-600 hover:text-amber-700';
@@ -169,7 +165,7 @@ export default function JobCardForm({
     isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-black'
   }`;
 
-  function EditModeRef({ fieldKey, value }: { fieldKey: 'product' | 'melting_lot' | 'department' | 'design'; value: string }) {
+  function EditModeRef({ fieldKey, value }: { fieldKey: 'product' | 'melting_lot' | 'department' | 'department_group' | 'purity' | 'design'; value: string }) {
     const str = value || '–';
     const route = value ? getEntityDetailRoute(fieldKey, value) : null;
     if (route) {
@@ -186,34 +182,27 @@ export default function JobCardForm({
     );
   }
 
-  const tagVariants: Record<string, string> = {
-    product: 'product',
-    melting_lot: 'melting_lot',
-    purity: 'purity',
-    department: 'department',
-    department_group: 'department_group',
-    design: 'design',
-  };
-
   return (
     <form id="job-card-form" onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div>
-          <label htmlFor="name" className={labelClass}>
-            Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={(e) => handleChange('name', e.target.value.slice(0, MAX_TEXT_FIELD_LENGTH))}
-            maxLength={MAX_TEXT_FIELD_LENGTH}
-            className={`${inputClass} ${errors.name ? 'border-red-500' : ''}`}
-            placeholder="Enter name"
-          />
-          {errors.name && <p className={errorClass}>{errors.name}</p>}
-        </div>
+        {!isEdit && (
+          <div>
+            <label htmlFor="name" className={labelClass}>
+              Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={(e) => handleChange('name', e.target.value.slice(0, MAX_TEXT_FIELD_LENGTH))}
+              maxLength={MAX_TEXT_FIELD_LENGTH}
+              className={`${inputClass} ${errors.name ? 'border-red-500' : ''}`}
+              placeholder="Enter name"
+            />
+            {errors.name && <p className={errorClass}>{errors.name}</p>}
+          </div>
+        )}
 
         <div>
           <label htmlFor="product" className={labelClass}>
@@ -274,58 +263,73 @@ export default function JobCardForm({
           )}
         </div>
 
-        <div>
-          <label htmlFor="purity" className={labelClass}>
-            Purity <span className="text-red-500">*</span>
-          </label>
-          <FormSelect
-            value={formData.purity}
-            onChange={(value) => handleChange('purity', value)}
-            options={purityOptions}
-            placeholder="Select Purity"
-            isDarkMode={isDarkMode}
-            className={selectClass('purity')}
-          />
-          {errors.purity && <p className={errorClass}>{errors.purity}</p>}
-        </div>
+        {isEdit ? (
+          <div>
+            <label className={labelClass}>Purity</label>
+            <EditModeRef fieldKey="purity" value={formData.purity} />
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="purity" className={labelClass}>
+              Purity <span className="text-red-500">*</span>
+            </label>
+            <FormSelect
+              value={formData.purity}
+              onChange={(value) => handleChange('purity', value)}
+              options={purityOptions}
+              placeholder="Select Purity"
+              isDarkMode={isDarkMode}
+              className={selectClass('purity')}
+            />
+            {errors.purity && <p className={errorClass}>{errors.purity}</p>}
+          </div>
+        )}
 
-        <div>
-          <label htmlFor="department" className={labelClass}>
-            Department <span className="text-red-500">*</span>
-          </label>
-          {isEdit ? (
+        {isEdit ? (
+          <div>
+            <label className={labelClass}>Department</label>
             <EditModeRef fieldKey="department" value={formData.department} />
-          ) : (
-            <>
-              <FormSelect
-                value={formData.department}
-                onChange={(value) => handleChange('department', value)}
-                options={departmentOptions}
-                placeholder="Select Department"
-                isDarkMode={isDarkMode}
-                className={selectClass('department')}
-              />
-              {errors.department && <p className={errorClass}>{errors.department}</p>}
-            </>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="department" className={labelClass}>
+              Department <span className="text-red-500">*</span>
+            </label>
+            <FormSelect
+              value={formData.department}
+              onChange={(value) => handleChange('department', value)}
+              options={departmentOptions}
+              placeholder="Select Department"
+              isDarkMode={isDarkMode}
+              className={selectClass('department')}
+            />
+            {errors.department && <p className={errorClass}>{errors.department}</p>}
+          </div>
+        )}
 
-        <div>
-          <label htmlFor="department_group" className={labelClass}>
-            Department Group <span className="text-red-500">*</span>
-          </label>
-          <FormSelect
-            value={formData.department_group}
-            onChange={(value) => handleChange('department_group', value)}
-            options={departmentGroupOptions}
-            placeholder="Select Department Group"
-            isDarkMode={isDarkMode}
-            className={selectClass('department_group')}
-          />
-          {errors.department_group && (
-            <p className={errorClass}>{errors.department_group}</p>
-          )}
-        </div>
+        {isEdit ? (
+          <div>
+            <label className={labelClass}>Department Group</label>
+            <EditModeRef fieldKey="department_group" value={formData.department_group} />
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="department_group" className={labelClass}>
+              Department Group <span className="text-red-500">*</span>
+            </label>
+            <FormSelect
+              value={formData.department_group}
+              onChange={(value) => handleChange('department_group', value)}
+              options={departmentGroupOptions}
+              placeholder="Select Department Group"
+              isDarkMode={isDarkMode}
+              className={selectClass('department_group')}
+            />
+            {errors.department_group && (
+              <p className={errorClass}>{errors.department_group}</p>
+            )}
+          </div>
+        )}
 
         <div>
           <label htmlFor="design" className={labelClass}>

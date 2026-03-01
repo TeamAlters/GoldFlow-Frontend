@@ -22,10 +22,10 @@ export interface EditableWeightTableProps<T> {
   showActions?: boolean;
   onAddRow?: () => void;
   onDeleteRow?: (index: number) => void;
-  onDuplicateRow?: (index: number) => void;
   onClearRow?: (index: number) => void;
   getRowId?: (row: T, index: number) => string | number;
   onCellChange?: (index: number, key: string, value: string) => void;
+  renderActions?: (row: T, index: number) => React.ReactNode;
 }
 
 export default function EditableWeightTable<T extends Record<string, unknown>>({
@@ -38,26 +38,16 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
   showActions = true,
   onAddRow,
   onDeleteRow,
-  onDuplicateRow,
   onClearRow,
   getRowId,
   onCellChange,
+  renderActions,
 }: EditableWeightTableProps<T>) {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
-  // Determine if actions should be shown
-  const showActionButtons = showActions && (onDeleteRow || onClearRow || onDuplicateRow);
-
-  // Handler type for cell changes - accepts string key for flexibility
-  const handleCellChange = (index: number, key: string, value: string) => {
-    if (onCellChange) {
-      onCellChange(index, key, value);
-    } else if (onDataChange) {
-      const newData = [...data];
-      newData[index] = { ...newData[index], [key]: value };
-      onDataChange(newData);
-    }
-  };
+  // Determine if actions should be shown (delete/clear) and/or custom renderActions
+  const showActionButtons = showActions && (onDeleteRow || onClearRow);
+  const showActionsColumn = showActionButtons || !!renderActions;
 
   const inputClass = readOnly
     ? `w-full px-2 py-1.5 text-sm rounded border ${
@@ -112,8 +102,10 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                 {col.header}
               </th>
             ))}
-            {showActionButtons && (
-              <th className={`${thClass} w-24`}>Action</th>
+            {showActionsColumn && (
+              <th className={`${thClass} ${renderActions && showActionButtons ? 'w-32' : renderActions ? 'w-20' : 'w-24'}`}>
+                Actions
+              </th>
             )}
           </tr>
         </thead>
@@ -160,25 +152,10 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                   )}
                 </td>
               ))}
-              {showActionButtons && (
+              {showActionsColumn && (
                 <td className={`${tdClass} text-center`}>
-                  <div className="flex items-center justify-center gap-1">
-                    {onDuplicateRow && (
-                      <button
-                        type="button"
-                        onClick={() => onDuplicateRow(index)}
-                        className={`p-1.5 rounded transition-colors ${
-                          isDarkMode
-                            ? 'text-blue-400 hover:bg-blue-500/20'
-                            : 'text-blue-600 hover:bg-blue-50'
-                        }`}
-                        title="Duplicate row"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      </button>
-                    )}
+                  <div className="flex items-center justify-center gap-1 flex-wrap">
+                    {renderActions && renderActions(row, index)}
                     {onClearRow && (
                       <button
                         type="button"
@@ -219,7 +196,7 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
           {data.length === 0 && (
             <tr>
               <td
-                colSpan={columns.length + 2}
+                colSpan={1 + columns.length + (showActionsColumn ? 1 : 0)}
                 className={`${tdClass} text-center py-8 ${
                   isDarkMode ? 'text-gray-400' : 'text-gray-500'
                 }`}
@@ -246,7 +223,7 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                     : ''}
                 </td>
               ))}
-              {showActionButtons && <td className={tdClass}></td>}
+              {showActionsColumn && <td className={tdClass}></td>}
             </tr>
           </tfoot>
         )}
