@@ -23,6 +23,9 @@ export const FIELD_TO_ENTITY_MAP: Record<string, string> = {
   purity_range: 'purity_range',
   department: 'department',
   department_group: 'product_department_group',
+  parent_melting_lot: 'parent_melting_lot',
+  melting_lot: 'melting_lot',
+  previous_job_card: 'job_card',
 };
 
 /**
