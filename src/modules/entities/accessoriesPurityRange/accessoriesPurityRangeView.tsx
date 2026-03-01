@@ -81,7 +81,7 @@ export default function AccessoriesPurityRangeViewPage() {
   const sectionClass = getSectionClass(isDarkMode);
 
   const editUrl = id
-    ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id))
+    ? entityConfig.routes?.edit?.replace(':id', encodeURIComponent(id)) ?? ''
     : '';
 
   if (!id) {
