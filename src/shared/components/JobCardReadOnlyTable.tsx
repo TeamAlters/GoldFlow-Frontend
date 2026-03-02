@@ -14,6 +14,7 @@ export interface JobCardReadOnlyTableProps {
   formatDate?: (val: unknown) => string;
   isDarkMode: boolean;
   rowKey?: (row: Record<string, unknown>, index: number) => string;
+  renderActions?: (row: Record<string, unknown>) => React.ReactNode;
 }
 
 export default function JobCardReadOnlyTable({
@@ -24,6 +25,7 @@ export default function JobCardReadOnlyTable({
   formatDate = () => '–',
   isDarkMode,
   rowKey = (_, i) => String(i),
+  renderActions,
 }: JobCardReadOnlyTableProps) {
   const containerClass = `overflow-x-auto rounded-lg border w-full ${
     isDarkMode ? 'border-gray-600' : 'border-gray-200'
@@ -90,6 +92,7 @@ export default function JobCardReadOnlyTable({
                 {col.header}
               </th>
             ))}
+            {renderActions && <th className={`${thClass} w-20`}>Actions</th>}
           </tr>
         </thead>
         <tbody className={isDarkMode ? 'divide-y divide-gray-600' : 'divide-y divide-gray-200'}>
@@ -103,6 +106,11 @@ export default function JobCardReadOnlyTable({
                   {renderCell(row, col)}
                 </td>
               ))}
+              {renderActions && (
+                <td className={tdClass}>
+                  {renderActions(row)}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

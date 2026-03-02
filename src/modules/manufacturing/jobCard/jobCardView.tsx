@@ -17,6 +17,7 @@ import {
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
 import JobCardReadOnlyTable from '../../../shared/components/JobCardReadOnlyTable';
+import Modal from '../../../shared/components/Modal';
 
 const ENTITY_NAME = 'job_card';
 const JOB_CARD_TRANSACTION_ENTITY = 'job_card_transaction';
@@ -44,6 +45,7 @@ interface JobCardTransaction {
 interface CardFlowStep {
   label?: string;
   department?: string;
+  department_group?: string;
   purity?: string;
   completed?: boolean;
 }
@@ -156,6 +158,9 @@ export default function JobCardViewPage() {
   const [data, setData] = useState<JobCardData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
+  const [receiptDetailName, setReceiptDetailName] = useState<string | null>(null);
+  const [issueDetailName, setIssueDetailName] = useState<string | null>(null);
+
   useEffect(() => {
     if (!id) return;
     setDataLoading(true);
@@ -211,6 +216,29 @@ export default function JobCardViewPage() {
   const headerClass = getSectionHeaderClass(isDarkMode);
 
   const simpleTagClass = getSimpleTagClass(isDarkMode);
+
+  const receiptDetail = receiptDetailName != null
+    ? receiptTransactions.find((r) => r.name === receiptDetailName)
+    : null;
+  const issueDetail = issueDetailName != null
+    ? issueTransactions.find((r) => r.name === issueDetailName)
+    : null;
+  const linkClass = isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700';
+
+  const sectionHeadingClass = `text-lg font-semibold mb-4 pb-2 border-b ${
+    isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
+  }`;
+  const modalFooterClass = `flex items-center justify-end gap-3 pt-4 mt-4 border-t ${
+    isDarkMode ? 'border-gray-700' : 'border-gray-200'
+  }`;
+  const closeBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+    isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+  }`;
+  const modalLabelClass = `block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`;
+  const modalInputReadOnlyClass = `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm ${
+    isDarkMode ? 'bg-gray-700/30 border-gray-600 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-700'
+  }`;
+  const modalFieldGridClass = 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4';
 
   if (dataLoading) {
     return (
@@ -271,10 +299,6 @@ export default function JobCardViewPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className={labelClass}>Name</label>
-                <div className={valueClass}>{data?.name ?? '–'}</div>
-              </div>
-              <div>
                 <label className={labelClass}>Product</label>
                 <div className={valueClass}>
                   <FieldTag fieldKey="product" value={data?.product} simpleTagClass={simpleTagClass} />
@@ -297,21 +321,21 @@ export default function JobCardViewPage() {
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Purity</label>
-                <div className={valueClass}>
-                  <FieldTag fieldKey="purity" value={data?.purity} simpleTagClass={simpleTagClass} />
-                </div>
-              </div>
-              <div>
                 <label className={labelClass}>Department</label>
                 <div className={valueClass}>
-                  <FieldTag fieldKey="department" value={data?.department} simpleTagClass={simpleTagClass} />
+                  <RenderFieldValue fieldKey="department" value={data?.department} isDarkMode={isDarkMode} />
                 </div>
               </div>
               <div>
                 <label className={labelClass}>Department Group</label>
                 <div className={valueClass}>
-                  <FieldTag fieldKey="department_group" value={data?.department_group} simpleTagClass={simpleTagClass} />
+                  <RenderFieldValue fieldKey="department_group" value={data?.department_group} isDarkMode={isDarkMode} />
+                </div>
+              </div>
+              <div>
+                <label className={labelClass}>Purity</label>
+                <div className={valueClass}>
+                  <RenderFieldValue fieldKey="purity" value={data?.purity} isDarkMode={isDarkMode} />
                 </div>
               </div>
               <div>
@@ -340,7 +364,7 @@ export default function JobCardViewPage() {
           {/* Receipt Weights */}
           <div className={cardWrapperClass}>
             <h2 className={`${headerClass} pb-2 border-b`}>
-              Receipt Weights
+              Receipt
             </h2>
             <p className={`text-xs mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Inbound · transaction_type: Receipt.
@@ -351,7 +375,7 @@ export default function JobCardViewPage() {
                   { key: 'item', header: 'Item' },
                   { key: 'weight', header: 'Weight (G)' },
                   { key: 'fine_weight', header: 'Fine Weight (G)' },
-                  { key: 'purity', header: 'Purity', type: 'tag' },
+                  { key: 'purity', header: 'Purity', type: 'link' },
                   { key: 'name', header: 'Ref', type: 'link' },
                   { key: 'created_at', header: 'Date', type: 'date' },
                 ]}
@@ -360,15 +384,28 @@ export default function JobCardViewPage() {
                   if (key === 'name' && row.name) {
                     return jobCardTransactionConfig.routes.detail.replace(':id', encodeURIComponent(String(row.name)));
                   }
-                  if (key === 'purity') {
+                  if (key === 'purity' && row.purity) {
                     return getEntityDetailRoute('purity', row.purity) ?? null;
                   }
                   return null;
                 }}
-                tagClass={simpleTagClass}
                 formatDate={(val) => (val ? formatDateTime(String(val)) : '–')}
                 isDarkMode={isDarkMode}
                 rowKey={(row) => String(row.name ?? '')}
+                renderActions={(row) => (
+                  <button
+                    type="button"
+                    onClick={() => setReceiptDetailName(String(row.name ?? ''))}
+                    className={`p-1.5 rounded transition-colors ${isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'}`}
+                    title="View details"
+                    aria-label="View receipt details"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                )}
               />
             ) : (
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -380,7 +417,7 @@ export default function JobCardViewPage() {
           {/* Issue Balance */}
           <div className={cardWrapperClass}>
             <h2 className={`${headerClass} pb-2 border-b`}>
-              Issue Balance
+              Issue
             </h2>
             {issueTransactions.length > 0 ? (
               <JobCardReadOnlyTable
@@ -391,12 +428,31 @@ export default function JobCardViewPage() {
                   { key: 'karigar', header: 'Karigar' },
                   { key: 'qty', header: 'Qty' },
                   { key: 'design', header: 'Design' },
-                  { key: 'purity', header: 'Purity', type: 'tag' },
+                  { key: 'purity', header: 'Purity', type: 'link' },
                 ]}
                 rows={issueTransactions as unknown as Record<string, unknown>[]}
-                tagClass={simpleTagClass}
+                getLinkHref={(row, key) => {
+                  if (key === 'purity' && row.purity) {
+                    return getEntityDetailRoute('purity', row.purity) ?? null;
+                  }
+                  return null;
+                }}
                 isDarkMode={isDarkMode}
                 rowKey={(row) => String(row.name ?? '')}
+                renderActions={(row) => (
+                  <button
+                    type="button"
+                    onClick={() => setIssueDetailName(String(row.name ?? ''))}
+                    className={`p-1.5 rounded transition-colors ${isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'}`}
+                    title="View details"
+                    aria-label="View issue details"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                )}
               />
             ) : (
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -413,7 +469,7 @@ export default function JobCardViewPage() {
             className={
               isDarkMode
                 ? 'p-6 rounded-xl border border-gray-700 bg-gray-800'
-                : 'p-6 rounded-xl border border-gray-200 shadow-sm bg-[#FDF5E6] border-t-4 border-t-[#B87820]'
+                : 'p-6 rounded-xl border border-gray-200 shadow-sm bg-[#FDF5E6] border-t-4 '
             }
           >
             <h2
@@ -488,41 +544,55 @@ export default function JobCardViewPage() {
               <div
                 className={`border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} ml-1 pl-4 border-l-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} space-y-3`}
               >
-                {cardFlow.map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    {step.completed ? (
-                      <span
-                        className={`shrink-0 mt-0.5 flex items-center justify-center rounded-lg ${isDarkMode ? 'text-green-500' : 'bg-teal-100 text-teal-600 p-0.5'}`}
-                        aria-hidden
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </span>
-                    ) : (
-                      <span
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'
-                          }`}
-                      >
-                        {idx + 1}
-                      </span>
-                    )}
-                    <div>
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                        {step.label ?? step.department ?? 'Step'}
-                      </p>
-                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {step.department && step.purity
-                          ? `${step.department} · ${step.purity}`
-                          : step.department ?? 'Not assigned'}
-                      </p>
+                {cardFlow.map((step, idx) => {
+                  const deptRoute = step.department ? getEntityDetailRoute('department', step.department) : null;
+                  const deptGroupRoute = step.department_group ? getEntityDetailRoute('department_group', step.department_group) : null;
+                  return (
+                    <div key={idx} className="flex items-start gap-2">
+                      {step.completed ? (
+                        <span
+                          className={`shrink-0 mt-0.5 flex items-center justify-center rounded-lg ${isDarkMode ? 'text-green-500' : 'bg-teal-100 text-teal-600 p-0.5'}`}
+                          aria-hidden
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </span>
+                      ) : (
+                        <span
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'}`}
+                        >
+                          {idx + 1}
+                        </span>
+                      )}
+                      <div>
+                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                          {step.label ?? step.department ?? 'Step'}
+                        </p>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {step.department != null && step.department_group != null && (
+                            <>
+                              {deptRoute ? <Link to={deptRoute} className={linkClass}>{step.department}</Link> : step.department}
+                              {' · '}
+                              {deptGroupRoute ? <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link> : step.department_group}
+                            </>
+                          )}
+                          {step.department != null && !step.department_group && (
+                            deptRoute ? <Link to={deptRoute} className={linkClass}>{step.department}</Link> : step.department
+                          )}
+                          {step.department_group != null && !step.department && (
+                            deptGroupRoute ? <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link> : step.department_group
+                          )}
+                          {!step.department && !step.department_group && 'Not assigned'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
@@ -566,6 +636,176 @@ export default function JobCardViewPage() {
           </div>
         </div>
       </div>
+
+      {/* Receipt detail modal – eye opens, all data as input fields (read-only), like Configurations */}
+      <Modal
+        isOpen={receiptDetailName != null}
+        onClose={() => setReceiptDetailName(null)}
+        title={receiptDetail ? `Receipt: ${receiptDetail.name}` : 'Receipt details'}
+        size="lg"
+        className="w-full max-w-4xl"
+      >
+        {receiptDetail ? (
+          <>
+            <h2 className={sectionHeadingClass}>Receipt</h2>
+            <div className={modalFieldGridClass}>
+              <div>
+                <label className={modalLabelClass}>Name</label>
+                <input type="text" readOnly value={receiptDetail.name ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Transaction Type</label>
+                <input type="text" readOnly value={receiptDetail.transaction_type ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Job Card</label>
+                <input type="text" readOnly value={receiptDetail.job_card ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Item</label>
+                <input type="text" readOnly value={receiptDetail.item ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Weight</label>
+                <input type="text" readOnly value={receiptDetail.weight ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Fine Weight</label>
+                <input type="text" readOnly value={receiptDetail.fine_weight ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Karigar</label>
+                <input type="text" readOnly value={receiptDetail.karigar ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Purity</label>
+                <input type="text" readOnly value={receiptDetail.purity ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Qty</label>
+                <input type="text" readOnly value={receiptDetail.qty ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Created At</label>
+                <input type="text" readOnly value={receiptDetail.created_at ? formatDateTime(receiptDetail.created_at) : ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Modified At</label>
+                <input type="text" readOnly value={receiptDetail.modified_at ? formatDateTime(receiptDetail.modified_at) : ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Created By</label>
+                <input type="text" readOnly value={receiptDetail.created_by ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Modified By</label>
+                <input type="text" readOnly value={receiptDetail.modified_by ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+            </div>
+            <div className={modalFooterClass}>
+              <button type="button" onClick={() => setReceiptDetailName(null)} className={closeBtnClass}>
+                Close
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Receipt not found.</p>
+            <div className={modalFooterClass}>
+              <button type="button" onClick={() => setReceiptDetailName(null)} className={closeBtnClass}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* Issue detail modal – eye opens, all data as input fields (read-only on view page) */}
+      <Modal
+        isOpen={issueDetailName != null}
+        onClose={() => setIssueDetailName(null)}
+        title={issueDetail ? `Issue: ${issueDetail.name}` : 'Issue details'}
+        size="lg"
+        className="w-full max-w-4xl"
+      >
+        {issueDetail ? (
+          <>
+            <h2 className={sectionHeadingClass}>Issue</h2>
+            <div className={modalFieldGridClass}>
+              <div>
+                <label className={modalLabelClass}>Name</label>
+                <input type="text" readOnly value={issueDetail.name ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Transaction Type</label>
+                <input type="text" readOnly value={issueDetail.transaction_type ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Job Card</label>
+                <input type="text" readOnly value={issueDetail.job_card ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Item</label>
+                <input type="text" readOnly value={issueDetail.item ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Weight</label>
+                <input type="text" readOnly value={issueDetail.weight ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Fine Weight</label>
+                <input type="text" readOnly value={issueDetail.fine_weight ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Karigar</label>
+                <input type="text" readOnly value={issueDetail.karigar ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Purity</label>
+                <input type="text" readOnly value={issueDetail.purity ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Qty</label>
+                <input type="text" readOnly value={issueDetail.qty ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Design</label>
+                <input type="text" readOnly value={issueDetail.design ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Created At</label>
+                <input type="text" readOnly value={issueDetail.created_at ? formatDateTime(issueDetail.created_at) : ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Modified At</label>
+                <input type="text" readOnly value={issueDetail.modified_at ? formatDateTime(issueDetail.modified_at) : ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Created By</label>
+                <input type="text" readOnly value={issueDetail.created_by ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Modified By</label>
+                <input type="text" readOnly value={issueDetail.modified_by ?? ''} className={modalInputReadOnlyClass} />
+              </div>
+            </div>
+            <div className={modalFooterClass}>
+              <button type="button" onClick={() => setIssueDetailName(null)} className={closeBtnClass}>
+                Close
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Issue not found.</p>
+            <div className={modalFooterClass}>
+              <button type="button" onClick={() => setIssueDetailName(null)} className={closeBtnClass}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

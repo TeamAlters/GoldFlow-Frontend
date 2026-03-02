@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, Navigate } from 'react-router-dom';
+import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import {
   getEntity,
@@ -21,6 +21,8 @@ import JobCardForm, {
 import EditableWeightTable from '../../../shared/components/EditableWeightTable';
 import type { ColumnDef } from '../../../shared/components/EditableWeightTable';
 import JobCardReadOnlyTable from '../../../shared/components/JobCardReadOnlyTable';
+import Modal from '../../../shared/components/Modal';
+import { FormSelect } from '../../../shared/components/FormSelect';
 
 const ENTITY_NAME = 'job_card';
 const JOB_CARD_TRANSACTION_ENTITY = 'job_card_transaction';
@@ -39,13 +41,17 @@ interface JobCardTransaction {
   qty: string | null;
   design?: string;
   created_at: string;
+  modified_at?: string;
+  created_by?: string;
+  modified_by?: string;
 }
 
-type IssueRow = Record<string, string>;
+type IssueRow = Record<string, string> & { name?: string };
 
 interface CardFlowStep {
   label?: string;
   department?: string;
+  department_group?: string;
   purity?: string;
   completed?: boolean;
 }
@@ -62,6 +68,7 @@ function computeIssuedWeight(issues: Array<{ weight?: string | number }>): numbe
 
 function toIssueRow(tx: JobCardTransaction): IssueRow {
   return {
+    name: tx.name ?? '',
     item: tx.item ?? '',
     weight: tx.weight ?? '',
     fine_weight: tx.fine_weight ?? '',
@@ -105,6 +112,7 @@ export default function JobCardEditPage() {
   const [karigarOptions, setKarigarOptions] = useState<Array<{ value: string; label: string }>>([]);
 
   const [receiptTransactions, setReceiptTransactions] = useState<JobCardTransaction[]>([]);
+  const [issueTransactions, setIssueTransactions] = useState<JobCardTransaction[]>([]);
   const [issueRows, setIssueRows] = useState<IssueRow[]>([]);
   const [balanceWeight, setBalanceWeight] = useState<number | string | undefined>(undefined);
   const [balanceFineWeight, setBalanceFineWeight] = useState<number | string | undefined>(undefined);
@@ -115,6 +123,10 @@ export default function JobCardEditPage() {
     created_at?: string;
     modified_at?: string;
   }>({});
+
+  const [receiptDetailName, setReceiptDetailName] = useState<string | null>(null);
+  const [issueDetailName, setIssueDetailName] = useState<string | null>(null);
+  const [issueEditDraft, setIssueEditDraft] = useState<IssueRow | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -166,6 +178,7 @@ export default function JobCardEditPage() {
             qty: entity.qty != null ? String(entity.qty) : '',
           });
           setReceiptTransactions(receipts);
+          setIssueTransactions(issues);
           setIssueRows(issues.map(toIssueRow));
           setBalanceWeight(entity.balance_weight as number | string | undefined);
           setBalanceFineWeight(entity.balance_fine_weight as number | string | undefined);
@@ -245,6 +258,7 @@ export default function JobCardEditPage() {
     setIssueRows((prev) => [
       ...prev,
       {
+        name: '',
         item: '',
         weight: '',
         fine_weight: '',
@@ -260,32 +274,67 @@ export default function JobCardEditPage() {
     setIssueRows((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const handleDuplicateIssueRow = useCallback((index: number) => {
-    setIssueRows((prev) => {
-      const row = prev[index];
-      if (!row) return prev;
-      return [...prev.slice(0, index + 1), { ...row }, ...prev.slice(index + 1)];
-    });
-  }, []);
-
-  const labelClass = `block text-sm font-semibold mb-1 ${
-    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-  }`;
-
   const cardWrapperClass = `p-6 rounded-xl border ${
     isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
   }`;
 
-  const thClass = `px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${
-    isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-[#F2EFE9] text-gray-800 border-gray-200'
-  }`;
-  const tdClass = `px-4 py-3 text-sm ${isDarkMode ? 'text-gray-300 border-gray-600' : 'text-gray-900 border-gray-200'}`;
-
   const headerClass = getSectionHeaderClass(isDarkMode);
 
-  const purityTagClass = isDarkMode
-    ? 'inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-900/40 text-blue-200'
-    : 'inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800';
+  const receiptDetail = receiptDetailName != null
+    ? receiptTransactions.find((r) => r.name === receiptDetailName)
+    : null;
+
+  const issueDetail =
+    issueDetailName != null
+      ? issueTransactions.find((t) => t.name === issueDetailName) ?? null
+      : null;
+  useEffect(() => {
+    if (issueDetailName != null) {
+      const row = issueRows.find((r) => r.name === issueDetailName);
+      const full = issueTransactions.find((t) => t.name === issueDetailName);
+      setIssueEditDraft(row ? { ...row } : full ? toIssueRow(full) : null);
+    } else {
+      setIssueEditDraft(null);
+    }
+  }, [issueDetailName, issueRows, issueTransactions]);
+
+  const handleSaveIssueModal = useCallback(() => {
+    if (issueDetailName == null || !issueEditDraft) return;
+    setIssueRows((prev) =>
+      prev.map((r) => (r.name === issueDetailName ? { ...issueEditDraft } : r))
+    );
+    setIssueDetailName(null);
+    setIssueEditDraft(null);
+  }, [issueDetailName, issueEditDraft]);
+
+  const modalLabelClass = `block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`;
+  const modalInputClass = (readOnly?: boolean) =>
+    `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm ${
+      readOnly
+        ? isDarkMode
+          ? 'bg-gray-700/30 border-gray-600 text-gray-300'
+          : 'bg-gray-100 border-gray-200 text-gray-700'
+        : isDarkMode
+          ? 'bg-gray-700/50 border-gray-600 text-white'
+          : 'bg-white border-gray-300 text-gray-900'
+    }`;
+  const modalFieldGridClass = 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4';
+
+  const sectionHeadingClass = `text-lg font-semibold mb-4 pb-2 border-b ${
+    isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
+  }`;
+  const modalFooterClass = `flex items-center justify-end gap-3 pt-4 mt-4 border-t ${
+    isDarkMode ? 'border-gray-700' : 'border-gray-200'
+  }`;
+  const cancelBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm ${
+    isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+  }`;
+  const saveBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+    isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
+  } disabled:opacity-60`;
+  const closeBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+    isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+  }`;
 
   const issueColumns: ColumnDef<IssueRow>[] = [
     {
@@ -369,32 +418,7 @@ export default function JobCardEditPage() {
             Update {entityConfig.displayName.toLowerCase()} details below.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <BackButton onClick={handleCancel} />
-          <button
-            type="button"
-            onClick={handleCancel}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode
-                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="job-card-form"
-            disabled={isLoading}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            } disabled:opacity-60`}
-          >
-            {isLoading ? 'Saving...' : 'Update'}
-          </button>
-        </div>
+       
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -424,7 +448,7 @@ export default function JobCardEditPage() {
           {/* Receipt Weights */}
           <div className={cardWrapperClass}>
             <h2 className={headerClass + ' pb-2 border-b'}>
-              Receipt Weights
+              Receipt
             </h2>
             <p className={`text-xs mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Inbound · transaction_type: Receipt.
@@ -435,7 +459,7 @@ export default function JobCardEditPage() {
                   { key: 'item', header: 'Item' },
                   { key: 'weight', header: 'Weight (G)' },
                   { key: 'fine_weight', header: 'Fine Weight (G)' },
-                  { key: 'purity', header: 'Purity', type: 'tag' },
+                  { key: 'purity', header: 'Purity', type: 'link' },
                   { key: 'name', header: 'Ref', type: 'link' },
                   { key: 'created_at', header: 'Date', type: 'date' },
                 ]}
@@ -444,15 +468,30 @@ export default function JobCardEditPage() {
                   if (key === 'name' && row.name) {
                     return jobCardTransactionConfig.routes.detail.replace(':id', encodeURIComponent(String(row.name)));
                   }
-                  if (key === 'purity') {
+                  if (key === 'purity' && row.purity) {
                     return getEntityDetailRoute('purity', row.purity) ?? null;
                   }
                   return null;
                 }}
-                tagClass={purityTagClass}
                 formatDate={(val) => (val ? formatDateTime(String(val)) : '–')}
                 isDarkMode={isDarkMode}
                 rowKey={(row) => String(row.name ?? '')}
+                renderActions={(row) => (
+                  <button
+                    type="button"
+                    onClick={() => setReceiptDetailName(String(row.name ?? ''))}
+                    className={`p-1.5 rounded transition-colors ${
+                      isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'
+                    }`}
+                    title="View details"
+                    aria-label="View receipt details"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                )}
               />
             ) : (
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -464,7 +503,7 @@ export default function JobCardEditPage() {
           {/* Issue Balance */}
           <div className={cardWrapperClass}>
             <h2 className={headerClass + ' pb-2 border-b'}>
-              Issue Balance
+              Issue
             </h2>
             <EditableWeightTable<IssueRow>
               columns={issueColumns}
@@ -476,8 +515,23 @@ export default function JobCardEditPage() {
               showActions={true}
               onAddRow={handleAddIssueRow}
               onDeleteRow={handleDeleteIssueRow}
-              onDuplicateRow={handleDuplicateIssueRow}
               getRowId={(_, index) => index}
+              renderActions={(row) => (
+                <button
+                  type="button"
+                  onClick={() => setIssueDetailName(String(row.name ?? ''))}
+                  className={`p-1.5 rounded transition-colors ${
+                    isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'
+                  }`}
+                  title="View details"
+                  aria-label="View issue details"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </button>
+              )}
             />
           </div>
         </div>
@@ -489,7 +543,7 @@ export default function JobCardEditPage() {
             className={
               isDarkMode
                 ? 'p-6 rounded-xl border border-gray-700 bg-gray-800'
-                : 'p-6 rounded-xl border border-gray-200 shadow-sm bg-[#FDF5E6] border-t-4 border-t-[#B87820]'
+                : 'p-6 rounded-xl border border-gray-200 shadow-sm bg-[#FDF5E6] border-t-4'
             }
           >
             <h2
@@ -564,42 +618,74 @@ export default function JobCardEditPage() {
               <div
                 className={`border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} ml-1 pl-4 border-l-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} space-y-3`}
               >
-                {cardFlow.map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    {step.completed ? (
-                      <span
-                        className={`shrink-0 mt-0.5 flex items-center justify-center rounded-lg ${isDarkMode ? 'text-green-500' : 'bg-teal-100 text-teal-600 p-0.5'}`}
-                        aria-hidden
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </span>
-                    ) : (
-                      <span
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${
-                          isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'
-                        }`}
-                      >
-                        {idx + 1}
-                      </span>
-                    )}
-                    <div>
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                        {step.label ?? step.department ?? 'Step'}
-                      </p>
-                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {step.department && step.purity
-                          ? `${step.department} · ${step.purity}`
-                          : step.department ?? 'Not assigned'}
-                      </p>
+                {cardFlow.map((step, idx) => {
+                  const deptRoute = step.department ? getEntityDetailRoute('department', step.department) : null;
+                  const deptGroupRoute = step.department_group ? getEntityDetailRoute('department_group', step.department_group) : null;
+                  const linkClass = isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700';
+                  return (
+                    <div key={idx} className="flex items-start gap-2">
+                      {step.completed ? (
+                        <span
+                          className={`shrink-0 mt-0.5 flex items-center justify-center rounded-lg ${isDarkMode ? 'text-green-500' : 'bg-teal-100 text-teal-600 p-0.5'}`}
+                          aria-hidden
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </span>
+                      ) : (
+                        <span
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${
+                            isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'
+                          }`}
+                        >
+                          {idx + 1}
+                        </span>
+                      )}
+                      <div>
+                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                          {step.label ?? step.department ?? 'Step'}
+                        </p>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {step.department != null && step.department_group != null && (
+                            <>
+                              {deptRoute ? (
+                                <Link to={deptRoute} className={linkClass}>{step.department}</Link>
+                              ) : (
+                                step.department
+                              )}
+                              {' · '}
+                              {deptGroupRoute ? (
+                                <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link>
+                              ) : (
+                                step.department_group
+                              )}
+                            </>
+                          )}
+                          {step.department != null && !step.department_group && (
+                            deptRoute ? (
+                              <Link to={deptRoute} className={linkClass}>{step.department}</Link>
+                            ) : (
+                              step.department
+                            )
+                          )}
+                          {step.department_group != null && !step.department && (
+                            deptGroupRoute ? (
+                              <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link>
+                            ) : (
+                              step.department_group
+                            )
+                          )}
+                          {!step.department && !step.department_group && 'Not assigned'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
@@ -641,8 +727,247 @@ export default function JobCardEditPage() {
               </div>
             </div>
           </div>
-        </div>
+        
+        </div>   
       </div>
+
+      {/* Receipt detail modal – eye opens, all data as input fields (read-only), like Configurations */}
+      <Modal
+        isOpen={receiptDetailName != null}
+        onClose={() => setReceiptDetailName(null)}
+        title={receiptDetail ? `Receipt: ${receiptDetail.name}` : 'Receipt details'}
+        size="lg"
+        className="w-full max-w-4xl"
+      >
+        {receiptDetail ? (
+          <>
+            <h2 className={sectionHeadingClass}>Receipt</h2>
+            <div className={modalFieldGridClass}>
+              <div>
+                <label className={modalLabelClass}>Name</label>
+                <input type="text" readOnly value={receiptDetail.name ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Transaction Type</label>
+                <input type="text" readOnly value={receiptDetail.transaction_type ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Job Card</label>
+                <input type="text" readOnly value={receiptDetail.job_card ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Item</label>
+                <input type="text" readOnly value={receiptDetail.item ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Weight</label>
+                <input type="text" readOnly value={receiptDetail.weight ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Fine Weight</label>
+                <input type="text" readOnly value={receiptDetail.fine_weight ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Karigar</label>
+                <input type="text" readOnly value={receiptDetail.karigar ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Purity</label>
+                <input type="text" readOnly value={receiptDetail.purity ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Qty</label>
+                <input type="text" readOnly value={receiptDetail.qty ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Created At</label>
+                <input type="text" readOnly value={receiptDetail.created_at ? formatDateTime(receiptDetail.created_at) : ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Modified At</label>
+                <input type="text" readOnly value={receiptDetail.modified_at ? formatDateTime(receiptDetail.modified_at) : ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Created By</label>
+                <input type="text" readOnly value={receiptDetail.created_by ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Modified By</label>
+                <input type="text" readOnly value={receiptDetail.modified_by ?? ''} className={modalInputClass(true)} />
+              </div>
+            </div>
+            <div className={modalFooterClass}>
+              <button type="button" onClick={() => setReceiptDetailName(null)} className={closeBtnClass}>
+                Close
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Receipt not found.</p>
+            <div className={modalFooterClass}>
+              <button type="button" onClick={() => setReceiptDetailName(null)} className={closeBtnClass}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* Issue detail modal – eye opens, all data as input fields, editable; Save updates row locally */}
+      <Modal
+        isOpen={issueDetailName != null}
+        onClose={() => { setIssueDetailName(null); setIssueEditDraft(null); }}
+        title={issueDetail ? `Issue: ${issueDetail.name}` : issueEditDraft?.name ? `Issue: ${issueEditDraft.name}` : 'Issue details'}
+        size="lg"
+        className="w-full max-w-4xl"
+      >
+        {issueEditDraft ? (
+          <>
+            <h2 className={sectionHeadingClass}>Issue</h2>
+            <div className={modalFieldGridClass}>
+              <div>
+                <label className={modalLabelClass}>Name</label>
+                <input type="text" readOnly value={issueEditDraft.name ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Transaction Type</label>
+                <input type="text" readOnly value={issueDetail?.transaction_type ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Job Card</label>
+                <input type="text" readOnly value={issueDetail?.job_card ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Item</label>
+                <FormSelect
+                  value={issueEditDraft.item ?? ''}
+                  onChange={(v) => setIssueEditDraft((p) => (p ? { ...p, item: v } : null))}
+                  options={departmentOptions}
+                  placeholder="Select Item"
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Weight</label>
+                <input
+                  type="text"
+                  value={issueEditDraft.weight ?? ''}
+                  onChange={(e) => setIssueEditDraft((p) => (p ? { ...p, weight: e.target.value } : null))}
+                  className={modalInputClass()}
+                />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Fine Weight</label>
+                <input
+                  type="text"
+                  value={issueEditDraft.fine_weight ?? ''}
+                  onChange={(e) => setIssueEditDraft((p) => (p ? { ...p, fine_weight: e.target.value } : null))}
+                  className={modalInputClass()}
+                />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Karigar</label>
+                <FormSelect
+                  value={issueEditDraft.karigar ?? ''}
+                  onChange={(v) => setIssueEditDraft((p) => (p ? { ...p, karigar: v } : null))}
+                  options={karigarOptions}
+                  placeholder="Select Karigar"
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Purity</label>
+                <FormSelect
+                  value={issueEditDraft.purity ?? ''}
+                  onChange={(v) => setIssueEditDraft((p) => (p ? { ...p, purity: v } : null))}
+                  options={purityOptions}
+                  placeholder="Select Purity"
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Qty</label>
+                <input
+                  type="text"
+                  value={issueEditDraft.qty ?? ''}
+                  onChange={(e) => setIssueEditDraft((p) => (p ? { ...p, qty: e.target.value } : null))}
+                  className={modalInputClass()}
+                />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Design</label>
+                <input
+                  type="text"
+                  value={issueEditDraft.design ?? ''}
+                  onChange={(e) => setIssueEditDraft((p) => (p ? { ...p, design: e.target.value } : null))}
+                  className={modalInputClass()}
+                />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Created At</label>
+                <input type="text" readOnly value={issueDetail?.created_at ? formatDateTime(issueDetail.created_at) : ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Modified At</label>
+                <input type="text" readOnly value={issueDetail?.modified_at ? formatDateTime(issueDetail.modified_at) : ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Created By</label>
+                <input type="text" readOnly value={issueDetail?.created_by ?? ''} className={modalInputClass(true)} />
+              </div>
+              <div>
+                <label className={modalLabelClass}>Modified By</label>
+                <input type="text" readOnly value={issueDetail?.modified_by ?? ''} className={modalInputClass(true)} />
+              </div>
+            </div>
+            <div className={modalFooterClass}>
+              <button type="button" onClick={() => { setIssueDetailName(null); setIssueEditDraft(null); }} className={cancelBtnClass}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleSaveIssueModal} className={saveBtnClass}>
+                Save
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Issue not found.</p>
+            <div className={modalFooterClass}>
+              <button type="button" onClick={() => { setIssueDetailName(null); setIssueEditDraft(null); }} className={closeBtnClass}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
+              
+      <div className="flex items-center justify-end gap-3 shrink-0 mt-6">
+          <BackButton onClick={handleCancel} />
+          <button
+            type="button"
+            onClick={handleCancel}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
+              isDarkMode
+                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+            }`}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="job-card-form"
+            disabled={isLoading}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+              isDarkMode
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            } disabled:opacity-60`}
+          >
+            {isLoading ? 'Saving...' : 'Update'}
+          </button>
+        </div>
     </div>
   );
 }
