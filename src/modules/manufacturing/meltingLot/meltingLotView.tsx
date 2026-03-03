@@ -229,6 +229,14 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>{meltingLotName || '–'}</div>
             </div>
             <div>
+              <label className={labelClass}>Parent Melting Lot</label>
+              <div className={valueClass}>
+                {initialData?.parent_melting_lot
+                  ? (() => { const r = getEntityDetailRoute('parent_melting_lot', initialData.parent_melting_lot); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.parent_melting_lot}</Link> : initialData.parent_melting_lot; })()
+                  : '–'}
+              </div>
+            </div>
+            <div>
               <label className={labelClass}>Product</label>
               <div className={valueClass}>
                 {initialData?.product

@@ -16,6 +16,7 @@ import EditableWeightTable from '../../../shared/components/EditableWeightTable'
 
 export type MeltingLotFormData = {
   // Form fields
+  parent_melting_lot: string;
   product: string;
   purity: string;
   purity_percentage: string;  // Main purity percentage for the lot
@@ -60,6 +61,7 @@ export interface MeltingLotFormProps {
 }
 
 const emptyForm: MeltingLotFormData = {
+  parent_melting_lot: '',
   product: '',
   purity: '',
   purity_percentage: '',
@@ -99,6 +101,8 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   const selectRef = useRef<HTMLDivElement>(null);
 
   // Reference data states
+  const [parentMeltingLotOptions, setParentMeltingLotOptions] = useState<ReferenceOption[]>([]);
+  const [parentMeltingLotRawData, setParentMeltingLotRawData] = useState<Record<string, unknown>[]>([]);
   const [productOptions, setProductOptions] = useState<ReferenceOption[]>([]);
   const [purityOptions, setPurityOptions] = useState<ReferenceOption[]>([]);
   const [purityPercentageMap, setPurityPercentageMap] = useState<Record<string, number>>({});
@@ -120,35 +124,81 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   // Weight details visibility
   const [showWeightDetails, setShowWeightDetails] = useState(false);
 
-  // Load reference data
+  // Load parent melting lot references
   useEffect(() => {
-    // Load products
-    getEntityReferences('product')
+    getEntityReferences('parent_melting_lot')
       .then((items) => {
-        const opts = mapReferenceItemsToOptions(items, 'product_name', 'product_name');
-        setProductOptions(opts.length > 0 ? opts : items.map((row: Record<string, unknown>) => ({
-          value: String(row.product_name ?? ''),
-          label: String(row.product_name ?? ''),
+        const opts = mapReferenceItemsToOptions(items, 'name', 'name');
+        setParentMeltingLotOptions(opts.length > 0 ? opts : items.map((row: Record<string, unknown>) => ({
+          value: String(row.name ?? ''),
+          label: String(row.name ?? ''),
         })));
+        setParentMeltingLotRawData(items);
       })
-      .catch(() => setProductOptions([]));
+      .catch(() => {
+        setParentMeltingLotOptions([]);
+        setParentMeltingLotRawData([]);
+      });
+  }, []);
 
-    // Load purity with percentage
+  // Load all purities once (for percentage map)
+  useEffect(() => {
     getEntityReferences('purity')
       .then((items) => {
         const percentageMap: Record<string, number> = {};
-        const opts = items.map((row: Record<string, unknown>) => {
+        items.forEach((row: Record<string, unknown>) => {
           const purity = String(row.purity ?? '');
-          const purityPercentage = Number(row.purity_percentage) || 0;
-          percentageMap[purity] = purityPercentage;
-          return { value: purity, label: purity };
+          percentageMap[purity] = Number(row.purity_percentage) || 0;
         });
-        setPurityOptions(opts);
         setPurityPercentageMap(percentageMap);
       })
-      .catch(() => setPurityOptions([]));
-
+      .catch(() => setPurityPercentageMap({}));
   }, []);
+
+  // Load product and purity options - filtered by parent_melting_lot when selected
+  useEffect(() => {
+    const parentName = formData.parent_melting_lot?.trim();
+    const parentItem = parentName
+      ? parentMeltingLotRawData.find((r) => String(r.name ?? '') === parentName)
+      : null;
+    const parentProduct = parentItem ? String(parentItem.product ?? '') : '';
+    const parentPurity = parentItem ? String(parentItem.purity ?? '') : '';
+
+    if (parentProduct && parentPurity) {
+      setProductOptions([{ value: parentProduct, label: parentProduct }]);
+      setPurityOptions([{ value: parentPurity, label: parentPurity }]);
+      return;
+    }
+
+    // No parent selected - load all products and purities
+    let ignore = false;
+    Promise.all([
+      getEntityReferences('product'),
+      getEntityReferences('purity'),
+    ])
+      .then(([productItems, purityItems]) => {
+        if (ignore) return;
+        const productOpts = mapReferenceItemsToOptions(productItems, 'product_name', 'product_name');
+        setProductOptions(productOpts.length > 0 ? productOpts : productItems.map((row: Record<string, unknown>) => ({
+          value: String(row.product_name ?? ''),
+          label: String(row.product_name ?? ''),
+        })));
+
+        const purityOpts = purityItems.map((row: Record<string, unknown>) => {
+          const purity = String(row.purity ?? '');
+          return { value: purity, label: purity };
+        });
+        setPurityOptions(purityOpts);
+      })
+      .catch(() => {
+        if (ignore) return;
+        setProductOptions([]);
+        setPurityOptions([]);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [formData.parent_melting_lot, parentMeltingLotRawData]);
 
   // Load product-dependent dropdowns (wire_size, thickness, design, accessory_purity) filtered by selected product
   useEffect(() => {
@@ -277,7 +327,14 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   const handleChange = (key: keyof MeltingLotFormData, value: string) => {
     setFormData((prev) => {
       const next = { ...prev, [key]: value };
-      if (key === 'product') {
+      if (key === 'parent_melting_lot') {
+        next.product = '';
+        next.purity = '';
+        next.wire_size = '';
+        next.thickness = '';
+        next.design_name = '';
+        next.accessory_purity = '';
+      } else if (key === 'product') {
         next.wire_size = '';
         next.thickness = '';
         next.design_name = '';
@@ -604,6 +661,10 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
     <div className={sectionClass}>
       <h3 className={sectionTitleClass}>Melting Lot Details</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label className={labelClass}>Parent Melting Lot</label>
+          {renderSelect('parent_melting_lot', 'Parent Melting Lot', parentMeltingLotOptions, formData.parent_melting_lot)}
+        </div>
         <div>
           <label className={labelClass}>
             Product <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
