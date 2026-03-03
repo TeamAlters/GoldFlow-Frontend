@@ -553,9 +553,6 @@ export default function JobCardEditPage() {
             <h2 className={headerClass + ' pb-2 border-b'}>
               Receipt
             </h2>
-            <p className={`text-xs mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Inbound · transaction_type: Receipt.
-            </p>
             {receiptTransactions.length > 0 ? (
               <JobCardReadOnlyTable
                 columns={[

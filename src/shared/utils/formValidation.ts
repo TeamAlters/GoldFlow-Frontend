@@ -50,6 +50,9 @@ export const MAX_DEPARTMENT_GROUP_NAME_LENGTH = 64;
 /** Max value for order field (0-99). */
 export const MAX_ORDER_VALUE = 99;
 
+/** Max value for step no field (0-99). */
+export const MAX_STEP_NO_VALUE = 99;
+
 /** Sanitizes department abbreviation: uppercase letters only, max 4 chars. */
 export function sanitizeDepartmentAbbreviationInput(value: string): string {
   return value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, MAX_LENGTH_4);

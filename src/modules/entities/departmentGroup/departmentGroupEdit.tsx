@@ -59,7 +59,7 @@ export function toInitialDepartmentGroupData(
   const departments = entity.departments;
   return {
     name: entity.name != null ? String(entity.name) : '',
-    order: entity.order != null ? String(entity.order) : '',
+    order: entity.step_no != null ? String(entity.step_no) : '',
     product_id: entity.product != null ? String(entity.product) : entity.product_id != null ? String(entity.product_id) : '',
     departments: parseDepartments(departments),
   };
