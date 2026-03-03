@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import {
   MAX_DEPARTMENT_GROUP_NAME_LENGTH,
-  MAX_ORDER_VALUE,
+  MAX_STEP_NO_VALUE,
   maxLengthError,
 } from '../../../shared/utils/formValidation';
 import { FormSelect } from '../../../shared/components/FormSelect';
@@ -77,10 +77,14 @@ const StaticDepartmentGroupFormInner = forwardRef<
   const [formData, setFormData] = useState<StaticDepartmentGroupFormData>({ ...emptyForm });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useImperativeHandle(ref, () => ({
-    getData: () => ({ ...formData }),
-    validate: () => validate(),
-  }));
+  useImperativeHandle(
+    ref,
+    () => ({
+      getData: () => ({ ...formData }),
+      validate: () => validate(),
+    }),
+    [formData]
+  );
 
   const lastAppliedInitialRef = useRef<Partial<StaticDepartmentGroupFormData> | undefined>(undefined);
   useEffect(() => {
@@ -113,10 +117,20 @@ const StaticDepartmentGroupFormInner = forwardRef<
     const orderVal = formData.order.trim();
     if (orderVal !== '') {
       const num = parseInt(orderVal, 10);
-      if (!Number.isInteger(num) || num < 0 || num > MAX_ORDER_VALUE)
-        next.order = `Order must be between 0 and ${MAX_ORDER_VALUE}`;
+      if (!Number.isInteger(num) || num < 0 || num > MAX_STEP_NO_VALUE)
+        next.order = `Step No must be between 0 and ${MAX_STEP_NO_VALUE}`;
     }
     if (!formData.product_id.trim()) next.product_id = 'Product is required';
+    if (formData.departments.length === 0) {
+      next.departments = 'Add at least one department and select it.';
+    } else {
+      const hasEmptyDepartment = formData.departments.some(
+        (r) => (r.department_id ?? '').trim() === ''
+      );
+      if (hasEmptyDepartment) {
+        next.departments = 'Department is required for each row. Please select a department for all rows.';
+      }
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -147,7 +161,7 @@ const StaticDepartmentGroupFormInner = forwardRef<
     const digits = v.replace(/[^\d]/g, '');
     if (digits === '') return '';
     const num = parseInt(digits, 10);
-    if (num > MAX_ORDER_VALUE) return String(MAX_ORDER_VALUE);
+    if (num > MAX_STEP_NO_VALUE) return String(MAX_STEP_NO_VALUE);
     return digits;
   };
 
@@ -180,7 +194,7 @@ const StaticDepartmentGroupFormInner = forwardRef<
           {errors.name && <p className={`mt-1 ${errorClass}`}>{errors.name}</p>}
         </div>
         <div>
-          <label className={labelClass}>Order</label>
+          <label className={labelClass}>Step No</label>
           {readOnly ? (
             <div className={readOnlyFieldClass}>
               {formData.order || '0'}
@@ -193,15 +207,15 @@ const StaticDepartmentGroupFormInner = forwardRef<
                 value={formData.order}
                 onChange={(e) => handleChange('order', sanitizeOrderInput(e.target.value))}
                 placeholder="e.g. 1, 2, 43"
-                maxLength={3}
+                maxLength={3} 
                 className={inputClass('order')}
               />
               <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Max {MAX_ORDER_VALUE} (0-99)
+                Max {MAX_STEP_NO_VALUE} (0-99)
               </p>
             </>
           )}
-          {errors.order && <p className={`mt-1 ${errorClass}`}>{errors.order}</p>}
+          {errors.step_no && <p className={`mt-1 ${errorClass}`}>{errors.step_no}</p>}
         </div>
       </div>
 
@@ -240,6 +254,11 @@ const StaticDepartmentGroupFormInner = forwardRef<
           addButtonLabel="Add Department"
           readOnly={readOnly}
           title="Department"
+          getRowError={
+            errors.departments
+              ? (row) => ((row.department_id ?? '').trim() === '' ? 'Department is required.' : undefined)
+              : undefined
+          }
           renderViewContent={(row, onCloseModal) => {
             const productDepartmentId = row.product_department_id ?? (row.id.startsWith('row-') ? undefined : row.id);
             if (productDepartmentId) {
@@ -286,6 +305,9 @@ const StaticDepartmentGroupFormInner = forwardRef<
             return `Configurations: ${deptLabel}`;
           }}
         />
+        {errors.departments && formData.departments.length === 0 && (
+          <p className={`mt-2 ${errorClass}`}>{errors.departments}</p>
+        )}
       </section>
     </div>
   );

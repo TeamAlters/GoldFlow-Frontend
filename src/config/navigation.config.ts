@@ -75,8 +75,8 @@ export const sidebarNavConfig: NavCategory[] = [
       { name: 'Melting Pool Transaction', path: '/melting-pool-transaction', icon: 'box', entityName: 'melting_pool_transaction' },
       { name: 'Job Card', path: '/job-card', icon: 'box', entityName: 'job_card' },
       { name: 'Job Card Transaction', path: '/job-card-transaction', icon: 'box', entityName: 'job_card_transaction' },
-      { name: 'Melting Lots', path: '/melting-lot', icon: 'box', entityName: 'melting_lot' },
-      { name: 'Parent Melting Lots', path: '/parent-melting-lot', icon: 'box', entityName: 'parent_melting_lot' },
+      { name: 'Melting Lot', path: '/melting-lot', icon: 'box', entityName: 'melting_lot' },
+      { name: 'Parent Melting Lot', path: '/parent-melting-lot', icon: 'box', entityName: 'parent_melting_lot' },
     ],
   },
   {
@@ -84,7 +84,7 @@ export const sidebarNavConfig: NavCategory[] = [
     category: 'Accounts',
     icon: 'package',
     items: [
-      { name: 'Metal-Ledger', path: '/metal-ledger', icon: 'box' },
+      { name: 'Metal Ledger', path: '/metal-ledger', icon: 'box' },
     ],
   },
     {

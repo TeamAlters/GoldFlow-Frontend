@@ -407,12 +407,6 @@ export default function JobCardViewPage() {
             >
               Receipt
             </h2>
-            <p
-              className={`text-xs mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}
-            >
-              Inbound · transaction_type: Receipt.
-            </p>
             {receiptRows.length > 0 ? (
               <JobCardReadOnlyTable
                 columns={[
@@ -453,16 +447,9 @@ export default function JobCardViewPage() {
             >
               Issue
             </h2>
-            <p
-              className={`text-xs mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}
-            >
-              Outbound · transaction_type: Issue.
-            </p>
             {issueRows.length > 0 ? (
               <JobCardReadOnlyTable
                 columns={[
-                  { key: 'name', header: 'Name', type: 'link' },
                   { key: 'item', header: 'Item', type: 'link' },
                   { key: 'weight', header: 'Weight (G)' },
                   { key: 'fine_weight', header: 'Fine WT (G)' },

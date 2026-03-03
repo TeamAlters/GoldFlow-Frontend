@@ -29,18 +29,18 @@ let metadataFetchInFlight = false;
 
 const FALLBACK_COLUMNS: Array<{ name: string; label: string; type: string; visible_in_list: boolean }> = [
   { name: 'name', label: 'Department Group Name', type: 'String', visible_in_list: true },
-  { name: 'order', label: 'Order', type: 'Integer', visible_in_list: true },
+  { name: 'step_no', label: 'Step No', type: 'Integer', visible_in_list: true },
   { name: 'product_name', label: 'Product', type: 'String', visible_in_list: true },
 ];
 
 const DUMMY_DEPARTMENT_GROUPS: EntityRow[] = [
-  { id: '1', name: 'Production Group', order: 1, product_name: 'Gold' },
-  { id: '2', name: 'Sales Group', order: 2, product_name: 'Silver' },
+  { id: '1', name: 'Production Group', step_no: 1, product_name: 'Gold' },
+  { id: '2', name: 'Sales Group', step_no: 2, product_name: 'Silver' },
 ];
 
 const FALLBACK_DEFAULT_FILTER_FIELDS: EntityFilterField[] = [
   { field: 'name', label: 'Department Group Name', type: 'String', operators: ['=', '≠', 'contains'] },
-  { field: 'order', label: 'Order', type: 'Integer', operators: ['=', '≠', '>', '<'] },
+  { field: 'step_no', label: 'Step No', type: 'Integer', operators: ['=', '≠', '>', '<'] },
 ];
 
 const FALLBACK_ADDABLE_FILTER_FIELDS: EntityFilterField[] = [
@@ -62,22 +62,14 @@ export default function DepartmentGroupPage() {
     detail_link_field?: string;
   } | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(true);
-  const [metadataError, setMetadataError] = useState<string | null>(null);
   const [items, setItems] = useState<EntityRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number | undefined>(20);
+  const [pageSize] = useState<number | undefined>(20);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
   const token = useAuthStore((state) => state.token);
-  const lastToastedErrorRef = useRef<string | null>(null);
-
-  const showErrorToast = useCallback((msg: string) => {
-    if (lastToastedErrorRef.current === msg) return;
-    lastToastedErrorRef.current = msg;
-    toast.error(msg);
-  }, []);
 
   const fetchMetadata = useCallback(() => {
     if (!token) return;
@@ -268,7 +260,7 @@ export default function DepartmentGroupPage() {
         label: 'Edit',
         onClick: (row) => {
           const rowId = row[idField];
-          if (rowId != null) navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
+          if (rowId != null) navigate(entityConfig.routes.edit?.replace(':id', String(rowId)) ?? '');
         },
         variant: 'primary' as const,
         icon: (
@@ -340,7 +332,7 @@ export default function DepartmentGroupPage() {
         toolbarRight={
           <button
             className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
-            onClick={() => navigate(entityConfig.routes.add)}
+            onClick={() => navigate(entityConfig.routes.add ?? '')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

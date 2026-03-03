@@ -4,6 +4,7 @@
  */
 
 import { apiClient, messageFromAxiosError } from '../../../api/axios';
+import { getEntityList } from '../../admin/admin.api';
 
 // Weight detail type for update
 export type WeightDetailPayload = {
@@ -167,4 +168,49 @@ export async function submitMeltingLot(lotName: string): Promise<MeltingLotRespo
     console.log('[GoldFlow] [meltingLot.api] submitMeltingLot: failed', { errMsg });
     throw new Error(errMsg);
   }
+}
+
+/**
+ * POST /api/v1/melting/lots/{name}/recreate-first-job-card
+ * Starts the first department by recreating the first job card for a melting lot.
+ */
+export async function startDepartment(lotName: string): Promise<MeltingLotResponse> {
+  const url = `/api/v1/melting/lots/${encodeURIComponent(lotName)}/recreate-first-job-card`;
+  console.log('[GoldFlow] [meltingLot.api] startDepartment: request', { url });
+
+  try {
+    const res = await apiClient.post<MeltingLotResponse>(url);
+    const data = res.data;
+
+    console.log('[GoldFlow] [meltingLot.api] startDepartment: response', { data });
+
+    if (data.success) {
+      return data;
+    }
+
+    const errorMsg = data.message || 'Failed to start department';
+    console.log('[GoldFlow] [meltingLot.api] startDepartment: failed', { errorMsg });
+    throw new Error(errorMsg);
+  } catch (err) {
+    const errMsg = messageFromAxiosError(err, 'Failed to start department');
+    console.log('[GoldFlow] [meltingLot.api] startDepartment: failed', { errMsg });
+    throw new Error(errMsg);
+  }
+}
+
+const JOB_CARD_ENTITY = 'job_card';
+
+/**
+ * Returns true if at least one job card exists for the given melting lot (by name).
+ * Used to hide "Start Department" when the first job card already exists.
+ */
+export async function hasJobCardsForMeltingLot(lotName: string): Promise<boolean> {
+  if (!lotName.trim()) return false;
+  const res = await getEntityList(JOB_CARD_ENTITY, {
+    page: 1,
+    page_size: 1,
+    filters: [{ field: 'melting_lot', operator: '=', value: lotName.trim() }],
+  });
+  const total = res.data?.pagination?.total_items ?? 0;
+  return total > 0;
 }

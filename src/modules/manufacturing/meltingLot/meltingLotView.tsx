@@ -8,10 +8,8 @@ import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { type MeltingLotFormData, type WeightDetail } from './meltiingLotForm';
-import {
-  toInitialMeltingLotData,
-} from './meltingLotCreate';
-import { submitMeltingLot } from './meltingLot.api';
+import { toInitialMeltingLotData } from './meltingLotCreate';
+import { submitMeltingLot, startDepartment, hasJobCardsForMeltingLot } from './meltingLot.api';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import BackButton from '../../../shared/components/BackButton';
 import {
@@ -39,7 +37,8 @@ export default function MeltingLotViewPage() {
   const [totalAlloyVadotar, setTotalAlloyVadotar] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [purityPercentage, setPurityPercentage] = useState<string>('');
-  
+  const [isStartingDepartment, setIsStartingDepartment] = useState(false);
+  const [hasJobCardsForLot, setHasJobCardsForLot] = useState(false);
   // Submit dialog state
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
@@ -86,6 +85,26 @@ export default function MeltingLotViewPage() {
       .finally(() => setDataLoading(false));
   }, [id]);
 
+  // When status is Submitted, check if job cards already exist for this lot so we can hide Start Department
+  useEffect(() => {
+    if (status !== 'Submitted' || !meltingLotName.trim()) {
+      setHasJobCardsForLot(false);
+      return;
+    }
+    setHasJobCardsForLot(true); // Hide button until we know; show only when confirmed no job cards
+    let cancelled = false;
+    hasJobCardsForMeltingLot(meltingLotName)
+      .then((has) => {
+        if (!cancelled) setHasJobCardsForLot(has);
+      })
+      .catch(() => {
+        if (!cancelled) setHasJobCardsForLot(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, meltingLotName]);
+
   const handleBack = useCallback(() => {
     navigate(entityConfig.routes.list);
   }, [navigate, entityConfig.routes.list]);
@@ -110,6 +129,26 @@ export default function MeltingLotViewPage() {
       const msg = err instanceof Error ? err.message : 'Failed to submit melting lot';
       showErrorToastUnlessAuth(msg);
       throw err; // Re-throw to let the dialog handle the error
+    }
+  }, [meltingLotName]);
+
+  const handleStartDepartment = useCallback(async () => {
+    if (!meltingLotName) return;
+
+    setIsStartingDepartment(true);
+    try {
+      const response = await startDepartment(meltingLotName);
+      if (response.success) {
+        toast.success(response.message || 'Department started successfully');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to start department';
+      if (msg.toLowerCase().includes('job cards already exist')) {
+        setHasJobCardsForLot(true);
+      }
+      showErrorToastUnlessAuth(msg);
+    } finally {
+      setIsStartingDepartment(false);
     }
   }, [meltingLotName]);
 
@@ -200,6 +239,20 @@ export default function MeltingLotViewPage() {
                 }`}
               >
                 Submit
+              </button>
+            )}
+            {status === 'Submitted' && !hasJobCardsForLot && (
+              <button
+                type="button"
+                onClick={handleStartDepartment}
+                disabled={isStartingDepartment}
+                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+                  isDarkMode
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                {isStartingDepartment ? 'Starting...' : 'Start Department'}
               </button>
             )}
           </div>

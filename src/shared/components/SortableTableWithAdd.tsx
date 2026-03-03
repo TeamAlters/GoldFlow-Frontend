@@ -30,6 +30,8 @@ export interface SortableTableWithAddProps {
   renderViewContent?: (row: SortableTableRow, onCloseModal: () => void) => React.ReactNode;
   /** Optional title for the view modal. Default: "View details" */
   getViewModalTitle?: (row: SortableTableRow) => string;
+  /** Optional per-row error message (e.g. validation). Shown below the department field in that row. */
+  getRowError?: (row: SortableTableRow, index: number) => string | undefined;
 }
 
 let rowIdCounter = 0;
@@ -48,6 +50,7 @@ export default function SortableTableWithAdd({
   title = 'Department',
   renderViewContent,
   getViewModalTitle,
+  getRowError,
 }: SortableTableWithAddProps) {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -212,9 +215,14 @@ export default function SortableTableWithAdd({
                         onChange={(v) => handleRowChange(index, 'department_id', v)}
                         options={departmentOptions}
                         placeholder="Select department"
-                        className={inputClassTable}
+                        className={`${inputClassTable} ${getRowError?.(row, index) ? '!border-red-500' : ''}`}
                         isDarkMode={isDarkMode}
                       />
+                      {getRowError?.(row, index) && (
+                        <p className={`mt-1 text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                          {getRowError(row, index)}
+                        </p>
+                      )}
                     </div>
                   )}
                 </td>
