@@ -16,6 +16,7 @@ export type WeightDetailPayload = {
 
 // Update melting lot payload
 export type UpdateMeltingLotPayload = {
+  parent_melting_lot?: string | null;
   product?: string;
   purity?: string;
   purity_percentage?: number;

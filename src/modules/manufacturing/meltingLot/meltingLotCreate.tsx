@@ -31,6 +31,7 @@ export function toMeltingLotPayload(data: MeltingLotFormData): Record<string, un
   const purityPercentage = data.purity ? toNum(data.purity_percentage) : 0;
   
   return {
+    parent_melting_lot: data.parent_melting_lot || null,
     product: data.product || null,
     purity: data.purity || null,
     purity_percentage: purityPercentage > 0 ? purityPercentage : null,
@@ -88,6 +89,7 @@ export function toInitialMeltingLotData(
   }
 
   return {
+    parent_melting_lot: entity.parent_melting_lot != null ? String(entity.parent_melting_lot) : '',
     product: entity.product != null ? String(entity.product) : '',
     purity: entity.purity != null ? String(entity.purity) : '',
     purity_percentage: entity.purity_percentage != null ? String(entity.purity_percentage) : '',
