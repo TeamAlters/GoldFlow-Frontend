@@ -72,6 +72,8 @@ interface JobCardData {
   balance_fine_weight?: number | string;
   issued_weight?: number | string;
   card_flow?: CardFlowStep[];
+  next_department_group?: string;
+  next_department?: string;
 }
 
 function computeIssuedWeight(issues: Array<{ weight?: string | number }>): number {
@@ -209,6 +211,8 @@ export default function JobCardViewPage() {
       ? data.issued_weight
       : computeIssuedWeight(issueTransactions);
   const cardFlow = data?.card_flow;
+  const nextDepartmentGroup = data?.next_department_group;
+  const nextDepartment = data?.next_department;
 
   const cardWrapperClass = `p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
     }`;
@@ -225,19 +229,15 @@ export default function JobCardViewPage() {
     : null;
   const linkClass = isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700';
 
-  const sectionHeadingClass = `text-lg font-semibold mb-4 pb-2 border-b ${
-    isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
-  }`;
-  const modalFooterClass = `flex items-center justify-end gap-3 pt-4 mt-4 border-t ${
-    isDarkMode ? 'border-gray-700' : 'border-gray-200'
-  }`;
-  const closeBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-    isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-  }`;
+  const sectionHeadingClass = `text-lg font-semibold mb-4 pb-2 border-b ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
+    }`;
+  const modalFooterClass = `flex items-center justify-end gap-3 pt-4 mt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
+    }`;
+  const closeBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+    }`;
   const modalLabelClass = `block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`;
-  const modalInputReadOnlyClass = `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm ${
-    isDarkMode ? 'bg-gray-700/30 border-gray-600 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-700'
-  }`;
+  const modalInputReadOnlyClass = `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm ${isDarkMode ? 'bg-gray-700/30 border-gray-600 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-700'
+    }`;
   const modalFieldGridClass = 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4';
 
   if (dataLoading) {
@@ -529,76 +529,132 @@ export default function JobCardViewPage() {
           </div>
 
           {/* Card Flow */}
-          <div className={cardWrapperClass}>
+          <div
+            className={
+              isDarkMode
+                ? 'p-6 rounded-xl border border-gray-700 bg-gray-800'
+                : 'p-6 rounded-xl border border-gray-200 shadow-sm bg-[#FDF5E6] border-t-4'
+            }
+          >
             <h2
               className={
                 isDarkMode
-                  ? headerClass
-                  : 'text-sm font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-gray-900'
+                  ? 'text-sm font-semibold uppercase tracking-wider text-white pb-2 border-b border-gray-600'
+                  : 'text-sm font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-amber-900'
               }
             >
-              {!isDarkMode && <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" aria-hidden />}
+              {!isDarkMode && <span className="w-2 h-2 rounded-full bg-[#B87820] shrink-0" aria-hidden />}
               Card Flow
             </h2>
-            {cardFlow && cardFlow.length > 0 ? (
-              <div
-                className={`border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} ml-1 pl-4 border-l-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} space-y-3`}
-              >
-                {cardFlow.map((step, idx) => {
-                  const deptRoute = step.department ? getEntityDetailRoute('department', step.department) : null;
-                  const deptGroupRoute = step.department_group ? getEntityDetailRoute('department_group', step.department_group) : null;
-                  return (
-                    <div key={idx} className="flex items-start gap-2">
-                      {step.completed ? (
-                        <span
-                          className={`shrink-0 mt-0.5 flex items-center justify-center rounded-lg ${isDarkMode ? 'text-green-500' : 'bg-teal-100 text-teal-600 p-0.5'}`}
-                          aria-hidden
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </span>
-                      ) : (
-                        <span
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'}`}
-                        >
-                          {idx + 1}
-                        </span>
-                      )}
-                      <div>
-                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                          {step.label ?? step.department ?? 'Step'}
-                        </p>
-                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {step.department != null && step.department_group != null && (
-                            <>
-                              {deptRoute ? <Link to={deptRoute} className={linkClass}>{step.department}</Link> : step.department}
-                              {' · '}
-                              {deptGroupRoute ? <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link> : step.department_group}
-                            </>
-                          )}
-                          {step.department != null && !step.department_group && (
-                            deptRoute ? <Link to={deptRoute} className={linkClass}>{step.department}</Link> : step.department
-                          )}
-                          {step.department_group != null && !step.department && (
-                            deptGroupRoute ? <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link> : step.department_group
-                          )}
-                          {!step.department && !step.department_group && 'Not assigned'}
-                        </p>
-                      </div>
+            <div className={`space-y-3 border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-amber-200'}`}>
+              {/* Next Department Info */}
+              {(nextDepartmentGroup || nextDepartment) && (
+                <>
+                  {nextDepartmentGroup && (
+                    <div>
+                      <p className={isDarkMode ? 'block text-sm font-medium mb-1 text-gray-400' : 'block text-sm font-semibold mb-1 text-amber-800'}>
+                        Next Department Group
+                      </p>
+                      <p className={isDarkMode ? 'text-base font-semibold text-white' : 'text-lg font-semibold text-[#B87820]'}>
+                        {(() => {
+                          const deptGroupRoute = getEntityDetailRoute('department_group', nextDepartmentGroup);
+                          return deptGroupRoute ? (
+                            <Link to={deptGroupRoute} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-[#B87820] hover:text-[#B87820]/80'}>
+                              {nextDepartmentGroup}
+                            </Link>
+                          ) : (
+                            <span>{nextDepartmentGroup}</span>
+                          );
+                        })()}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-                Not assigned
-              </p>
-            )}
+                  )}
+                  {nextDepartment && (
+                    <div>
+                      <p className={isDarkMode ? 'block text-sm font-medium mb-1 text-gray-400' : 'block text-sm font-semibold mb-1 text-amber-800'}>
+                        Next Department
+                      </p>
+                      <p className={isDarkMode ? 'text-base font-semibold text-white' : 'text-lg font-semibold text-[#B87820]'}>
+                        {(() => {
+                          const deptRoute = getEntityDetailRoute('department', nextDepartment);
+                          return deptRoute ? (
+                            <Link to={deptRoute} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-[#B87820] hover:text-[#B87820]/80'}>
+                              {nextDepartment}
+                            </Link>
+                          ) : (
+                            <span>{nextDepartment}</span>
+                          );
+                        })()}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Existing Card Flow Steps */}
+              {cardFlow && cardFlow.length > 0 ? (
+                <div className={`mt-4 pt-4 border-t ${isDarkMode ? 'border-gray-600' : 'border-amber-200'}`}>
+                  <p className={isDarkMode ? 'block text-sm font-medium mb-3 text-gray-400' : 'block text-sm font-semibold mb-3 text-amber-800'}>
+                    Flow Steps
+                  </p>
+                  <div className={`ml-1 pl-4 border-l-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} space-y-3`}>
+                    {cardFlow.map((step, idx) => {
+                      const deptRoute = step.department ? getEntityDetailRoute('department', step.department) : null;
+                      const deptGroupRoute = step.department_group ? getEntityDetailRoute('department_group', step.department_group) : null;
+                      return (
+                        <div key={idx} className="flex items-start gap-2">
+                          {step.completed ? (
+                            <span
+                              className={`shrink-0 mt-0.5 flex items-center justify-center rounded-lg ${isDarkMode ? 'text-green-500' : 'bg-teal-100 text-teal-600 p-0.5'}`}
+                              aria-hidden
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </span>
+                          ) : (
+                            <span
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'}`}
+                            >
+                              {idx + 1}
+                            </span>
+                          )}
+                          <div>
+                            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                              {step.label ?? step.department ?? 'Step'}
+                            </p>
+                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              {step.department != null && step.department_group != null && (
+                                <>
+                                  {deptRoute ? <Link to={deptRoute} className={linkClass}>{step.department}</Link> : step.department}
+                                  {' · '}
+                                  {deptGroupRoute ? <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link> : step.department_group}
+                                </>
+                              )}
+                              {step.department != null && !step.department_group && (
+                                deptRoute ? <Link to={deptRoute} className={linkClass}>{step.department}</Link> : step.department
+                              )}
+                              {step.department_group != null && !step.department && (
+                                deptGroupRoute ? <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link> : step.department_group
+                              )}
+                              {!step.department && !step.department_group && 'Not assigned'}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : !nextDepartmentGroup && !nextDepartment ? (
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Not assigned
+                </p>
+              ) : null}
+            </div>
           </div>
 
           {/* Audit */}
