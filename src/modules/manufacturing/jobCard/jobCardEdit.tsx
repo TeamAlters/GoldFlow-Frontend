@@ -75,7 +75,7 @@ export default function JobCardEditPage() {
   const entityConfig = getEntityConfig(ENTITY_NAME);
   const jobCardTransactionConfig = getEntityConfig(JOB_CARD_TRANSACTION_ENTITY);
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  
+
 
   const [isLoading, setIsLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
@@ -97,6 +97,8 @@ export default function JobCardEditPage() {
   const [balanceFineWeight, setBalanceFineWeight] = useState<number | string | undefined>(undefined);
   const [issuedWeight, setIssuedWeight] = useState<number | string | undefined>(undefined);
   const [cardFlow, setCardFlow] = useState<CardFlowStep[] | undefined>(undefined);
+  const [nextDepartmentGroup, setNextDepartmentGroup] = useState<string | undefined>(undefined);
+  const [nextDepartment, setNextDepartment] = useState<string | undefined>(undefined);
   const [auditData, setAuditData] = useState<{
     created_by?: string;
     created_at?: string;
@@ -155,6 +157,8 @@ export default function JobCardEditPage() {
               : computeIssuedWeight(issues)
           );
           setCardFlow(entity.card_flow as CardFlowStep[] | undefined);
+          setNextDepartmentGroup(entity.next_department_group as string | undefined);
+          setNextDepartment(entity.next_department as string | undefined);
           setAuditData({
             created_by: entity.created_by as string | undefined,
             created_at: entity.created_at as string | undefined,
@@ -267,9 +271,8 @@ export default function JobCardEditPage() {
     []
   );
 
-  const cardWrapperClass = `p-6 rounded-xl border ${
-    isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
-  }`;
+  const cardWrapperClass = `p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
+    }`;
 
   const headerClass = getSectionHeaderClass(isDarkMode);
 
@@ -281,6 +284,7 @@ export default function JobCardEditPage() {
     issueDetailName != null
       ? issueTransactions.find((t) => t.name === issueDetailName) ?? null
       : null;
+  const linkClass = isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700';
   useEffect(() => {
     if (issueDetailName != null) {
       const row =
@@ -412,32 +416,26 @@ export default function JobCardEditPage() {
 
   const modalLabelClass = `block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`;
   const modalInputClass = (readOnly?: boolean) =>
-    `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm ${
-      readOnly
-        ? isDarkMode
-          ? 'bg-gray-700/30 border-gray-600 text-gray-300'
-          : 'bg-gray-100 border-gray-200 text-gray-700'
-        : isDarkMode
-          ? 'bg-gray-700/50 border-gray-600 text-white'
-          : 'bg-white border-gray-300 text-gray-900'
+    `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm ${readOnly
+      ? isDarkMode
+        ? 'bg-gray-700/30 border-gray-600 text-gray-300'
+        : 'bg-gray-100 border-gray-200 text-gray-700'
+      : isDarkMode
+        ? 'bg-gray-700/50 border-gray-600 text-white'
+        : 'bg-white border-gray-300 text-gray-900'
     }`;
   const modalFieldGridClass = 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4';
 
-  const sectionHeadingClass = `text-lg font-semibold mb-4 pb-2 border-b ${
-    isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
-  }`;
-  const modalFooterClass = `flex items-center justify-end gap-3 pt-4 mt-4 border-t ${
-    isDarkMode ? 'border-gray-700' : 'border-gray-200'
-  }`;
-  const cancelBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm ${
-    isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-  }`;
-  const saveBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-    isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-  } disabled:opacity-60`;
-  const closeBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-    isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-  }`;
+  const sectionHeadingClass = `text-lg font-semibold mb-4 pb-2 border-b ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
+    }`;
+  const modalFooterClass = `flex items-center justify-end gap-3 pt-4 mt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
+    }`;
+  const cancelBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+    }`;
+  const saveBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
+    } disabled:opacity-60`;
+  const closeBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+    }`;
 
   const issueColumns: ColumnDef<IssueRow>[] = [
     {
@@ -517,9 +515,8 @@ export default function JobCardEditPage() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1
-            className={`text-2xl sm:text-3xl font-bold mb-2 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}
+            className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}
           >
             Edit {entityConfig.displayName}
           </h1>
@@ -527,7 +524,7 @@ export default function JobCardEditPage() {
             Update {entityConfig.displayName.toLowerCase()} details below.
           </p>
         </div>
-       
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -585,9 +582,8 @@ export default function JobCardEditPage() {
                   <button
                     type="button"
                     onClick={() => setReceiptDetailName(String(row.name ?? ''))}
-                    className={`p-1.5 rounded transition-colors ${
-                      isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'
-                    }`}
+                    className={`p-1.5 rounded transition-colors ${isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'
+                      }`}
                     title="View details"
                     aria-label="View receipt details"
                   >
@@ -630,9 +626,8 @@ export default function JobCardEditPage() {
                     setIssueDetailIndex(idx >= 0 ? idx : null);
                     setIssueDetailName(String(row.name ?? ''));
                   }}
-                  className={`p-1.5 rounded transition-colors ${
-                    isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'
-                  }`}
+                  className={`p-1.5 rounded transition-colors ${isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'
+                    }`}
                   title="View details"
                   aria-label="View issue details"
                 >
@@ -713,95 +708,150 @@ export default function JobCardEditPage() {
           </div>
 
           {/* Card Flow */}
-          <div className={cardWrapperClass}>
+          <div
+            className={
+              isDarkMode
+                ? 'p-6 rounded-xl border border-gray-700 bg-gray-800'
+                : 'p-6 rounded-xl border border-gray-200 shadow-sm bg-[#FDF5E6] border-t-4'
+            }
+          >
             <h2
               className={
                 isDarkMode
-                  ? headerClass
-                  : 'text-sm font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-gray-900'
+                  ? 'text-sm font-semibold uppercase tracking-wider text-white pb-2 border-b border-gray-600'
+                  : 'text-sm font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-amber-900'
               }
             >
-              {!isDarkMode && <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" aria-hidden />}
+              {!isDarkMode && <span className="w-2 h-2 rounded-full bg-[#B87820] shrink-0" aria-hidden />}
               Card Flow
             </h2>
-            {cardFlow && cardFlow.length > 0 ? (
-              <div
-                className={`border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} ml-1 pl-4 border-l-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} space-y-3`}
-              >
-                {cardFlow.map((step, idx) => {
-                  const deptRoute = step.department ? getEntityDetailRoute('department', step.department) : null;
-                  const deptGroupRoute = step.department_group ? getEntityDetailRoute('department_group', step.department_group) : null;
-                  const linkClass = isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700';
-                  return (
-                    <div key={idx} className="flex items-start gap-2">
-                      {step.completed ? (
-                        <span
-                          className={`shrink-0 mt-0.5 flex items-center justify-center rounded-lg ${isDarkMode ? 'text-green-500' : 'bg-teal-100 text-teal-600 p-0.5'}`}
-                          aria-hidden
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </span>
-                      ) : (
-                        <span
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${
-                            isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'
-                          }`}
-                        >
-                          {idx + 1}
-                        </span>
-                      )}
-                      <div>
-                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                          {step.label ?? step.department ?? 'Step'}
-                        </p>
-                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {step.department != null && step.department_group != null && (
-                            <>
-                              {deptRoute ? (
-                                <Link to={deptRoute} className={linkClass}>{step.department}</Link>
-                              ) : (
-                                step.department
-                              )}
-                              {' · '}
-                              {deptGroupRoute ? (
-                                <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link>
-                              ) : (
-                                step.department_group
-                              )}
-                            </>
-                          )}
-                          {step.department != null && !step.department_group && (
-                            deptRoute ? (
-                              <Link to={deptRoute} className={linkClass}>{step.department}</Link>
-                            ) : (
-                              step.department
-                            )
-                          )}
-                          {step.department_group != null && !step.department && (
-                            deptGroupRoute ? (
-                              <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link>
-                            ) : (
-                              step.department_group
-                            )
-                          )}
-                          {!step.department && !step.department_group && 'Not assigned'}
-                        </p>
-                      </div>
+            <div className={`space-y-3 border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-amber-200'}`}>
+              {/* Next Department Info */}
+              {(nextDepartmentGroup || nextDepartment) && (
+                <>
+                  {nextDepartmentGroup && (
+                    <div>
+                      <p className={isDarkMode ? 'block text-sm font-medium mb-1 text-gray-400' : 'block text-sm font-semibold mb-1 text-amber-800'}>
+                        Next Department Group
+                      </p>
+                      <p className={isDarkMode ? 'text-base font-semibold text-white' : 'text-lg font-semibold text-[#B87820]'}>
+                        {(() => {
+                          const deptGroupRoute = getEntityDetailRoute('department_group', nextDepartmentGroup);
+                          return deptGroupRoute ? (
+                            <Link to={deptGroupRoute} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-[#B87820] hover:text-[#B87820]/80'}>
+                              {nextDepartmentGroup}
+                            </Link>
+                          ) : (
+                            <span>{nextDepartmentGroup}</span>
+                          );
+                        })()}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} border-t pt-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-                Not assigned
-              </p>
-            )}
+                  )}
+                  {nextDepartment && (
+                    <div>
+                      <p className={isDarkMode ? 'block text-sm font-medium mb-1 text-gray-400' : 'block text-sm font-semibold mb-1 text-amber-800'}>
+                        Next Department
+                      </p>
+                      <p className={isDarkMode ? 'text-base font-semibold text-white' : 'text-lg font-semibold text-[#B87820]'}>
+                        {(() => {
+                          const deptRoute = getEntityDetailRoute('department', nextDepartment);
+                          return deptRoute ? (
+                            <Link to={deptRoute} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-[#B87820] hover:text-[#B87820]/80'}>
+                              {nextDepartment}
+                            </Link>
+                          ) : (
+                            <span>{nextDepartment}</span>
+                          );
+                        })()}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Existing Card Flow Steps */}
+              {cardFlow && cardFlow.length > 0 ? (
+                <div className={`mt-4 pt-4 border-t ${isDarkMode ? 'border-gray-600' : 'border-amber-200'}`}>
+                  <p className={isDarkMode ? 'block text-sm font-medium mb-3 text-gray-400' : 'block text-sm font-semibold mb-3 text-amber-800'}>
+                    Flow Steps
+                  </p>
+                  <div className={`ml-1 pl-4 border-l-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'} space-y-3`}>
+                    {cardFlow.map((step, idx) => {
+                      const deptRoute = step.department ? getEntityDetailRoute('department', step.department) : null;
+                      const deptGroupRoute = step.department_group ? getEntityDetailRoute('department_group', step.department_group) : null;
+                      const linkClass = isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700';
+                      return (
+                        <div key={idx} className="flex items-start gap-2">
+                          {step.completed ? (
+                            <span
+                              className={`shrink-0 mt-0.5 flex items-center justify-center rounded-lg ${isDarkMode ? 'text-green-500' : 'bg-teal-100 text-teal-600 p-0.5'}`}
+                              aria-hidden
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </span>
+                          ) : (
+                            <span
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'
+                                }`}
+                            >
+                              {idx + 1}
+                            </span>
+                          )}
+                          <div>
+                            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                              {step.label ?? step.department ?? 'Step'}
+                            </p>
+                            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              {step.department != null && step.department_group != null && (
+                                <>
+                                  {deptRoute ? (
+                                    <Link to={deptRoute} className={linkClass}>{step.department}</Link>
+                                  ) : (
+                                    step.department
+                                  )}
+                                  {' · '}
+                                  {deptGroupRoute ? (
+                                    <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link>
+                                  ) : (
+                                    step.department_group
+                                  )}
+                                </>
+                              )}
+                              {step.department != null && !step.department_group && (
+                                deptRoute ? (
+                                  <Link to={deptRoute} className={linkClass}>{step.department}</Link>
+                                ) : (
+                                  step.department
+                                )
+                              )}
+                              {step.department_group != null && !step.department && (
+                                deptGroupRoute ? (
+                                  <Link to={deptGroupRoute} className={linkClass}>{step.department_group}</Link>
+                                ) : (
+                                  step.department_group
+                                )
+                              )}
+                              {!step.department && !step.department_group && 'Not assigned'}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : !nextDepartmentGroup && !nextDepartment ? (
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Not assigned
+                </p>
+              ) : null}
+            </div>
           </div>
 
           {/* Audit */}
@@ -837,8 +887,8 @@ export default function JobCardEditPage() {
               </div>
             </div>
           </div>
-        
-        </div>   
+
+        </div>
       </div>
 
       {/* Receipt detail modal – eye opens, all data as input fields (read-only), like Configurations */}
@@ -1033,33 +1083,31 @@ export default function JobCardEditPage() {
           </>
         )}
       </Modal>
-              
+
       <div className="flex items-center justify-end gap-3 shrink-0 mt-6">
-          <BackButton onClick={handleCancel} />
-          <button
-            type="button"
-            onClick={handleCancel}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-              isDarkMode
-                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+        <BackButton onClick={handleCancel} />
+        <button
+          type="button"
+          onClick={handleCancel}
+          className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
+            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
             }`}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="job-card-form"
-            disabled={isLoading}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="job-card-form"
+          disabled={isLoading}
+          className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
+            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+            : 'bg-blue-500 hover:bg-blue-600 text-white'
             } disabled:opacity-60`}
-          >
-            {isLoading ? 'Saving...' : 'Update'}
-          </button>
-        </div>
+        >
+          {isLoading ? 'Saving...' : 'Update'}
+        </button>
+      </div>
     </div>
   );
 }
