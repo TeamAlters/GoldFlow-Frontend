@@ -503,7 +503,7 @@ export default function JobCardEditPage() {
   }
 
   return (
-    <div className={`w-full ${!isDarkMode ? 'bg-[#F5F2EE] min-h-[calc(100vh-8rem)]' : ''}`}>
+    <div className={`w-full relative ${!isDarkMode ? 'bg-[#F5F2EE] min-h-[calc(100vh-8rem)]' : ''}`}>
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },
@@ -527,7 +527,7 @@ export default function JobCardEditPage() {
 
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
         {/* Left column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Job Card Details */}
@@ -642,7 +642,7 @@ export default function JobCardEditPage() {
         </div>
 
         {/* Right column: sidebar */}
-        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-[6.75rem] lg:self-start">
+        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-[var(--header-height)] lg:self-start lg:max-h-[calc(100vh-var(--header-height))] lg:overflow-y-auto lg:pb-4 scrollbar-hide">
           {/* Live Balance */}
           <div
             className={
@@ -854,8 +854,8 @@ export default function JobCardEditPage() {
             </div>
           </div>
 
-          {/* Audit */}
-          <div className={cardWrapperClass}>
+          Audit
+          {/* <div className={cardWrapperClass}>
             <h2
               className={
                 isDarkMode
@@ -886,7 +886,7 @@ export default function JobCardEditPage() {
                 </span>
               </div>
             </div>
-          </div>
+          </div> */}
 
         </div>
       </div>

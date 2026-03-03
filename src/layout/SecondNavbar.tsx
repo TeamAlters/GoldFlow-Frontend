@@ -67,6 +67,7 @@ export default function SecondNavbar({ onToggleSidebar, isSidebarOpen }: SecondN
 
   return (
     <nav
+      data-header-end
       className={`fixed top-16 left-0 right-0 z-40 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
         } border-b`}
     >
