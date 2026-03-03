@@ -53,15 +53,6 @@ function isItemActive(currentPath: string, itemPath: string): boolean {
   return currentPath.startsWith(itemPath + '/');
 }
 
-function getUserInitials(name?: string, email?: string): string {
-  const src = name ?? email ?? 'U';
-  return src
-    .split(/[\s@.]+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
-}
-
 // ─── Collapsed Category Popup ─────────────────────────────────────────────────
 // Hover-to-open: expandable wrapper keeps cursor inside hover zone when moving from icon to popup.
 function CollapsedCategoryPopup({
@@ -240,12 +231,9 @@ export default function Sidebar({ mode, onCollapseToggle, onMobileClose: _onMobi
   const location = useLocation();
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
   const [search, setSearch] = useState('');
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [userDropdownAnimateIn, setUserDropdownAnimateIn] = useState(false);
 
   if (location.pathname === '/login' || location.pathname === '/signUp') return null;
 
@@ -267,30 +255,14 @@ export default function Sidebar({ mode, onCollapseToggle, onMobileClose: _onMobi
 
   const filteredNav = search.trim()
     ? sidebarNavConfig
-      .map((cat) => ({
-        ...cat,
-        items: cat.items.filter((item) =>
-          item.name.toLowerCase().includes(search.toLowerCase())
-        ),
-      }))
-      .filter((cat) => cat.items.length > 0)
+        .map((cat) => ({
+          ...cat,
+          items: cat.items.filter((item) =>
+            item.name.toLowerCase().includes(search.toLowerCase())
+          ),
+        }))
+        .filter((cat) => cat.items.length > 0)
     : sidebarNavConfig;
-
-  const displayName = String(user?.name ?? user?.username ?? user?.email ?? 'User');
-  const displayEmail = user?.email ? String(user.email) : '';
-  const initials = getUserInitials(displayName, displayEmail);
-
-  useEffect(() => {
-    if (userMenuOpen) {
-      setUserDropdownAnimateIn(false);
-      const id = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setUserDropdownAnimateIn(true));
-      });
-      return () => cancelAnimationFrame(id);
-    } else {
-      setUserDropdownAnimateIn(false);
-    }
-  }, [userMenuOpen]);
 
   const sidebarBg = isDarkMode
     ? 'bg-gray-900 border-gray-800'
@@ -411,73 +383,23 @@ export default function Sidebar({ mode, onCollapseToggle, onMobileClose: _onMobi
         )}
       </nav>
 
-      {/* ── User Profile Footer ── */}
+      {/* ── Logout Footer ── */}
       <div className={`flex-shrink-0 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
-        {/* User menu dropdown */}
-        {userMenuOpen && (
-          <div
-            className={`absolute bottom-[72px] ${isExpanded ? 'left-2 right-2' : 'left-16 w-48'} rounded-xl border shadow-xl py-1.5 z-50
-              transition-all duration-200 ease-out
-              ${userDropdownAnimateIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}
-              ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-              }`}
-          >
-            <button
-              onClick={() => { setUserMenuOpen(false); navigate('/profile'); }}
-              className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors duration-200 ease-out ${isDarkMode ? 'text-gray-300 hover:bg-gray-800 hover:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Profile
-            </button>
-            <div className={`my-1 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`} />
-            <button
-              onClick={() => { setUserMenuOpen(false); handleLogout(); }}
-              className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors duration-200 ease-out ${isDarkMode ? 'text-red-400 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-50'
-                }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Logout
-            </button>
-          </div>
-        )}
-
         <button
-          onClick={() => setUserMenuOpen(!userMenuOpen)}
-          className={`w-full flex items-center gap-3 px-3 py-3.5 transition-colors duration-200 ease-out ${isDarkMode ? 'hover:bg-gray-800/60' : 'hover:bg-gray-50'
-            } ${isExpanded ? '' : 'justify-center'}`}
+          onClick={handleLogout}
+          className={`w-full flex items-center gap-3 px-3 py-3.5 transition-colors duration-200 ease-out ${
+            isDarkMode ? 'hover:bg-gray-800/60 text-red-400' : 'hover:bg-gray-50 text-red-600'
+          } ${isExpanded ? 'justify-start' : 'justify-center'}`}
         >
-          {/* Avatar */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <span className="text-white text-xs font-bold">{initials}</span>
-          </div>
-
-          {isExpanded && (
-            <>
-              <div className="flex-1 text-left min-w-0">
-                <p className={`text-sm font-medium truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                  {displayName}
-                </p>
-                {displayEmail && (
-                  <p className={`text-xs truncate ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                    {displayEmail}
-                  </p>
-                )}
-              </div>
-              <svg
-                className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ease-out ${userMenuOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </>
-          )}
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.75}
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+            />
+          </svg>
+          {isExpanded && <span className="text-sm font-medium">Logout</span>}
         </button>
       </div>
     </aside>

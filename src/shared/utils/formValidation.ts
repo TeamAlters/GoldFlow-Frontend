@@ -308,3 +308,145 @@ export function sanitizeNumeric184Input(value: string, allowNegative = false): s
   decPart = decPart.slice(0, maxDec);
   return (hasMinus ? '-' : '') + intPart + '.' + decPart;
 }
+
+/**
+ * Interactive sanitization helper for NUMERIC(18,4) fields.
+ * - Keeps optional leading '-'
+ * - Keeps digits and at most one '.'
+ * - Limits whole digits to 14 and fractional digits to 4
+ * - Ensures total digits (whole + fractional) do not exceed 18; if exceeded, falls back to previous.
+ *
+ * Use this in onChange/onPaste handlers for strict numeric(18,4) UX in the UI.
+ */
+export function sanitizeNumeric184Interactive(
+  raw: string,
+  previous: string,
+  allowNegative = false
+): string {
+  let s = raw.replace(/\s+/g, '');
+
+  // Extract sign
+  let sign = '';
+  if (allowNegative && s.startsWith('-')) {
+    sign = '-';
+    s = s.slice(1);
+  }
+
+  // Keep only digits and dots
+  s = s.replace(/[^0-9.]/g, '');
+
+  const firstDot = s.indexOf('.');
+  let whole = '';
+  let frac = '';
+
+  if (firstDot === -1) {
+    whole = s;
+  } else {
+    whole = s.slice(0, firstDot);
+    frac = s.slice(firstDot + 1).replace(/\./g, '');
+  }
+
+  if (whole.length > 14) whole = whole.slice(0, 14);
+  if (frac.length > 4) frac = frac.slice(0, 4);
+
+  let result = sign + (whole || '0');
+  if (frac.length > 0) result += `.${frac}`;
+
+  // Allow empty to fully clear field
+  if (raw.trim() === '') return '';
+
+  const unsigned = result.startsWith('-') ? result.slice(1) : result;
+  const [w, f = ''] = unsigned.split('.');
+  const wholeDigits = (w.replace(/^0+/, '') || '0').length;
+  const totalDigits = wholeDigits + f.length;
+
+  if (totalDigits > 18) {
+    return previous;
+  }
+
+  return result;
+}
+
+/**
+ * Returns whether a key press is allowed for a NUMERIC(18,4) input, enforcing:
+ * - Digits only
+ * - Single optional leading '-'
+ * - Single '.'
+ * - Max 14 whole digits, 4 fractional digits, 18 digits total
+ *
+ * Use this in onKeyDown:
+ * if (!canAcceptNumeric184Key(value, selectionStart, selectionEnd, e.key, true)) e.preventDefault();
+ */
+export function canAcceptNumeric184Key(
+  current: string,
+  selectionStart: number | null,
+  selectionEnd: number | null,
+  key: string,
+  allowNegative = false
+): boolean {
+  const allowedControlKeys = [
+    'Backspace',
+    'Delete',
+    'Tab',
+    'ArrowLeft',
+    'ArrowRight',
+    'ArrowUp',
+    'ArrowDown',
+    'Home',
+    'End',
+    'Enter',
+  ];
+
+  if (allowedControlKeys.includes(key)) return true;
+
+  // Digits
+  if (key >= '0' && key <= '9') {
+    const selStart = selectionStart ?? current.length;
+    const selEnd = selectionEnd ?? current.length;
+    const replacing = selEnd > selStart;
+
+    const negative = allowNegative && current.startsWith('-');
+    const unsigned = negative ? current.slice(1) : current;
+    const dotIndex = unsigned.indexOf('.');
+    const [wholeRaw, fracRaw = ''] = unsigned.split('.');
+    let wholeDigits = (wholeRaw.replace(/^0+/, '') || '0').length;
+    let fracDigits = fracRaw.length;
+
+    if (replacing) {
+      const beforeSel = current.slice(0, selStart);
+      const afterSel = current.slice(selEnd);
+      const tmp = (beforeSel + afterSel).replace(allowNegative ? /^-/ : '', '');
+      const [w2, f2 = ''] = tmp.split('.');
+      wholeDigits = (w2.replace(/^0+/, '') || '0').length;
+      fracDigits = f2.length;
+    }
+
+    const absoluteDotIndex = dotIndex === -1 ? -1 : dotIndex + (negative ? 1 : 0);
+    const inFraction = absoluteDotIndex !== -1 && selStart > absoluteDotIndex;
+
+    if (inFraction) {
+      if (fracDigits >= 4) return false;
+    } else {
+      if (wholeDigits >= 14) return false;
+    }
+
+    if (wholeDigits + fracDigits >= 18) return false;
+    return true;
+  }
+
+  // Decimal point
+  if (key === '.') {
+    if (current.includes('.')) return false;
+    return true;
+  }
+
+  // Minus sign only at start and only once
+  if (key === '-' && allowNegative) {
+    const selStart = selectionStart ?? 0;
+    if (current.startsWith('-') || selStart !== 0) return false;
+    return true;
+  }
+
+  // Block everything else
+  return false;
+}

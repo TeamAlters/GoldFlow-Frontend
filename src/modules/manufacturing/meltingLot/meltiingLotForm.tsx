@@ -2,8 +2,12 @@ import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 're
 import { useUIStore } from '../../../stores/ui.store';
 import {
   MAX_TEXT_FIELD_LENGTH,
+  MAX_LENGTH_4,
   maxLengthError,
   validateNumeric184,
+  sanitizeNumeric184Interactive,
+  canAcceptNumeric184Key,
+  validateUppercaseOnly,
 } from '../../../shared/utils/formValidation';
 import type { ReferenceOption } from '../../admin/admin.api';
 import {
@@ -13,6 +17,7 @@ import {
 } from '../../admin/admin.api';
 import { fetchMetalPoolBalance, type MetalPoolBalance } from './meltingLot.api';
 import EditableWeightTable from '../../../shared/components/EditableWeightTable';
+import { toast } from '../../../stores/toast.store';
 
 export type MeltingLotFormData = {
   // Form fields
@@ -320,7 +325,62 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   const handleTextChange = (key: keyof MeltingLotFormData, value: string, maxLength: number) => {
     const trimmed = value.slice(0, maxLength);
     setFormData((prev) => ({ ...prev, [key]: trimmed }));
+
+    // Live validation for Total Alloy Vadotar: numeric(18,4) NOT NULL
+    if (key === 'total_alloy_vadotar') {
+      const val = trimmed.trim();
+      if (!val) {
+        setErrors((prev) => ({ ...prev, total_alloy_vadotar: 'Total Alloy Vadotar is required' }));
+      } else {
+        const vadErr = validateNumeric184(val, 'Total Alloy Vadotar');
+        setErrors((prev) => ({ ...prev, total_alloy_vadotar: vadErr ?? '' }));
+      }
+      return;
+    }
+
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
+  };
+
+  const handleTotalAlloyVadotarKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const current = input.value || '';
+    const selectionStart = input.selectionStart;
+    const selectionEnd = input.selectionEnd;
+
+    const ok = canAcceptNumeric184Key(current, selectionStart, selectionEnd, e.key, true);
+    if (!ok) {
+      e.preventDefault();
+    }
+  };
+
+  const handleTotalAlloyVadotarPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text') ?? '';
+    const cleaned = sanitizeNumeric184Interactive(text, formData.total_alloy_vadotar || '', true);
+    handleTextChange('total_alloy_vadotar', cleaned, MAX_TEXT_FIELD_LENGTH);
+  };
+
+  const handleMetalPoolWeightKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const current = input.value || '';
+    const selectionStart = input.selectionStart;
+    const selectionEnd = input.selectionEnd;
+
+    const ok = canAcceptNumeric184Key(current, selectionStart, selectionEnd, e.key, true);
+    if (!ok) {
+      e.preventDefault();
+    }
+  };
+
+  const handleMetalPoolWeightPaste = (
+    purity: string,
+    e: React.ClipboardEvent<HTMLInputElement>
+  ) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text') ?? '';
+    const previous = metalPoolWeights[purity] || '';
+    const cleaned = sanitizeNumeric184Interactive(text, previous, true);
+    handleMetalPoolWeightChange(purity, cleaned);
   };
 
   // Legacy handler for dropdown selections
@@ -407,30 +467,43 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
       [purity]: value,
     }));
 
-    // Validate weight against balance weight
+    // Validate numeric (18,4) and against balance weight
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setMetalPoolWeightErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[purity];
+        return newErrors;
+      });
+      return;
+    }
+
+    // Numeric (18,4)
+    const numericErr = validateNumeric184(trimmed, 'Weight', { nonNegative: true });
+    if (numericErr) {
+      setMetalPoolWeightErrors((prev) => ({
+        ...prev,
+        [purity]: numericErr,
+      }));
+      return;
+    }
+
+    // Balance check
     const balance = metalPoolBalance.find((b) => b.purity === purity);
-    if (balance && value.trim()) {
-      const enteredWeight = parseFloat(value);
+    if (balance) {
+      const enteredWeight = parseFloat(trimmed);
       if (!isNaN(enteredWeight) && enteredWeight > balance.balance_weight) {
         setMetalPoolWeightErrors((prev) => ({
           ...prev,
           [purity]: `Weight exceeds balance weight (${balance.balance_weight.toFixed(4)})`,
         }));
       } else {
-        // Clear error if weight is valid or empty
         setMetalPoolWeightErrors((prev) => {
           const newErrors = { ...prev };
           delete newErrors[purity];
           return newErrors;
         });
       }
-    } else {
-      // Clear error if empty
-      setMetalPoolWeightErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[purity];
-        return newErrors;
-      });
     }
   };
 
@@ -440,14 +513,14 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
     
     // Check if Purity is selected in Melting Lot Details
     if (!formData.purity) {
-      alert('Please select Purity from Melting Lot Details first');
+      toast.error('Please select Purity from Melting Lot Details first');
       return;
     }
 
     // Check for validation errors before adding
     const hasErrors = Object.keys(metalPoolWeightErrors).length > 0;
     if (hasErrors) {
-      alert('Please fix weight validation errors before adding weight details');
+      toast.error('Please fix weight validation errors before adding weight details');
       return;
     }
     
@@ -526,10 +599,59 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
     if (!formData.product) next.product = 'Product is required';
     if (!formData.purity) next.purity = 'Purity is required';
 
+    // Parent Melting Lot → Product Abbreviation validation
+    if (formData.parent_melting_lot) {
+      const parentName = formData.parent_melting_lot.trim();
+      const parentItem = parentMeltingLotRawData.find(
+        (r) => String(r.name ?? '') === parentName
+      );
+      if (parentItem) {
+        const rawAbbr =
+          (parentItem as Record<string, unknown>).product_abbreviation ??
+          (parentItem as Record<string, unknown>).product_abbrevation ??
+          '';
+        const abbr = String(rawAbbr ?? '').trim();
+        if (!abbr) {
+          next.parent_melting_lot =
+            'Product abbreviation is required for the selected Parent Melting Lot';
+        } else {
+          if (abbr.length > MAX_LENGTH_4) {
+            next.parent_melting_lot = maxLengthError(
+              'Product abbreviation',
+              MAX_LENGTH_4
+            );
+          } else {
+            const upperErr = validateUppercaseOnly(
+              abbr,
+              'Product abbreviation'
+            );
+            if (upperErr) {
+              next.parent_melting_lot = upperErr;
+            }
+          }
+        }
+      }
+    }
+
     // Text field length validations
     const trimmedDescription = formData.description.trim();
     if (trimmedDescription && trimmedDescription.length > MAX_TEXT_FIELD_LENGTH) {
       next.description = maxLengthError('Description');
+    }
+
+    // Total Alloy Vadotar numeric (18,4) NOT NULL
+    const vadotar = formData.total_alloy_vadotar.trim();
+    if (!vadotar) {
+      next.total_alloy_vadotar = 'Total Alloy Vadotar is required';
+    } else {
+      const vadErr = validateNumeric184(
+        vadotar,
+        'Total Alloy Vadotar',
+        { nonNegative: true }
+      );
+      if (vadErr) {
+        next.total_alloy_vadotar = vadErr;
+      }
     }
 
     // Validate weight details
@@ -663,7 +785,15 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <label className={labelClass}>Parent Melting Lot</label>
-          {renderSelect('parent_melting_lot', 'Parent Melting Lot', parentMeltingLotOptions, formData.parent_melting_lot)}
+          {renderSelect(
+            'parent_melting_lot',
+            'Parent Melting Lot',
+            parentMeltingLotOptions,
+            formData.parent_melting_lot
+          )}
+          {errors.parent_melting_lot && (
+            <p className={`mt-1 ${errorClass}`}>{errors.parent_melting_lot}</p>
+          )}
         </div>
         <div>
           <label className={labelClass}>
@@ -747,9 +877,11 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   // Section 2: Metal Pool Balance (table with Weight input)
   const metalPoolSection = (
     <div className={sectionClass}>
-      <h3 className={`text-lg font-semibold mb-4 pb-2 border-b ${
-        isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
-      }`}>
+      <h3
+        className={`text-lg font-semibold mb-4 pb-2 border-b ${
+          isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'
+        }`}
+      >
         Metal Pool Balance
       </h3>
       {metalPoolLoading ? (
@@ -762,39 +894,41 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
         </div>
       ) : (
         <div>
-          <div className={`overflow-x-auto rounded-lg border ${
-            isDarkMode ? 'border-gray-600' : 'border-gray-300'
-          }`}>
+          <div
+            className={`overflow-x-auto rounded-lg border ${
+              isDarkMode ? 'border-gray-600' : 'border-gray-300'
+            }`}
+          >
             <table className="min-w-full">
               <thead>
-                <tr className={isDarkMode ? 'bg-gray-700' : 'bg-teal-700'}>
+                <tr className={isDarkMode ? 'bg-gray-700' : 'bg-[#F2EFE9]'}>
                   <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border-r ${
-                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-white border-teal-600'
+                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-gray-800 border-gray-200'
                   }`}>
                     Sr.No.
                   </th>
                   <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border-r ${
-                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-white border-teal-600'
+                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-gray-800 border-gray-200'
                   }`}>
                     Weight
                   </th>
                   <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border-r ${
-                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-white border-teal-600'
+                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-gray-800 border-gray-200'
                   }`}>
                     Purity
                   </th>
                   <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border-r ${
-                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-white border-teal-600'
+                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-gray-800 border-gray-200'
                   }`}>
                     Purity %
                   </th>
                   <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border-r ${
-                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-white border-teal-600'
+                    isDarkMode ? 'text-gray-200 border-gray-500' : 'text-gray-800 border-gray-200'
                   }`}>
                     Balance Weight
                   </th>
                   <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${
-                    isDarkMode ? 'text-gray-200' : 'text-white'
+                    isDarkMode ? 'text-gray-200' : 'text-gray-800'
                   }`}>
                     Total Fine Weight
                   </th>
@@ -813,8 +947,11 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
                     }`}>
                       <input
                         type="text"
+                        inputMode="decimal"
                         value={metalPoolWeights[balance.purity] || ''}
                         onChange={(e) => handleMetalPoolWeightChange(balance.purity, e.target.value)}
+                        onKeyDown={handleMetalPoolWeightKeyDown}
+                        onPaste={(e) => handleMetalPoolWeightPaste(balance.purity, e)}
                         placeholder="Enter weight"
                         className={`w-full px-3 py-2 text-sm rounded-md border focus:outline-none focus:ring-2 ${
                           metalPoolWeightErrors[balance.purity]
@@ -878,7 +1015,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
     </div>
   );
 
-  // Section 3: Weight Details - read-only display table
+  // Section 3: Weight Details - editable description column
   const weightDetailsSection = (
     <div className={sectionClass}>
       <div className="flex items-center justify-between mb-4">
@@ -891,10 +1028,19 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
         <EditableWeightTable<WeightDetail>
           columns={weightDetailColumns}
           data={formData.weight_details}
-          readOnly={true}
+          readOnly={readOnly}
           showAddButton={false}
           showTotals={false}
-          onDeleteRow={handleDeleteWeightDetail}
+          onDeleteRow={readOnly ? undefined : handleDeleteWeightDetail}
+          onDataChange={
+            readOnly
+              ? undefined
+              : (rows) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    weight_details: rows,
+                  }))
+          }
         />
       ) : (
         <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -924,6 +1070,8 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   };
   
   const totals = calculateTotals();
+  const totalAlloyVadotarNum = toNum(formData.total_alloy_vadotar);
+  const totalGrossWeight = totals.totalMetalWeight + totalAlloyVadotarNum;
 
   // Section 4: Weight Details Totals - with total_alloy_vadotar as editable
   const weightDetailsTotalsSection = (
@@ -953,7 +1101,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
         <div>
           <label className={labelClass}>Total Gross Weight</label>
           <div className={readOnlyClass}>
-            {totals.totalMetalWeight > 0 ? totals.totalMetalWeight.toFixed(4) : '–'}
+            {totalGrossWeight > 0 ? totalGrossWeight.toFixed(4) : '–'}
           </div>
         </div>
         <div>
@@ -965,11 +1113,17 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
           ) : (
             <input
               type="text"
+              inputMode="decimal"
               value={formData.total_alloy_vadotar}
               onChange={(e) => handleTextChange('total_alloy_vadotar', e.target.value, MAX_TEXT_FIELD_LENGTH)}
-              placeholder="Enter total alloy vadotar"
+              onKeyDown={handleTotalAlloyVadotarKeyDown}
+              onPaste={handleTotalAlloyVadotarPaste}
+              placeholder="Max 12345678901234.1234"
               className={inputClass('total_alloy_vadotar')}
             />
+          )}
+          {errors.total_alloy_vadotar && (
+            <p className={`mt-1 ${errorClass}`}>{errors.total_alloy_vadotar}</p>
           )}
         </div>
       </div>

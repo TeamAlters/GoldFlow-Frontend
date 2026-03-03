@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_TEXT_FIELD_LENGTH } from '../../../shared/utils/formValidation';
+import {
+  MAX_TEXT_FIELD_LENGTH,
+  MAX_LENGTH_4,
+  maxLengthError,
+  validateUppercaseOnly,
+} from '../../../shared/utils/formValidation';
 import { FormSelect } from '../../../shared/components/FormSelect';
 
 export interface ParentMeltingLotFormData {
@@ -65,8 +70,22 @@ export default function ParentMeltingLotForm({
 
     if (!formData.product_abbreviation.trim()) {
       newErrors.product_abbreviation = 'Product Abbreviation is required';
-    } else if (formData.product_abbreviation.length > MAX_TEXT_FIELD_LENGTH) {
-      newErrors.product_abbreviation = `Product Abbreviation must be at most ${MAX_TEXT_FIELD_LENGTH} characters`;
+    } else {
+      const abbr = formData.product_abbreviation.trim();
+      if (abbr.length > MAX_LENGTH_4) {
+        newErrors.product_abbreviation = maxLengthError(
+          'Product Abbreviation',
+          MAX_LENGTH_4
+        );
+      } else {
+        const upperErr = validateUppercaseOnly(
+          abbr,
+          'Product Abbreviation'
+        );
+        if (upperErr) {
+          newErrors.product_abbreviation = upperErr;
+        }
+      }
     }
 
     if (!formData.purity) {
@@ -85,6 +104,9 @@ export default function ParentMeltingLotForm({
   };
 
   const handleChange = (name: string, value: string) => {
+    if (name === 'product_abbreviation') {
+      value = value.toUpperCase().slice(0, MAX_LENGTH_4);
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
     if (errors[name]) {

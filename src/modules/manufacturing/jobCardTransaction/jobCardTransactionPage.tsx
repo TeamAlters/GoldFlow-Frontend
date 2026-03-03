@@ -24,9 +24,12 @@ import { getRowDisplayValue } from '../../../shared/utils/common';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
 
 const ENTITY_NAME = 'job_card_transaction';
 type EntityRow = Record<string, unknown>;
+
+let metadataFetchInFlight = false;
 
 export default function JobCardTransactionPage() {
   const navigate = useNavigate();
@@ -52,12 +55,14 @@ export default function JobCardTransactionPage() {
 
   const fetchMetadata = useCallback(async () => {
     if (!token) return;
+    if (metadataFetchInFlight) return;
+    metadataFetchInFlight = true;
     setMetadataLoading(true);
     try {
       const res = await getEntityMetadata(ENTITY_NAME);
       const meta = res.data;
       if (!meta) return;
-      setMetadata({
+      const normalizedMeta = {
         display_name: meta.display_name ?? entityConfig.displayNamePlural,
         fields: Array.isArray(meta.fields) ? meta.fields : [],
         filters: {
@@ -69,7 +74,9 @@ export default function JobCardTransactionPage() {
         id_field: meta.id_field,
         detail_link_field: meta.detail_link_field,
         pagination: meta.pagination,
-      });
+      };
+      setMetadata(normalizedMeta);
+      setEntityMetadataCache(ENTITY_NAME, normalizedMeta);
       if (meta.pagination?.default_page_size) {
         setPageSize(meta.pagination.default_page_size);
       }
@@ -77,6 +84,7 @@ export default function JobCardTransactionPage() {
       const msg = err instanceof Error ? err.message : 'Failed to load metadata';
       showErrorToastUnlessAuth(msg);
     } finally {
+      metadataFetchInFlight = false;
       setMetadataLoading(false);
     }
   }, [token, entityConfig.displayNamePlural]);
@@ -170,8 +178,24 @@ export default function JobCardTransactionPage() {
   }, [token, page, pageSize, filtersForApi]);
 
   useEffect(() => {
+    if (!token) return;
+    const cached = getEntityMetadataCache(ENTITY_NAME);
+    if (cached) {
+      setMetadata({
+        display_name: cached.display_name,
+        fields: cached.fields as EntityField[],
+        filters: cached.filters as {
+          default_visible: EntityFilterField[];
+          additional: EntityFilterField[];
+        },
+        id_field: cached.id_field,
+        detail_link_field: cached.detail_link_field,
+      });
+      setMetadataLoading(false);
+      return;
+    }
     fetchMetadata();
-  }, [fetchMetadata]);
+  }, [token, fetchMetadata]);
 
   useEffect(() => {
     if (!metadataLoading) {
