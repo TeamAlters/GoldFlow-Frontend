@@ -30,6 +30,39 @@ export default function MainLayout({ children }: MainLayoutProps) {
     }
   }, [location.pathname]);
 
+  // Dynamic sticky offset: measure header height so sidebar (Live Balance, Card Flow, Audit) stays below nav at any zoom.
+  // Must run before early return (rules of hooks). ResizeObserver + delayed measurement for reliability.
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      const el = document.querySelector('[data-header-end]');
+      if (el) {
+        const bottom = el.getBoundingClientRect().bottom;
+        document.documentElement.style.setProperty('--header-height', `${bottom}px`);
+      } else {
+        document.documentElement.style.setProperty('--header-height', '7.5rem');
+      }
+    };
+
+    updateHeaderHeight();
+    requestAnimationFrame(updateHeaderHeight);
+    const timeoutId = window.setTimeout(updateHeaderHeight, 150);
+
+    const headerEl = document.querySelector('[data-header-end]');
+    const resizeObserver =
+      headerEl && typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(updateHeaderHeight)
+        : null;
+    if (resizeObserver && headerEl) resizeObserver.observe(headerEl);
+
+    window.addEventListener('resize', updateHeaderHeight);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateHeaderHeight);
+    };
+  }, [location.pathname]);
+
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signUp';
   if (isAuthPage) return <>{children}</>;
 

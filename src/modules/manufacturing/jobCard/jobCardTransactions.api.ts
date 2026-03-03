@@ -11,6 +11,7 @@ export interface IssueTransaction {
   purity: string | null;
   qty: string | null;
   design?: string;
+  next_job_card?: string;
   created_at: string;
   modified_at?: string;
   created_by?: string;

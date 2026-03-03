@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fallback for dynamic sticky sidebar offset (measured by MainLayout on resize) */
+:root {
+  --header-height: 7.5rem;
+}
+
 /* Custom global styles */
 @layer base {
   body {
