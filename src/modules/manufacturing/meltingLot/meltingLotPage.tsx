@@ -14,6 +14,7 @@ import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { useAuthStore } from '../../../auth/auth.store';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
+import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
 import {
   getEntityMetadata,
   getEntityList,
@@ -67,7 +68,7 @@ export default function MeltingLotPage() {
       const res = await getEntityMetadata(ENTITY_NAME);
       const meta = res.data;
       if (!meta) return;
-      setMetadata({
+      const normalizedMeta = {
         display_name: meta.display_name ?? entityConfig.displayNamePlural,
         fields: Array.isArray(meta.fields) ? meta.fields : [],
         filters: {
@@ -79,7 +80,9 @@ export default function MeltingLotPage() {
         id_field: meta.id_field,
         detail_link_field: meta.detail_link_field,
         pagination: meta.pagination,
-      });
+      };
+      setMetadata(normalizedMeta);
+      setEntityMetadataCache(ENTITY_NAME, normalizedMeta);
       if (meta.pagination?.default_page_size) {
         setPageSize(meta.pagination.default_page_size);
       }
@@ -91,6 +94,26 @@ export default function MeltingLotPage() {
       setMetadataLoading(false);
     }
   }, [token, entityConfig.displayNamePlural]);
+
+  useEffect(() => {
+    if (!token) return;
+    const cached = getEntityMetadataCache(ENTITY_NAME);
+    if (cached) {
+      setMetadata({
+        display_name: cached.display_name,
+        fields: cached.fields as EntityField[],
+        filters: cached.filters as {
+          default_visible: EntityFilterField[];
+          additional: EntityFilterField[];
+        },
+        id_field: cached.id_field,
+        detail_link_field: cached.detail_link_field,
+      });
+      setMetadataLoading(false);
+      return;
+    }
+    fetchMetadata();
+  }, [token, fetchMetadata]);
 
   const filterFieldTypeMap = useMemo((): Record<string, string> => {
     const map: Record<string, string> = {};
@@ -179,10 +202,6 @@ export default function MeltingLotPage() {
       setListLoading(false);
     }
   }, [token, page, pageSize, filtersForApi]);
-
-  useEffect(() => {
-    fetchMetadata();
-  }, [fetchMetadata]);
 
   useEffect(() => {
     if (!metadataLoading) {

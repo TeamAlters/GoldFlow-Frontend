@@ -416,13 +416,14 @@ export default function JobCardEditPage() {
 
   const modalLabelClass = `block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`;
   const modalInputClass = (readOnly?: boolean) =>
-    `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm ${readOnly
-      ? isDarkMode
-        ? 'bg-gray-700/30 border-gray-600 text-gray-300'
-        : 'bg-gray-100 border-gray-200 text-gray-700'
-      : isDarkMode
-        ? 'bg-gray-700/50 border-gray-600 text-white'
-        : 'bg-white border-gray-300 text-gray-900'
+    `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-0 ${
+      readOnly
+        ? isDarkMode
+          ? 'bg-gray-700/30 border-gray-600 text-gray-300'
+          : 'bg-gray-100 border-gray-200 text-gray-700'
+        : isDarkMode
+          ? 'bg-gray-700/50 border-gray-600 text-white'
+          : 'bg-white border-gray-300 text-gray-900'
     }`;
   const modalFieldGridClass = 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4';
 
@@ -854,7 +855,7 @@ export default function JobCardEditPage() {
             </div>
           </div>
 
-          Audit
+          {/* Audit */}
           {/* <div className={cardWrapperClass}>
             <h2
               className={
