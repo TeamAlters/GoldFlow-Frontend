@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 
 export interface FormSelectOption {
@@ -16,6 +17,10 @@ export interface FormSelectProps {
   isDarkMode?: boolean;
   /** When provided and the select is disabled, renders the value as a navigation link instead of a disabled button. */
   navigateTo?: string;
+  /** Controls whether the dropdown opens below (default) or above the trigger button. */
+  placement?: 'top' | 'bottom';
+  /** When true, renders the dropdown menu in a portal to avoid clipping inside scrollable containers (e.g. tables). */
+  usePortal?: boolean;
 }
 
 /**
@@ -30,9 +35,12 @@ export function FormSelect({
   className = '',
   isDarkMode = false,
   navigateTo,
+  placement = 'bottom',
+  usePortal = false,
 }: FormSelectProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLUListElement | null>(null);
 
   const selectedLabel = value ? options.find((o) => o.value === value)?.label ?? value : '';
 
@@ -52,13 +60,112 @@ export function FormSelect({
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const inTrigger = containerRef.current?.contains(target);
+      const inMenu = usePortal ? menuRef.current?.contains(target) : false;
+      if (!inTrigger && !inMenu) {
         setOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
+  }, [open, usePortal]);
+
+  const menuPositionClass =
+    placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1';
+
+  const menuBaseClass = `py-1 rounded-lg border shadow-lg max-h-60 overflow-y-auto min-w-0 scrollbar-hide ${
+    isDarkMode
+      ? 'bg-gray-700 border-gray-600'
+      : 'bg-white border-gray-200'
+  }`;
+
+  const renderMenuContent = () => (
+    <>
+      <li
+        role="option"
+        aria-selected={value === ''}
+        onClick={() => {
+          onChange('');
+          setOpen(false);
+        }}
+        className={`px-4 py-2.5 text-sm cursor-pointer truncate ${
+          value === ''
+            ? isDarkMode
+              ? 'bg-blue-600/30 text-white'
+              : 'bg-blue-50 text-blue-900'
+            : isDarkMode
+              ? 'text-gray-200 hover:bg-gray-600'
+              : 'text-gray-900 hover:bg-gray-100'
+        }`}
+      >
+        {placeholder}
+      </li>
+      {options.map((opt) => (
+        <li
+          key={opt.value}
+          role="option"
+          aria-selected={value === opt.value}
+          onClick={() => {
+            onChange(opt.value);
+            setOpen(false);
+          }}
+          className={`px-4 py-2.5 text-sm cursor-pointer truncate ${
+            value === opt.value
+              ? isDarkMode
+                ? 'bg-blue-600/30 text-white'
+                : 'bg-blue-50 text-blue-900'
+              : isDarkMode
+                ? 'text-gray-200 hover:bg-gray-600'
+                : 'text-gray-900 hover:bg-gray-100'
+          }`}
+          title={opt.label}
+        >
+          {opt.label}
+        </li>
+      ))}
+    </>
+  );
+
+  const renderMenu = () => {
+    if (!open) return null;
+
+    if (usePortal && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const isTop = placement === 'top';
+      const top = isTop ? rect.top - 4 : rect.bottom + 4;
+      const style: React.CSSProperties = {
+        position: 'fixed',
+        left: rect.left,
+        top: isTop ? undefined : top,
+        bottom: isTop ? window.innerHeight - rect.top + 4 : undefined,
+        width: rect.width,
+        zIndex: 9999,
+      };
+
+      return createPortal(
+        <ul
+          ref={menuRef}
+          className={menuBaseClass}
+          role="listbox"
+          style={style}
+        >
+          {renderMenuContent()}
+        </ul>,
+        document.body
+      );
+    }
+
+    return (
+      <ul
+        ref={menuRef}
+        className={`absolute z-[999] left-0 right-0 ${menuPositionClass} ${menuBaseClass}`}
+        role="listbox"
+      >
+        {renderMenuContent()}
+      </ul>
+    );
+  };
 
   return (
     <div ref={containerRef} className="relative min-w-0 max-w-full">
@@ -82,59 +189,7 @@ export function FormSelect({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {open && (
-        <ul
-          className={`absolute z-50 left-0 right-0 mt-1 py-1 rounded-lg border shadow-lg max-h-60 overflow-y-auto min-w-0 scrollbar-hide ${
-            isDarkMode
-              ? 'bg-gray-700 border-gray-600'
-              : 'bg-white border-gray-200'
-          }`}
-          role="listbox"
-        >
-          <li
-            role="option"
-            aria-selected={value === ''}
-            onClick={() => {
-              onChange('');
-              setOpen(false);
-            }}
-            className={`px-4 py-2.5 text-sm cursor-pointer truncate ${
-              value === ''
-                ? isDarkMode
-                  ? 'bg-blue-600/30 text-white'
-                  : 'bg-blue-50 text-blue-900'
-                : isDarkMode
-                  ? 'text-gray-200 hover:bg-gray-600'
-                  : 'text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            {placeholder}
-          </li>
-          {options.map((opt) => (
-            <li
-              key={opt.value}
-              role="option"
-              aria-selected={value === opt.value}
-              onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-              className={`px-4 py-2.5 text-sm cursor-pointer truncate ${
-                value === opt.value
-                  ? isDarkMode
-                    ? 'bg-blue-600/30 text-white'
-                    : 'bg-blue-50 text-blue-900'
-                  : isDarkMode
-                    ? 'text-gray-200 hover:bg-gray-600'
-                    : 'text-gray-900 hover:bg-gray-100'
-              }`}
-              title={opt.label}
-            >
-              {opt.label}
-            </li>
-          ))}
-        </ul>
-      )}
+      {renderMenu()}
     </div>
   );
 }

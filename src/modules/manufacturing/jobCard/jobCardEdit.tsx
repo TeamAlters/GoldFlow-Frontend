@@ -5,7 +5,7 @@ import {
   getEntity,
   updateEntity,
   getEntityReferenceOptions,
-  getEntityListOptions,
+  getEntityReferenceOptionsFiltered,
 } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { toast } from '../../../stores/toast.store';
@@ -23,28 +23,18 @@ import type { ColumnDef } from '../../../shared/components/EditableWeightTable';
 import JobCardReadOnlyTable from '../../../shared/components/JobCardReadOnlyTable';
 import Modal from '../../../shared/components/Modal';
 import { FormSelect } from '../../../shared/components/FormSelect';
+import {
+  createIssueTransaction,
+  deleteIssueTransaction,
+  type IssueTransaction,
+} from './jobCardTransactions.api';
 
 const ENTITY_NAME = 'job_card';
 const JOB_CARD_TRANSACTION_ENTITY = 'job_card_transaction';
 const RECEIPT_TYPE = 'Receipt';
 const ISSUE_TYPE = 'Issue';
 
-interface JobCardTransaction {
-  name: string;
-  transaction_type: string;
-  job_card: string;
-  item: string;
-  weight: string;
-  fine_weight: string;
-  karigar: string | null;
-  purity: string | null;
-  qty: string | null;
-  design?: string;
-  created_at: string;
-  modified_at?: string;
-  created_by?: string;
-  modified_by?: string;
-}
+type JobCardTransaction = IssueTransaction;
 
 type IssueRow = Record<string, string> & { name?: string };
 
@@ -92,24 +82,13 @@ export default function JobCardEditPage() {
   const [initialData, setInitialData] = useState<Partial<JobCardFormData> | null>(null);
   const [entityName, setEntityName] = useState<string>('');
   const [productOptions, setProductOptions] = useState<Array<{ value: string; label: string }>>([]);
-  const [parentMeltingLotOptions, setParentMeltingLotOptions] = useState<
-    Array<{ value: string; label: string }>
-  >([]);
-  const [meltingLotOptions, setMeltingLotOptions] = useState<
-    Array<{ value: string; label: string }>
-  >([]);
   const [purityOptions, setPurityOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [departmentOptions, setDepartmentOptions] = useState<
     Array<{ value: string; label: string }>
   >([]);
-  const [departmentGroupOptions, setDepartmentGroupOptions] = useState<
-    Array<{ value: string; label: string }>
-  >([]);
   const [designOptions, setDesignOptions] = useState<Array<{ value: string; label: string }>>([]);
-  const [previousJobCardOptions, setPreviousJobCardOptions] = useState<
-    Array<{ value: string; label: string }>
-  >([]);
   const [karigarOptions, setKarigarOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [itemOptions, setItemOptions] = useState<Array<{ value: string; label: string }>>([]);
 
   const [receiptTransactions, setReceiptTransactions] = useState<JobCardTransaction[]>([]);
   const [issueTransactions, setIssueTransactions] = useState<JobCardTransaction[]>([]);
@@ -127,6 +106,8 @@ export default function JobCardEditPage() {
   const [receiptDetailName, setReceiptDetailName] = useState<string | null>(null);
   const [issueDetailName, setIssueDetailName] = useState<string | null>(null);
   const [issueEditDraft, setIssueEditDraft] = useState<IssueRow | null>(null);
+  const [issueModalSaving, setIssueModalSaving] = useState(false);
+  const [issueDetailIndex, setIssueDetailIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -135,28 +116,13 @@ export default function JobCardEditPage() {
       setDataLoading(true);
       try {
         const decodedId = decodeURIComponent(id);
-        const [
-          entityRes,
-          products,
-          parentMeltingLots,
-          meltingLots,
-          purities,
-          departments,
-          departmentGroups,
-          designs,
-          jobCards,
-          karigars,
-        ] = await Promise.all([
+        const [entityRes, products, purities, departments, karigars, items] = await Promise.all([
           getEntity(ENTITY_NAME, decodedId),
           getEntityReferenceOptions('product', 'product_name', 'product_name'),
-          getEntityListOptions('parent_melting_lot', 'name', 'name'),
-          getEntityListOptions('melting_lot', 'name', 'name'),
           getEntityReferenceOptions('purity', 'purity', 'purity'),
           getEntityReferenceOptions('department', 'name', 'name'),
-          getEntityListOptions('product_department_group', 'name', 'name'),
-          getEntityReferenceOptions('design', 'design_name', 'design_name'),
-          getEntityListOptions('job_card', 'name', 'name'),
           getEntityReferenceOptions('karigar', 'karigar', 'karigar'),
+          getEntityReferenceOptions('item', 'item_name', 'item_name'),
         ]);
 
         if (entityRes.data && typeof entityRes.data === 'object') {
@@ -164,10 +130,11 @@ export default function JobCardEditPage() {
           const transactions = (entity.transactions as JobCardTransaction[]) ?? [];
           const receipts = (entity.receipts as JobCardTransaction[] | undefined) ?? transactions.filter((tx) => String(tx.transaction_type).trim() === RECEIPT_TYPE);
           const issues = (entity.issues as JobCardTransaction[] | undefined) ?? transactions.filter((tx) => String(tx.transaction_type).trim() === ISSUE_TYPE);
+          const productName = String(entity.product ?? '');
           setEntityName(String(entity.name ?? decodedId));
           setInitialData({
             name: String(entity.name ?? ''),
-            product: String(entity.product ?? ''),
+            product: productName,
             parent_melting_lot: String(entity.parent_melting_lot ?? ''),
             melting_lot: String(entity.melting_lot ?? ''),
             purity: String(entity.purity ?? ''),
@@ -193,17 +160,20 @@ export default function JobCardEditPage() {
             created_at: entity.created_at as string | undefined,
             modified_at: entity.modified_at as string | undefined,
           });
+
+          if (productName) {
+            const designs = await getEntityReferenceOptionsFiltered('design', productName, 'design_name', 'design_name');
+            setDesignOptions(designs);
+          } else {
+            setDesignOptions([]);
+          }
         }
 
         setProductOptions(products);
-        setParentMeltingLotOptions(parentMeltingLots);
-        setMeltingLotOptions(meltingLots);
         setPurityOptions(purities);
         setDepartmentOptions(departments);
-        setDepartmentGroupOptions(departmentGroups);
-        setDesignOptions(designs);
-        setPreviousJobCardOptions(jobCards);
         setKarigarOptions(karigars);
+        setItemOptions(items);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to load data';
         showErrorToastUnlessAuth(msg);
@@ -270,9 +240,32 @@ export default function JobCardEditPage() {
     ]);
   }, []);
 
-  const handleDeleteIssueRow = useCallback((index: number) => {
-    setIssueRows((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+  const handleDeleteIssueRow = useCallback(
+    (index: number) => {
+      setIssueRows((prev) => {
+        const row = prev[index];
+        const name = row?.name;
+        if (name) {
+          deleteIssueTransaction(name)
+            .then(() => {
+              setIssueTransactions((txs) =>
+                txs.filter((t) => t.name !== name)
+              );
+              toast.success('Issue transaction deleted successfully');
+            })
+            .catch((err) => {
+              const msg =
+                err instanceof Error
+                  ? err.message
+                  : 'Failed to delete issue transaction';
+              showErrorToastUnlessAuth(msg);
+            });
+        }
+        return prev.filter((_, i) => i !== index);
+      });
+    },
+    []
+  );
 
   const cardWrapperClass = `p-6 rounded-xl border ${
     isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
@@ -290,22 +283,132 @@ export default function JobCardEditPage() {
       : null;
   useEffect(() => {
     if (issueDetailName != null) {
-      const row = issueRows.find((r) => r.name === issueDetailName);
+      const row =
+        issueDetailIndex != null
+          ? issueRows[issueDetailIndex] ?? null
+          : issueRows.find((r) => r.name === issueDetailName);
       const full = issueTransactions.find((t) => t.name === issueDetailName);
       setIssueEditDraft(row ? { ...row } : full ? toIssueRow(full) : null);
     } else {
       setIssueEditDraft(null);
     }
-  }, [issueDetailName, issueRows, issueTransactions]);
+  }, [issueDetailName, issueDetailIndex, issueRows, issueTransactions]);
 
-  const handleSaveIssueModal = useCallback(() => {
-    if (issueDetailName == null || !issueEditDraft) return;
-    setIssueRows((prev) =>
-      prev.map((r) => (r.name === issueDetailName ? { ...issueEditDraft } : r))
-    );
-    setIssueDetailName(null);
-    setIssueEditDraft(null);
-  }, [issueDetailName, issueEditDraft]);
+  const handleSaveIssueModal = useCallback(async () => {
+    if (!issueEditDraft || !entityName) return;
+
+    const weightNumber = parseFloat(issueEditDraft.weight ?? '');
+    const qtyNumber = issueEditDraft.qty
+      ? parseInt(issueEditDraft.qty, 10)
+      : 0;
+    const item = issueEditDraft.item ?? '';
+
+    if (!item || Number.isNaN(weightNumber) || weightNumber <= 0) {
+      showErrorToastUnlessAuth(
+        !item
+          ? 'Item is required'
+          : 'Weight must be a positive number'
+      );
+      return;
+    }
+
+    setIssueModalSaving(true);
+    try {
+      const tx = await createIssueTransaction({
+        job_card: entityName,
+        item,
+        weight: weightNumber,
+        design: issueEditDraft.design || undefined,
+        karigar: issueEditDraft.karigar || undefined,
+        qty: qtyNumber,
+      });
+
+      setIssueTransactions((prev) => {
+        const idx = prev.findIndex((t) => t.name === tx.name);
+        if (idx === -1) return [...prev, tx];
+        const next = [...prev];
+        next[idx] = tx;
+        return next;
+      });
+
+      setIssueRows((prev) => {
+        const rowFromTx = toIssueRow(tx);
+
+        if (issueDetailIndex != null && issueDetailIndex >= 0 && issueDetailIndex < prev.length) {
+          const next = [...prev];
+          next[issueDetailIndex] = rowFromTx;
+          return next;
+        }
+
+        if (issueDetailName) {
+          const idxByDetail = prev.findIndex(
+            (r) => r.name === issueDetailName
+          );
+          if (idxByDetail !== -1) {
+            const next = [...prev];
+            next[idxByDetail] = rowFromTx;
+            return next;
+          }
+        }
+
+        const idxByName = prev.findIndex((r) => r.name === tx.name);
+        if (idxByName !== -1) {
+          const next = [...prev];
+          next[idxByName] = rowFromTx;
+          return next;
+        }
+
+        return [...prev, rowFromTx];
+      });
+
+      toast.success('Issue transaction saved successfully');
+      setIssueDetailName(null);
+      setIssueDetailIndex(null);
+      setIssueEditDraft(null);
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Failed to save issue transaction';
+      showErrorToastUnlessAuth(msg);
+    } finally {
+      setIssueModalSaving(false);
+    }
+  }, [entityName, issueDetailName, issueDetailIndex, issueEditDraft]);
+
+  const handleIssueCellChange = useCallback(
+    (index: number, key: string, value: string) => {
+      setIssueRows((prev) => {
+        if (index < 0 || index >= prev.length) return prev;
+        const next = [...prev];
+        const current = { ...next[index] };
+
+        (current as Record<string, string>)[key] = value;
+
+        if (key === 'weight' || key === 'purity') {
+          const weightStr =
+            key === 'weight' ? value : String(current.weight ?? '');
+          const purityStr =
+            key === 'purity' ? value : String(current.purity ?? '');
+
+          const w = parseFloat(weightStr);
+          const p = parseFloat(purityStr);
+
+          const fine =
+            !Number.isNaN(w) && w > 0 && !Number.isNaN(p) && p > 0
+              ? (w * p) / 100
+              : NaN;
+
+          (current as Record<string, string>)['fine_weight'] =
+            !Number.isNaN(fine) && fine > 0 ? fine.toFixed(4) : '';
+        }
+
+        next[index] = current;
+        return next;
+      });
+    },
+    []
+  );
 
   const modalLabelClass = `block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`;
   const modalInputClass = (readOnly?: boolean) =>
@@ -341,34 +444,40 @@ export default function JobCardEditPage() {
       key: 'item',
       header: 'Item',
       isDropdown: true,
-      dropdownOptions: departmentOptions,
+      dropdownOptions: itemOptions,
+      width: 'w-40',
     },
     {
       key: 'weight',
       header: 'Weight (G)',
       isEditable: true,
+      width: 'w-32',
     },
     {
       key: 'fine_weight',
       header: 'Fine WT (G)',
       isEditable: true,
+      width: 'w-32',
     },
     {
       key: 'karigar',
       header: 'Karigar',
       isDropdown: true,
       dropdownOptions: karigarOptions,
+      width: 'w-32',
     },
     {
       key: 'qty',
       header: 'Qty',
       isEditable: true,
+      width: 'w-24',
     },
     {
       key: 'design',
       header: 'Design',
       isDropdown: true,
       dropdownOptions: designOptions,
+      width: 'w-32',
     },
     {
       key: 'purity',
@@ -435,13 +544,9 @@ export default function JobCardEditPage() {
               isLoading={isLoading}
               isEdit={true}
               productOptions={productOptions}
-              parentMeltingLotOptions={parentMeltingLotOptions}
-              meltingLotOptions={meltingLotOptions}
               purityOptions={purityOptions}
               departmentOptions={departmentOptions}
-              departmentGroupOptions={departmentGroupOptions}
               designOptions={designOptions}
-              previousJobCardOptions={previousJobCardOptions}
             />
           </div>
 
@@ -515,11 +620,16 @@ export default function JobCardEditPage() {
               showActions={true}
               onAddRow={handleAddIssueRow}
               onDeleteRow={handleDeleteIssueRow}
+              onCellChange={handleIssueCellChange}
               getRowId={(_, index) => index}
               renderActions={(row) => (
                 <button
                   type="button"
-                  onClick={() => setIssueDetailName(String(row.name ?? ''))}
+                  onClick={() => {
+                    const idx = issueRows.indexOf(row);
+                    setIssueDetailIndex(idx >= 0 ? idx : null);
+                    setIssueDetailName(String(row.name ?? ''));
+                  }}
                   className={`p-1.5 rounded transition-colors ${
                     isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'
                   }`}
@@ -817,7 +927,7 @@ export default function JobCardEditPage() {
       {/* Issue detail modal – eye opens, all data as input fields, editable; Save updates row locally */}
       <Modal
         isOpen={issueDetailName != null}
-        onClose={() => { setIssueDetailName(null); setIssueEditDraft(null); }}
+        onClose={() => { setIssueDetailName(null); setIssueDetailIndex(null); setIssueEditDraft(null); }}
         title={issueDetail ? `Issue: ${issueDetail.name}` : issueEditDraft?.name ? `Issue: ${issueEditDraft.name}` : 'Issue details'}
         size="lg"
         className="w-full max-w-4xl"
@@ -827,23 +937,11 @@ export default function JobCardEditPage() {
             <h2 className={sectionHeadingClass}>Issue</h2>
             <div className={modalFieldGridClass}>
               <div>
-                <label className={modalLabelClass}>Name</label>
-                <input type="text" readOnly value={issueEditDraft.name ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Transaction Type</label>
-                <input type="text" readOnly value={issueDetail?.transaction_type ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Job Card</label>
-                <input type="text" readOnly value={issueDetail?.job_card ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
                 <label className={modalLabelClass}>Item</label>
                 <FormSelect
                   value={issueEditDraft.item ?? ''}
                   onChange={(v) => setIssueEditDraft((p) => (p ? { ...p, item: v } : null))}
-                  options={departmentOptions}
+                  options={itemOptions}
                   placeholder="Select Item"
                   isDarkMode={isDarkMode}
                 />
@@ -853,7 +951,26 @@ export default function JobCardEditPage() {
                 <input
                   type="text"
                   value={issueEditDraft.weight ?? ''}
-                  onChange={(e) => setIssueEditDraft((p) => (p ? { ...p, weight: e.target.value } : null))}
+                  onChange={(e) => {
+                    const newWeight = e.target.value;
+                    setIssueEditDraft((p) => {
+                      if (!p) return null;
+                      const w = parseFloat(newWeight);
+                      const puritySource =
+                        p.purity ??
+                        (issueDetail?.purity != null
+                          ? String(issueDetail.purity)
+                          : '');
+                      const pVal = parseFloat(puritySource);
+                      const fine =
+                        !Number.isNaN(w) && w > 0 && !Number.isNaN(pVal) && pVal > 0
+                          ? (w * pVal) / 100
+                          : NaN;
+                      const nextFine =
+                        !Number.isNaN(fine) && fine > 0 ? fine.toFixed(4) : '';
+                      return { ...p, weight: newWeight, fine_weight: nextFine };
+                    });
+                  }}
                   className={modalInputClass()}
                 />
               </div>
@@ -862,8 +979,8 @@ export default function JobCardEditPage() {
                 <input
                   type="text"
                   value={issueEditDraft.fine_weight ?? ''}
-                  onChange={(e) => setIssueEditDraft((p) => (p ? { ...p, fine_weight: e.target.value } : null))}
-                  className={modalInputClass()}
+                  readOnly
+                  className={modalInputClass(true)}
                 />
               </div>
               <div>
@@ -873,16 +990,6 @@ export default function JobCardEditPage() {
                   onChange={(v) => setIssueEditDraft((p) => (p ? { ...p, karigar: v } : null))}
                   options={karigarOptions}
                   placeholder="Select Karigar"
-                  isDarkMode={isDarkMode}
-                />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Purity</label>
-                <FormSelect
-                  value={issueEditDraft.purity ?? ''}
-                  onChange={(v) => setIssueEditDraft((p) => (p ? { ...p, purity: v } : null))}
-                  options={purityOptions}
-                  placeholder="Select Purity"
                   isDarkMode={isDarkMode}
                 />
               </div>
@@ -897,35 +1004,20 @@ export default function JobCardEditPage() {
               </div>
               <div>
                 <label className={modalLabelClass}>Design</label>
-                <input
-                  type="text"
+                <FormSelect
                   value={issueEditDraft.design ?? ''}
-                  onChange={(e) => setIssueEditDraft((p) => (p ? { ...p, design: e.target.value } : null))}
-                  className={modalInputClass()}
+                  onChange={(v) => setIssueEditDraft((p) => (p ? { ...p, design: v } : null))}
+                  options={designOptions}
+                  placeholder="Select Design"
+                  isDarkMode={isDarkMode}
                 />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Created At</label>
-                <input type="text" readOnly value={issueDetail?.created_at ? formatDateTime(issueDetail.created_at) : ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Modified At</label>
-                <input type="text" readOnly value={issueDetail?.modified_at ? formatDateTime(issueDetail.modified_at) : ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Created By</label>
-                <input type="text" readOnly value={issueDetail?.created_by ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Modified By</label>
-                <input type="text" readOnly value={issueDetail?.modified_by ?? ''} className={modalInputClass(true)} />
               </div>
             </div>
             <div className={modalFooterClass}>
-              <button type="button" onClick={() => { setIssueDetailName(null); setIssueEditDraft(null); }} className={cancelBtnClass}>
+              <button type="button" onClick={() => { setIssueDetailName(null); setIssueDetailIndex(null); setIssueEditDraft(null); }} className={cancelBtnClass}>
                 Cancel
               </button>
-              <button type="button" onClick={handleSaveIssueModal} className={saveBtnClass}>
+              <button type="button" onClick={handleSaveIssueModal} className={saveBtnClass} disabled={issueModalSaving}>
                 Save
               </button>
             </div>
@@ -934,7 +1026,7 @@ export default function JobCardEditPage() {
           <>
             <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Issue not found.</p>
             <div className={modalFooterClass}>
-              <button type="button" onClick={() => { setIssueDetailName(null); setIssueEditDraft(null); }} className={closeBtnClass}>
+              <button type="button" onClick={() => { setIssueDetailName(null); setIssueDetailIndex(null); setIssueEditDraft(null); }} className={closeBtnClass}>
                 Close
               </button>
             </div>

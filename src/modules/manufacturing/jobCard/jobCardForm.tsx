@@ -25,13 +25,9 @@ export interface JobCardFormProps {
   isLoading?: boolean;
   isEdit?: boolean;
   productOptions: FormSelectOption[];
-  parentMeltingLotOptions: FormSelectOption[];
-  meltingLotOptions: FormSelectOption[];
   purityOptions: FormSelectOption[];
   departmentOptions: FormSelectOption[];
-  departmentGroupOptions: FormSelectOption[];
   designOptions: FormSelectOption[];
-  previousJobCardOptions: FormSelectOption[];
 }
 
 function validateInteger(value: string, fieldLabel: string): string | null {
@@ -53,13 +49,9 @@ export default function JobCardForm({
   isLoading: _isLoading = false,
   isEdit = false,
   productOptions,
-  parentMeltingLotOptions,
-  meltingLotOptions,
   purityOptions,
   departmentOptions,
-  departmentGroupOptions,
   designOptions,
-  previousJobCardOptions,
 }: JobCardFormProps) {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
@@ -92,30 +84,6 @@ export default function JobCardForm({
 
     if (formData.name.length > MAX_TEXT_FIELD_LENGTH) {
       newErrors.name = maxLengthError('Name');
-    }
-
-    if (!formData.product) {
-      newErrors.product = 'Product is required';
-    }
-
-    if (!formData.melting_lot) {
-      newErrors.melting_lot = 'Melting lot is required';
-    }
-
-    if (!formData.purity) {
-      newErrors.purity = 'Purity is required';
-    }
-
-    if (!formData.department) {
-      newErrors.department = 'Department is required';
-    }
-
-    if (!formData.department_group) {
-      newErrors.department_group = 'Department group is required';
-    }
-
-    if (!formData.design) {
-      newErrors.design = 'Design is required';
     }
 
     const qtyError = validateInteger(formData.qty, 'Qty');
@@ -165,7 +133,21 @@ export default function JobCardForm({
     isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-black'
   }`;
 
-  function EditModeRef({ fieldKey, value }: { fieldKey: 'product' | 'melting_lot' | 'department' | 'department_group' | 'purity' | 'design'; value: string }) {
+  function EditModeRef({
+    fieldKey,
+    value,
+  }: {
+    fieldKey:
+      | 'product'
+      | 'melting_lot'
+      | 'department'
+      | 'department_group'
+      | 'purity'
+      | 'design'
+      | 'parent_melting_lot'
+      | 'previous_job_card';
+    value: string;
+  }) {
     const str = value || '–';
     const route = value ? getEntityDetailRoute(fieldKey, value) : null;
     if (route) {
@@ -226,41 +208,13 @@ export default function JobCardForm({
         </div>
 
         <div>
-          <label htmlFor="parent_melting_lot" className={labelClass}>
-            Parent Melting Lot
-          </label>
-          <FormSelect
-            value={formData.parent_melting_lot}
-            onChange={(value) => handleChange('parent_melting_lot', value)}
-            options={parentMeltingLotOptions}
-            placeholder="Select Parent Melting Lot"
-            isDarkMode={isDarkMode}
-            className={selectClass('parent_melting_lot')}
-          />
-          {errors.parent_melting_lot && (
-            <p className={errorClass}>{errors.parent_melting_lot}</p>
-          )}
+          <label className={labelClass}>Parent Melting Lot</label>
+          <EditModeRef fieldKey="parent_melting_lot" value={formData.parent_melting_lot} />
         </div>
 
         <div>
-          <label htmlFor="melting_lot" className={labelClass}>
-            Melting Lot <span className="text-red-500">*</span>
-          </label>
-          {isEdit ? (
-            <EditModeRef fieldKey="melting_lot" value={formData.melting_lot} />
-          ) : (
-            <>
-              <FormSelect
-                value={formData.melting_lot}
-                onChange={(value) => handleChange('melting_lot', value)}
-                options={meltingLotOptions}
-                placeholder="Select Melting Lot"
-                isDarkMode={isDarkMode}
-                className={selectClass('melting_lot')}
-              />
-              {errors.melting_lot && <p className={errorClass}>{errors.melting_lot}</p>}
-            </>
-          )}
+          <label className={labelClass}>Melting Lot</label>
+          <EditModeRef fieldKey="melting_lot" value={formData.melting_lot} />
         </div>
 
         {isEdit ? (
@@ -307,66 +261,43 @@ export default function JobCardForm({
           </div>
         )}
 
-        {isEdit ? (
-          <div>
-            <label className={labelClass}>Department Group</label>
-            <EditModeRef fieldKey="department_group" value={formData.department_group} />
-          </div>
-        ) : (
-          <div>
-            <label htmlFor="department_group" className={labelClass}>
-              Department Group <span className="text-red-500">*</span>
-            </label>
-            <FormSelect
-              value={formData.department_group}
-              onChange={(value) => handleChange('department_group', value)}
-              options={departmentGroupOptions}
-              placeholder="Select Department Group"
-              isDarkMode={isDarkMode}
-              className={selectClass('department_group')}
-            />
-            {errors.department_group && (
-              <p className={errorClass}>{errors.department_group}</p>
-            )}
-          </div>
-        )}
-
         <div>
-          <label htmlFor="design" className={labelClass}>
-            Design <span className="text-red-500">*</span>
-          </label>
-          {isEdit ? (
-            <EditModeRef fieldKey="design" value={formData.design} />
-          ) : (
-            <>
-              <FormSelect
-                value={formData.design}
-                onChange={(value) => handleChange('design', value)}
-                options={designOptions}
-                placeholder="Select Design"
-                isDarkMode={isDarkMode}
-                className={selectClass('design')}
-              />
-              {errors.design && <p className={errorClass}>{errors.design}</p>}
-            </>
-          )}
+          <label className={labelClass}>Department Group</label>
+          <EditModeRef fieldKey="department_group" value={formData.department_group} />
         </div>
 
         <div>
-          <label htmlFor="previous_job_card" className={labelClass}>
-            Previous Job Card
+          <label className={labelClass}>Previous Job Card</label>
+          <EditModeRef fieldKey="previous_job_card" value={formData.previous_job_card} />
+        </div>
+
+        <div>
+          <label htmlFor="design" className={labelClass}>
+            Design
           </label>
-          <FormSelect
-            value={formData.previous_job_card}
-            onChange={(value) => handleChange('previous_job_card', value)}
-            options={previousJobCardOptions}
-            placeholder="Select Previous Job Card"
-            isDarkMode={isDarkMode}
-            className={selectClass('previous_job_card')}
-          />
-          {errors.previous_job_card && (
-            <p className={errorClass}>{errors.previous_job_card}</p>
+          {designOptions.length > 1 ? (
+            <FormSelect
+              value={formData.design}
+              onChange={(value) => handleChange('design', value)}
+              options={designOptions}
+              placeholder="Select Design"
+              isDarkMode={isDarkMode}
+              className={selectClass('design')}
+            />
+          ) : (
+            <input
+              type="text"
+              id="design"
+              name="design"
+              value={formData.design}
+              onChange={(e) => handleChange('design', e.target.value.slice(0, MAX_TEXT_FIELD_LENGTH))}
+              maxLength={MAX_TEXT_FIELD_LENGTH}
+              className={`${inputClass} ${errors.design ? 'border-red-500' : ''}`}
+              placeholder="Enter design"
+            />
           )}
+          {/* Design link removed for better UX */}
+          {errors.design && <p className={errorClass}>{errors.design}</p>}
         </div>
 
         <div>

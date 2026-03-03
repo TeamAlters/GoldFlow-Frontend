@@ -59,11 +59,11 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
           : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
       }`;
 
-  const thClass = `px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${
+  const thClass = `px-4 py-3 text-center text-xs font-bold uppercase tracking-wider whitespace-nowrap ${
     isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-[#F2EFE9] text-gray-800 border-gray-200'
   }`;
 
-  const tdClass = `px-4 py-3 text-sm ${
+  const tdClass = `px-4 py-2 text-sm align-middle text-center ${
     isDarkMode ? 'border-gray-600' : 'border-gray-200'
   }`;
 
@@ -90,10 +90,13 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
   }, {});
 
   return (
-    <div className={`overflow-x-auto rounded-lg border w-full ${
-      isDarkMode ? 'border-gray-600' : 'border-gray-200'
-    }`}>
-      <table className="min-w-full">
+    <div
+      className={`relative z-10 rounded-lg border w-full ${
+        isDarkMode ? 'border-gray-600' : 'border-gray-200'
+      }`}
+    >
+      <div className="overflow-x-auto overflow-y-visible">
+        <table className="min-w-full">
         <thead>
           <tr className={isDarkMode ? 'border-b border-gray-600' : 'border-b border-gray-200'}>
             <th className={`${thClass} border-r w-12`}>Sr.no</th>
@@ -118,38 +121,50 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                 {index + 1}
               </td>
               {columns.map((col, colIndex) => (
-                <td key={col.key} className={`${tdClass} ${colIndex < columns.length - 1 ? 'border-r' : ''}`}>
-                  {col.renderCell ? (
-                    col.renderCell(row, index)
-                  ) : col.isDropdown && col.dropdownOptions ? (
-                    <FormSelect
-                      value={String(row[col.key] || '')}
-                      onChange={(v) => handleInputChange(index, col.key, v)}
-                      options={col.dropdownOptions}
-                      placeholder="Select"
-                      disabled={readOnly}
-                      isDarkMode={isDarkMode}
-                      className={`min-w-0 w-full ${isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-900'}`}
-                    />
-                  ) : col.isEditable ? (
-                    <input
-                      type="text"
-                      value={String(row[col.key] || '')}
-                      onChange={(e) => handleInputChange(index, col.key, e.target.value)}
-                      disabled={readOnly}
-                      className={inputClass}
-                    />
-                  ) : col.isReadOnly ? (
-                    <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                      {row[col.key] !== undefined && row[col.key] !== null
-                        ? String(row[col.key])
-                        : '–'}
-                    </span>
-                  ) : (
-                    <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
-                      {String(row[col.key] || '')}
-                    </span>
-                  )}
+                <td
+                  key={col.key}
+                  className={`${tdClass} ${colIndex < columns.length - 1 ? 'border-r' : ''} ${
+                    col.width || ''
+                  }`}
+                >
+                  <div className="flex items-center justify-center min-h-[42px]">
+                    {col.renderCell ? (
+                      col.renderCell(row, index)
+                    ) : col.isDropdown && col.dropdownOptions ? (
+                      <FormSelect
+                        value={String(row[col.key] || '')}
+                        onChange={(v) => handleInputChange(index, col.key, v)}
+                        options={col.dropdownOptions}
+                        placeholder="Select"
+                        disabled={readOnly}
+                        isDarkMode={isDarkMode}
+                        usePortal={true}
+                        className={`min-w-0 w-full ${
+                          isDarkMode
+                            ? 'bg-gray-700/50 border-gray-600 text-gray-200'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                      />
+                    ) : col.isEditable ? (
+                      <input
+                        type="text"
+                        value={String(row[col.key] || '')}
+                        onChange={(e) => handleInputChange(index, col.key, e.target.value)}
+                        disabled={readOnly}
+                        className={inputClass}
+                      />
+                    ) : col.isReadOnly ? (
+                      <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                        {row[col.key] !== undefined && row[col.key] !== null
+                          ? String(row[col.key])
+                          : '–'}
+                      </span>
+                    ) : (
+                      <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                        {String(row[col.key] || '')}
+                      </span>
+                    )}
+                  </div>
                 </td>
               ))}
               {showActionsColumn && (
@@ -209,15 +224,20 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
         {showTotals && Object.keys(totals).length > 0 && data.length > 0 && (
           <tfoot className={isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}>
             <tr>
-              <td className={`${tdClass} text-center font-semibold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>
+              <td
+                className={`${tdClass} text-center font-semibold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}
+              >
                 Total
               </td>
               {columns.map((col) => (
-                <td key={col.key} className={`${tdClass} font-semibold ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
+                <td
+                  key={col.key}
+                  className={`${tdClass} font-semibold ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}
+                >
                   {totals[col.key] !== undefined
                     ? totals[col.key].toFixed(4)
                     : ''}
@@ -227,7 +247,8 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
             </tr>
           </tfoot>
         )}
-      </table>
+        </table>
+      </div>
       {!readOnly && showAddButton && onAddRow && (
         <div className="p-3 flex justify-end">
           <button
