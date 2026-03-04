@@ -74,11 +74,10 @@ export function FormSelect({
   const menuPositionClass =
     placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1';
 
-  const menuBaseClass = `py-1 rounded-lg border shadow-lg max-h-60 overflow-y-auto min-w-0 scrollbar-hide ${
-    isDarkMode
+  const menuBaseClass = `py-1 rounded-lg border shadow-lg max-h-60 overflow-y-auto min-w-0 scrollbar-hide ${isDarkMode
       ? 'bg-gray-700 border-gray-600'
       : 'bg-white border-gray-200'
-  }`;
+    }`;
 
   const renderMenuContent = () => (
     <>
@@ -89,15 +88,14 @@ export function FormSelect({
           onChange('');
           setOpen(false);
         }}
-        className={`px-4 py-2.5 text-sm cursor-pointer truncate ${
-          value === ''
+        className={`px-4 py-2.5 text-sm cursor-pointer truncate ${value === ''
             ? isDarkMode
               ? 'bg-blue-600/30 text-white'
               : 'bg-blue-50 text-blue-900'
             : isDarkMode
               ? 'text-gray-200 hover:bg-gray-600'
               : 'text-gray-900 hover:bg-gray-100'
-        }`}
+          }`}
       >
         {placeholder}
       </li>
@@ -110,15 +108,14 @@ export function FormSelect({
             onChange(opt.value);
             setOpen(false);
           }}
-          className={`px-4 py-2.5 text-sm cursor-pointer truncate ${
-            value === opt.value
+          className={`px-4 py-2.5 text-sm cursor-pointer truncate ${value === opt.value
               ? isDarkMode
                 ? 'bg-blue-600/30 text-white'
                 : 'bg-blue-50 text-blue-900'
               : isDarkMode
                 ? 'text-gray-200 hover:bg-gray-600'
                 : 'text-gray-900 hover:bg-gray-100'
-          }`}
+            }`}
           title={opt.label}
         >
           {opt.label}
@@ -173,7 +170,10 @@ export function FormSelect({
         type="button"
         onClick={() => !disabled && setOpen((prev) => !prev)}
         disabled={disabled}
-        className={`w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 text-left flex items-center justify-between gap-2 min-w-0 ${className}`}
+        className={`w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 text-left flex items-center justify-between gap-2 min-w-0 ${isDarkMode
+            ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500 focus:border-transparent'
+            : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-transparent'
+          } ${className}`}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
