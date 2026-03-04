@@ -43,6 +43,7 @@ export type MetalLedgerFormData = {
   pure_weight: string;
   fine_weight: string;
   fine_weight_with_wastage: string;
+  issue_fine_deficit: string;
   rate_cut_weight: string;
 
   // Hallmark Details
@@ -129,6 +130,7 @@ const emptyForm: MetalLedgerFormData = {
   pure_weight: '',
   fine_weight: '',
   fine_weight_with_wastage: '',
+  issue_fine_deficit: '0',
   rate_cut_weight: '',
   hallmark_rate: '',
   hallmark_qty: '',
@@ -157,11 +159,14 @@ function toNum(value: string | number | null | undefined): number {
 }
 
 // Calculate derived fields with new formulas
-function calculateDerivedFields(data: MetalLedgerFormData, transactionType: string) {
+function calculateDerivedFields(
+  data: MetalLedgerFormData,
+  transactionType: string,
+  entryType: string
+) {
   const grossWeight = toNum(data.gross_weight);
   const purityPercentage = toNum(data.purity_percentage);
   const wastage = toNum(data.wastage);
-  const rateCutWeight = toNum(data.rate_cut_weight);
   const hallmarkRate = toNum(data.hallmark_rate);
   const hallmarkQty = toNum(data.hallmark_qty);
   const stoneRate = toNum(data.stone_rate);
@@ -181,10 +186,37 @@ function calculateDerivedFields(data: MetalLedgerFormData, transactionType: stri
     ? (grossWeight * purityPercentage) / 100
     : 0;
 
-  // Fine Weight with Wastage = (Purity(%) + wastage) * GrossWeight / 100
-  const fineWeightWithWastage = grossWeight > 0 && purityPercentage > 0
+  // Fine Weight with Wastage (by formula) = (Purity(%) + wastage) * GrossWeight / 100
+  const fineWeightWithWastageByFormula = grossWeight > 0 && purityPercentage > 0
     ? ((purityPercentage + wastage) * grossWeight) / 100
     : 0;
+
+  const isReceipt = (entryType || '').toUpperCase() === 'RECEIPT';
+  const isIssue = (entryType || '').toUpperCase() === 'ISSUE';
+
+  let issueFineDeficit = 0;
+  let effectiveFineWeightWithWastage = fineWeightWithWastageByFormula;
+  let amount: number;
+
+  if (isReceipt) {
+    issueFineDeficit = 0;
+    effectiveFineWeightWithWastage = fineWeightWithWastageByFormula;
+    amount = pureWeight * goldRate;
+  } else if (isIssue && transactionType === 'LABOUR') {
+    // rate_cut_weight = fine_weight - fine_weight_with_wastage
+    const rateCutWeight = fineWeight - fineWeightWithWastageByFormula;
+    issueFineDeficit = rateCutWeight;
+    // fine_weight_with_wastage = current + issue_fine_deficit
+    effectiveFineWeightWithWastage = fineWeightWithWastageByFormula + issueFineDeficit;
+    amount = Math.abs(issueFineDeficit * goldRate);
+  } else if (isIssue && transactionType === 'PURCHASE') {
+    // issue_fine_deficit = negative of fine_weight_with_wastage (by formula)
+    issueFineDeficit = -fineWeightWithWastageByFormula;
+    effectiveFineWeightWithWastage = fineWeightWithWastageByFormula + issueFineDeficit;
+    amount = Math.abs(issueFineDeficit * goldRate);
+  } else {
+    amount = pureWeight * goldRate;
+  }
 
   // Hallmark amount = hallmark_rate * hallmark_qty
   const hallmarkAmount = hallmarkRate * hallmarkQty;
@@ -192,26 +224,26 @@ function calculateDerivedFields(data: MetalLedgerFormData, transactionType: stri
   // Stone amount = stone_rate * stone_weight
   const stoneAmount = stoneRate * stoneWeight;
 
-  // Amount = PureWeight * GoldRate
-  const amount = pureWeight * goldRate;
-
   // Total Taxable Amount = Amount + Hallmark Amount + Stone Amount
   const totalTaxableAmount = amount + hallmarkAmount + stoneAmount;
 
   // SGST and CGST based on transaction type
-  // Labour: 2.5%, Purchase: 1.5%
   const taxRate = transactionType === 'LABOUR' ? 0.025 : 0.015;
   const sgst = totalTaxableAmount * taxRate;
   const cgst = totalTaxableAmount * taxRate;
 
-  // Final amount = Total Taxable Amount + SGST + CGST
   const finalAmount = totalTaxableAmount + sgst + cgst;
+
+  // Rate Cut Weight = fine_weight - fine_weight_with_wastage (by formula); used for display as read-only
+  const rateCutWeight = fineWeight - fineWeightWithWastageByFormula;
 
   return {
     totalPurity: totalPurity.toFixed(4),
     pureWeight: pureWeight.toFixed(4),
     fineWeight: fineWeight.toFixed(4),
-    fineWeightWithWastage: fineWeightWithWastage.toFixed(4),
+    fineWeightWithWastage: effectiveFineWeightWithWastage.toFixed(4),
+    issueFineDeficit: issueFineDeficit.toFixed(4),
+    rateCutWeight: rateCutWeight.toFixed(4),
     hallmarkAmount: hallmarkAmount.toFixed(4),
     stoneAmount: stoneAmount.toFixed(4),
     amount: amount.toFixed(4),
@@ -304,7 +336,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
     }, []);
 
     // Calculate derived fields
-    const derived = calculateDerivedFields(formData, formData.transaction_type);
+    const derived = calculateDerivedFields(formData, formData.transaction_type, formData.entry_type);
 
     // Update purity percentage when purity changes
     useEffect(() => {
@@ -327,7 +359,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
           purity: formData.purity,
           wastage: formData.wastage || '',
           gross_weight: formData.gross_weight || '',
-          rate_cut_weight: formData.rate_cut_weight || '',
+          rate_cut_weight: derived.rateCutWeight,
           hallmark_rate: formData.hallmark_rate || '',
           hallmark_qty: formData.hallmark_qty || '',
           stone_rate: formData.stone_rate || '',
@@ -342,6 +374,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
           pure_weight: derived.pureWeight,
           fine_weight: derived.fineWeight,
           fine_weight_with_wastage: derived.fineWeightWithWastage,
+          issue_fine_deficit: derived.issueFineDeficit,
           hallmark_amount: derived.hallmarkAmount,
           stone_amount: derived.stoneAmount,
           amount: derived.amount,
@@ -642,9 +675,6 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
       const fineWeightWithWastageError = validateNumeric184(formData.fine_weight_with_wastage, 'Fine Weight with Wastage', { nonNegative: true });
       if (fineWeightWithWastageError) next.fine_weight_with_wastage = fineWeightWithWastageError;
 
-      const rateCutWeightError = validateNumeric184(formData.rate_cut_weight, 'Rate Cut Weight', { nonNegative: true });
-      if (rateCutWeightError) next.rate_cut_weight = rateCutWeightError;
-
       const goldRateError = validateNumeric184(formData.gold_rate, 'Gold Rate', { nonNegative: true });
       if (goldRateError) next.gold_rate = goldRateError;
 
@@ -710,7 +740,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
           purity: formData.purity,
           wastage: formData.wastage ? parseFloat(formData.wastage) : null,
           gross_weight: formData.gross_weight ? parseFloat(formData.gross_weight) : null,
-          rate_cut_weight: formData.rate_cut_weight ? parseFloat(formData.rate_cut_weight) : null,
+          rate_cut_weight: parseFloat(derived.rateCutWeight) ?? null,
           hallmark_rate: formData.hallmark_rate ? parseFloat(formData.hallmark_rate) : null,
           hallmark_qty: formData.hallmark_qty ? parseFloat(formData.hallmark_qty) : null,
           stone_rate: formData.stone_rate ? parseFloat(formData.stone_rate) : null,
@@ -722,6 +752,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
           pure_weight: parseFloat(derived.pureWeight) || null,
           fine_weight: parseFloat(derived.fineWeight) || null,
           fine_weight_with_wastage: parseFloat(derived.fineWeightWithWastage) || null,
+          issue_fine_deficit: parseFloat(derived.issueFineDeficit) ?? 0,
           hallmark_amount: parseFloat(derived.hallmarkAmount) || null,
           stone_amount: parseFloat(derived.stoneAmount) || null,
           amount: parseFloat(derived.amount) || null,
@@ -1234,7 +1265,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className={`mt-6 grid grid-cols-1 md:grid-cols-2 ${isIssueEntry ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-4`}>
           <div>
             <label className={labelClass}>
               Gross Weight <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
@@ -1285,19 +1316,28 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
             />
           </div>
 
+          {isIssueEntry && (
+            <div>
+              <label className={labelClass}>Issue Fine Deficit</label>
+              <input
+                type="text"
+                value={derived.issueFineDeficit}
+                className={readOnlyClass}
+                disabled
+                readOnly
+              />
+            </div>
+          )}
+
           <div>
             <label className={labelClass}>Rate Cut Weight</label>
             <input
               type="text"
-              inputMode="decimal"
-              value={formData.rate_cut_weight}
-              onChange={(e) => handleNumeric184Change('rate_cut_weight', e.target.value)}
-              placeholder="Enter rate cut weight"
-              maxLength={MAX_NUMERIC_184_LENGTH}
-              className={inputClass('rate_cut_weight')}
-              disabled={readOnly}
+              value={derived.rateCutWeight}
+              className={readOnlyClass}
+              disabled
+              readOnly
             />
-            {errors.rate_cut_weight && <p className={`mt-1 ${errorClass}`}>{errors.rate_cut_weight}</p>}
           </div>
         </div>
       </div>
