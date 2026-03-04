@@ -19,7 +19,7 @@ const ENTITY_NAME = 'metal_ledger';
  * Only includes fields that should be sent to API for create operation
  */
 export function toMetalLedgerPayload(data: MetalLedgerFormData): Record<string, unknown> {
-  return {
+  const base: Record<string, unknown> = {
     entry_type: data.entry_type,
     metal_type: data.metal_type,
     transaction_type: data.transaction_type,
@@ -48,6 +48,22 @@ export function toMetalLedgerPayload(data: MetalLedgerFormData): Record<string, 
     final_amount: data.final_amount ? parseFloat(data.final_amount) : null,
     remarks: data.remarks || null,
   };
+
+  if (data.entry_type === 'ISSUE' && Array.isArray(data.job_card_issues_to_settle)) {
+    const issues = data.job_card_issues_to_settle
+      .filter((row) => row.issue_transaction && row.consume_weight)
+      .map((row) => ({
+        issue_transaction: row.issue_transaction,
+        consume_weight: parseFloat(row.consume_weight),
+        consume_fine_weight: null,
+      }));
+
+    if (issues.length > 0) {
+      base.job_card_issues_to_settle = issues;
+    }
+  }
+
+  return base;
 }
 
 /**
@@ -56,7 +72,7 @@ export function toMetalLedgerPayload(data: MetalLedgerFormData): Record<string, 
 export function toInitialMetalLedgerData(entity: Record<string, unknown>): Partial<MetalLedgerFormData> {
   return {
     voucher_no: entity.voucher_no != null ? String(entity.voucher_no) : '',
-    entry_type: entity.entry_type != null ? String(entity.entry_type) : 'RECEIPT',
+    entry_type: entity.entry_type != null ? String(entity.entry_type).toUpperCase() : 'RECEIPT',
     metal_type: entity.metal_type != null ? String(entity.metal_type) : 'GOLD',
     transaction_type: entity.transaction_type != null ? String(entity.transaction_type) : 'PURCHASE',
     transaction_date: entity.transaction_date != null ? String(entity.transaction_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -89,6 +105,26 @@ export function toInitialMetalLedgerData(entity: Record<string, unknown>): Parti
     modified_at: entity.modified_at != null ? String(entity.modified_at) : '',
     created_by: entity.created_by != null ? String(entity.created_by) : '',
     modified_by: entity.modified_by != null ? String(entity.modified_by) : '',
+    job_card_issues_to_settle: Array.isArray(
+      (entity as { job_card_issues_to_settle?: unknown }).job_card_issues_to_settle
+    )
+      ? (
+          (entity as {
+            job_card_issues_to_settle?: {
+              issue_transaction?: unknown;
+              consume_weight?: unknown;
+              consume_fine_weight?: unknown;
+              issue_job_card?: unknown;
+            }[];
+          }).job_card_issues_to_settle ?? []
+        ).map((row) => ({
+          issue_transaction: row.issue_transaction != null ? String(row.issue_transaction) : '',
+          consume_weight: row.consume_weight != null ? String(row.consume_weight) : '',
+          consume_fine_weight:
+            row.consume_fine_weight != null ? String(row.consume_fine_weight) : '',
+          issue_job_card: row.issue_job_card != null ? String(row.issue_job_card) : '',
+        }))
+      : [],
   };
 }
 

@@ -10,6 +10,7 @@ import MetalLedgerForm, { type MetalLedgerFormData } from './metalLedgerForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialMetalLedgerData } from './metalLedgerCreate';
 import BackButton from '../../../shared/components/BackButton';
+import { closeMetalLedger } from './metalLedger.api';
 
 
 const ENTITY_NAME = 'metal_ledger';
@@ -35,9 +36,14 @@ export default function MetalLedgerViewPage() {
     getEntity(ENTITY_NAME, id)
       .then((res) => {
         if (res.data && typeof res.data === 'object') {
-          const entity = res.data as Record<string, unknown>;
-          setInitialData(toInitialMetalLedgerData(entity));
-          setRawEntity(entity);
+          const wrapper = res.data as { data?: unknown };
+          const inner =
+            wrapper.data && typeof wrapper.data === 'object'
+              ? (wrapper.data as Record<string, unknown>)
+              : (res.data as Record<string, unknown>);
+
+          setInitialData(toInitialMetalLedgerData(inner));
+          setRawEntity(inner);
         }
       })
       .catch((err) => {
@@ -58,10 +64,8 @@ export default function MetalLedgerViewPage() {
   const handleSendToManufacturing = useCallback(async () => {
     if (!id) return;
     setStatusUpdating(true);
-    console.log('[MetalLedgerView] Sending to Manufacturing:', { entity: ENTITY_NAME, id, voucher_no: id });
     try {
       const res = await updateEntityStatus(ENTITY_NAME, id, 'Sent to Manufacturing');
-      console.log('[MetalLedgerView] Update response:', res);
       if (res.success) {
         toast.success('Metal Ledger sent to Manufacturing successfully');
         // Reload data to get updated status
@@ -78,6 +82,26 @@ export default function MetalLedgerViewPage() {
     }
   }, [id, loadData]);
 
+  const handleCloseLedger = useCallback(async () => {
+    if (!id) return;
+    setStatusUpdating(true);
+    try {
+      const res = await closeMetalLedger(id);
+      if (res.success) {
+        toast.success('Metal Ledger closed successfully');
+        loadData();
+      } else {
+        showErrorToastUnlessAuth(res.message || 'Failed to close metal ledger');
+      }
+    } catch (err) {
+      console.error('[MetalLedgerView] Close error:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to close metal ledger';
+      showErrorToastUnlessAuth(msg);
+    } finally {
+      setStatusUpdating(false);
+    }
+  }, [id, loadData]);
+
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
 
@@ -88,6 +112,9 @@ export default function MetalLedgerViewPage() {
   }
 
   const displayValue = initialData?.voucher_no ?? id;
+  const entryType =
+    (initialData?.entry_type && String(initialData.entry_type).toUpperCase()) ||
+    '';
 
   const breadcrumbLabel = displayValue;
 
@@ -141,18 +168,34 @@ export default function MetalLedgerViewPage() {
               >
                 Edit
               </Link>
-              <button
-                type="button"
-                onClick={handleSendToManufacturing}
-                disabled={statusUpdating}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                  isDarkMode
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-green-500 hover:bg-green-600 text-white'
-                } disabled:opacity-60`}
-              >
-                {statusUpdating ? 'Sending...' : 'Send to Manufacturing'}
-              </button>
+              {entryType === 'RECEIPT' && (
+                <button
+                  type="button"
+                  onClick={handleSendToManufacturing}
+                  disabled={statusUpdating}
+                  className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+                    isDarkMode
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  } disabled:opacity-60`}
+                >
+                  {statusUpdating ? 'Sending...' : 'Send to Manufacturing'}
+                </button>
+              )}
+              {entryType === 'ISSUE' && (
+                <button
+                  type="button"
+                  onClick={handleCloseLedger}
+                  disabled={statusUpdating}
+                  className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+                    isDarkMode
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  } disabled:opacity-60`}
+                >
+                  {statusUpdating ? 'Closing...' : 'Close'}
+                </button>
+              )}
             </>
           )}
         </div>

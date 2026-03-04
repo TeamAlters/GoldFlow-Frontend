@@ -36,8 +36,13 @@ export default function MetalLedgerEditPage() {
     getEntity(ENTITY_NAME, id)
       .then((res) => {
         if (res.data && typeof res.data === 'object') {
-          const entity = res.data as Record<string, unknown>;
-          setInitialData(toInitialMetalLedgerData(entity));
+          const wrapper = res.data as { data?: unknown };
+          const inner =
+            wrapper.data && typeof wrapper.data === 'object'
+              ? (wrapper.data as Record<string, unknown>)
+              : (res.data as Record<string, unknown>);
+
+          setInitialData(toInitialMetalLedgerData(inner));
         }
       })
       .catch((err) => {
@@ -85,6 +90,11 @@ export default function MetalLedgerEditPage() {
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
+  }
+
+  if (initialData?.status && initialData.status !== 'Draft') {
+    const detailUrl = entityConfig.routes.detail.replace(':id', id);
+    return <Navigate to={detailUrl} replace />;
   }
 
   if (dataLoading) {

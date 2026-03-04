@@ -3,7 +3,6 @@ import { useUIStore } from '../../../stores/ui.store';
 import {
   MAX_TEXT_FIELD_LENGTH,
   MAX_VOUCHER_NO_LENGTH,
-  MAX_ITEM_NAME_LENGTH,
   MAX_NUMERIC_184_LENGTH,
   MAX_NUMERIC_63_LENGTH,
   maxLengthError,
@@ -14,6 +13,10 @@ import {
 } from '../../../shared/utils/formValidation';
 import type { ReferenceOption } from '../../admin/admin.api';
 import { getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
+import {
+  getAvailableJobCardBalances,
+  type JobCardAvailableBalanceRow,
+} from '../../manufacturing/jobCard/jobCardAvailableBalances.api';
 
 export type MetalLedgerFormData = {
   // Ledger Info
@@ -59,6 +62,14 @@ export type MetalLedgerFormData = {
   sgst: string;
   cgst: string;
   final_amount: string;
+
+  // Issue settlements
+  job_card_issues_to_settle: {
+    issue_transaction: string;
+    consume_weight: string;
+    consume_fine_weight: string;
+    issue_job_card?: string;
+  }[];
 
   // Audit Trails (read-only)
   created_at: string;
@@ -131,6 +142,7 @@ const emptyForm: MetalLedgerFormData = {
   sgst: '',
   cgst: '',
   final_amount: '',
+  job_card_issues_to_settle: [],
   created_at: '',
   modified_at: '',
   created_by: '',
@@ -229,12 +241,23 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [openSelectKey, setOpenSelectKey] = useState<string | null>(null);
     const selectRef = useRef<HTMLDivElement>(null);
+    const entryTypeChangedByUserRef = useRef(false);
 
     // Reference data states
     const [customerOptions, setCustomerOptions] = useState<ReferenceOption[]>([]);
     const [itemOptions, setItemOptions] = useState<ReferenceOption[]>([]);
     const [purityOptions, setPurityOptions] = useState<ReferenceOption[]>([]);
     const [purityPercentageMap, setPurityPercentageMap] = useState<Record<string, number>>({});
+
+    // Available balances for ISSUE entries
+    type IssueSettlementRow = JobCardAvailableBalanceRow & {
+      selectedWeight: string;
+      error?: string;
+    };
+
+    const [availableBalances, setAvailableBalances] = useState<IssueSettlementRow[]>([]);
+    const [balancesLoading, setBalancesLoading] = useState(false);
+    const [balancesError, setBalancesError] = useState<string | null>(null);
 
     // Load reference data
     useEffect(() => {
@@ -312,6 +335,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
           gold_rate: formData.gold_rate || '',
           remarks: formData.remarks || '',
           status: formData.status || '',
+          job_card_issues_to_settle: formData.job_card_issues_to_settle ?? [],
           // Auto-calculated fields
           purity_percentage: formData.purity_percentage || derived.pureWeight,
           total_purity: derived.totalPurity,
@@ -344,9 +368,32 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
           ...emptyForm,
           ...prev,
           ...initialData,
+          entry_type: (initialData.entry_type || emptyForm.entry_type).toUpperCase(),
         }));
       }
     }, [initialData]);
+
+    const isIssueEntry =
+      (formData.entry_type || '').toUpperCase() === 'ISSUE';
+
+    // Clear issue selections when entry type changes away from ISSUE (only after user changes it)
+    useEffect(() => {
+      if (readOnly) return;
+      if (!isIssueEntry && entryTypeChangedByUserRef.current) {
+        setAvailableBalances([]);
+        setFormData((prev) => ({
+          ...prev,
+          job_card_issues_to_settle: [],
+        }));
+        if (errors.job_card_issues_to_settle) {
+          setErrors((prev) => {
+            const next = { ...prev };
+            delete next.job_card_issues_to_settle;
+            return next;
+          });
+        }
+      }
+    }, [isIssueEntry, readOnly, formData.job_card_issues_to_settle.length, formData.entry_type, errors.job_card_issues_to_settle]);
 
     useEffect(() => {
       if (!openSelectKey) return;
@@ -382,8 +429,181 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
 
     // Legacy handler for dropdown selections
     const handleChange = (key: keyof MetalLedgerFormData, value: string) => {
-      setFormData((prev) => ({ ...prev, [key]: value }));
+      let nextValue = value;
+      if (key === 'entry_type') {
+        nextValue = value.toUpperCase();
+        // Mark that the user explicitly changed entry type so we can clear Issue data safely
+        entryTypeChangedByUserRef.current = true;
+      }
+      setFormData((prev) => ({ ...prev, [key]: nextValue }));
       if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
+    };
+
+    const handleFetchBalances = async () => {
+      if (readOnly) return;
+      if (!isIssueEntry) return;
+
+      if (!formData.item_name || !formData.purity) {
+        setBalancesError('Select both Item and Purity to fetch balances.');
+        setAvailableBalances([]);
+        return;
+      }
+
+      setBalancesLoading(true);
+      setBalancesError(null);
+
+      try {
+        const rows = await getAvailableJobCardBalances(formData.purity, formData.item_name);
+
+        if (!rows.length) {
+          setAvailableBalances([]);
+          setBalancesError('No available department balances for the selected item and purity.');
+          return;
+        }
+
+        const existingSelections = formData.job_card_issues_to_settle ?? [];
+        const mapped: IssueSettlementRow[] = rows.map((row) => {
+          const existing = existingSelections.find(
+            (sel) => sel.issue_transaction === row.issue_transaction
+          );
+          return {
+            ...row,
+            selectedWeight: existing?.consume_weight ?? '',
+          };
+        });
+
+        setAvailableBalances(mapped);
+        setBalancesError(null);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to fetch available balances';
+        setBalancesError(msg);
+        setAvailableBalances([]);
+      } finally {
+        setBalancesLoading(false);
+      }
+    };
+
+    const handleSelectedWeightChange = (issueTransaction: string, value: string) => {
+      const sanitized = sanitizeNumeric184Input(value);
+
+      setAvailableBalances((prev) => {
+        const nextRows = prev.map((row) => {
+          if (row.issue_transaction !== issueTransaction) return row;
+
+          const n = toNum(sanitized);
+          let finalValue = sanitized;
+          let error: string | undefined;
+
+          if (n < 0) {
+            finalValue = '';
+            error = 'Selected weight cannot be negative.';
+          } else if (n > row.weight) {
+            finalValue = row.weight.toFixed(4);
+            error = `Cannot exceed available weight ${row.weight.toFixed(4)}.`;
+          }
+
+          return {
+            ...row,
+            selectedWeight: finalValue,
+            error,
+          };
+        });
+
+        return nextRows;
+      });
+
+      if (errors.job_card_issues_to_settle) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next.job_card_issues_to_settle;
+          return next;
+        });
+      }
+    };
+
+    const handleApplySelectedIssues = () => {
+      if (readOnly) return;
+      if (!isIssueEntry) return;
+
+      if (!availableBalances.length) {
+        setFormData((prev) => ({
+          ...prev,
+          job_card_issues_to_settle: [],
+          gross_weight: '',
+        }));
+        setErrors((prev) => ({
+          ...prev,
+          job_card_issues_to_settle: 'Select at least one job card issue to settle.',
+        }));
+        return;
+      }
+
+      const purityPercent = toNum(formData.purity_percentage);
+
+      const issues = availableBalances
+        .filter((row) => toNum(row.selectedWeight) > 0)
+        .map((row) => ({
+          issue_transaction: row.issue_transaction,
+          consume_weight: row.selectedWeight,
+          consume_fine_weight:
+            purityPercent > 0
+              ? ((toNum(row.selectedWeight) * purityPercent) / 100).toFixed(4)
+              : '0.0000',
+          issue_job_card: row.parent_job_card,
+        }));
+
+      if (!issues.length) {
+        setFormData((prev) => ({
+          ...prev,
+          job_card_issues_to_settle: [],
+          gross_weight: '',
+        }));
+        setErrors((prev) => ({
+          ...prev,
+          job_card_issues_to_settle: 'Select at least one job card issue to settle.',
+        }));
+        return;
+      }
+
+      let totalSelected = 0;
+      issues.forEach((row) => {
+        totalSelected += toNum(row.consume_weight);
+      });
+
+      setFormData((prev) => ({
+        ...prev,
+        job_card_issues_to_settle: issues,
+        gross_weight: totalSelected.toFixed(4),
+      }));
+
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.job_card_issues_to_settle;
+        delete next.gross_weight;
+        return next;
+      });
+    };
+
+    const handleRemoveIssueRow = (issueTransaction: string) => {
+      if (!isIssueEntry) return;
+
+      setFormData((prev) => {
+        const remaining = prev.job_card_issues_to_settle.filter(
+          (row) => row.issue_transaction !== issueTransaction
+        );
+
+        let totalSelected = 0;
+        remaining.forEach((row) => {
+          totalSelected += toNum(row.consume_weight);
+        });
+
+        return {
+          ...prev,
+          job_card_issues_to_settle: remaining,
+          gross_weight:
+            remaining.length > 0 ? totalSelected.toFixed(4) : prev.gross_weight,
+        };
+      });
     };
 
     const validate = (): boolean => {
@@ -452,6 +672,27 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
 
       const totalPurityError = validateNumeric63(formData.total_purity, 'Total Purity', { nonNegative: true });
       if (totalPurityError) next.total_purity = totalPurityError;
+
+      // ISSUE-specific validations
+      if (isIssueEntry) {
+        const issues = formData.job_card_issues_to_settle ?? [];
+
+        if (!issues.length) {
+          next.job_card_issues_to_settle =
+            'Select at least one job card issue to settle.';
+        } else {
+          for (const row of issues) {
+            const fieldError = validateNumeric184(
+              row.consume_weight,
+              'Selected Weight',
+              { nonNegative: true }
+            );
+            if (fieldError && !next.job_card_issues_to_settle) {
+              next.job_card_issues_to_settle = fieldError;
+            }
+          }
+        }
+      }
 
       setErrors(next);
       return Object.keys(next).length === 0;
@@ -758,7 +999,242 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
     const weightSection = (
       <div className={sectionClass}>
         <h3 className={sectionTitleClass}>Weight Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
+        {isIssueEntry && (
+          <div className="mt-4 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {(!readOnly || formData.job_card_issues_to_settle.length > 0) && (
+                <h4
+                  className={`text-md font-semibold ${
+                    isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                  }`}
+                >
+                  Job Card Issue Settlements
+                </h4>
+              )}
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={handleFetchBalances}
+                  disabled={
+                    balancesLoading ||
+                    !formData.item_name ||
+                    !formData.purity
+                  }
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm ${
+                    isDarkMode
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  } disabled:opacity-60`}
+                >
+                  {balancesLoading ? 'Fetching...' : 'Fetch balance weights'}
+                </button>
+              )}
+            </div>
+
+            {balancesError && (
+              <p className={errorClass}>{balancesError}</p>
+            )}
+            {errors.job_card_issues_to_settle && (
+              <p className={errorClass}>
+                {errors.job_card_issues_to_settle}
+              </p>
+            )}
+
+            {!readOnly && availableBalances.length > 0 && (
+              <div className="overflow-x-auto">
+                <table
+                  className={`min-w-full text-xs ${
+                    isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                  }`}
+                >
+                  <thead
+                    className={
+                      isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                    }
+                  >
+                    <tr>
+                      <th className="px-3 py-2 text-left font-semibold">
+                        Parent Job Card
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold">
+                        Issue Transaction
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold">
+                        Department Group
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold">
+                        Department
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold">
+                        Product
+                      </th>
+                      <th className="px-3 py-2 text-right font-semibold">
+                        Available Weight
+                      </th>
+                      <th className="px-3 py-2 text-right font-semibold">
+                        Fine Weight
+                      </th>
+                      <th className="px-3 py-2 text-right font-semibold">
+                        Selected Weight
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {availableBalances.map((row) => (
+                      <tr
+                        key={row.issue_transaction}
+                        className={
+                          isDarkMode ? 'border-t border-gray-700' : 'border-t border-gray-200'
+                        }
+                      >
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.parent_job_card}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.issue_transaction}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.department_group}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.department}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.product}
+                        </td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          {row.weight.toFixed(4)}
+                        </td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          {row.fine_weight.toFixed(4)}
+                        </td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          <div className="flex flex-col items-end gap-1">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={row.selectedWeight}
+                              onChange={(e) =>
+                                handleSelectedWeightChange(
+                                  row.issue_transaction,
+                                  e.target.value
+                                )
+                              }
+                              maxLength={MAX_NUMERIC_184_LENGTH}
+                              className={`w-28 px-2 py-1 text-xs rounded border ${
+                                isDarkMode
+                                  ? 'bg-gray-800 border-gray-600 text-gray-100'
+                                  : 'bg-white border-gray-300 text-gray-900'
+                              }`}
+                            />
+                            {row.error && (
+                              <span className={errorClass}>{row.error}</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {!readOnly && availableBalances.length > 0 && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleApplySelectedIssues}
+                  className={`mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm ${
+                    isDarkMode
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                  }`}
+                >
+                  Add Selected Issues Weights
+                </button>
+              </div>
+            )}
+
+            {formData.job_card_issues_to_settle.length > 0 && (
+              <div className="mt-4 overflow-x-auto">
+                <table
+                  className={`min-w-full text-xs ${
+                    isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                  }`}
+                >
+                  <thead
+                    className={
+                      isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                    }
+                  >
+                    <tr>
+                      <th className="px-3 py-2 text-left font-semibold">
+                        Issue Job Card
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold">
+                        Issue Transaction
+                      </th>
+                      <th className="px-3 py-2 text-right font-semibold">
+                        Selected Weight
+                      </th>
+                      <th className="px-3 py-2 text-right font-semibold">
+                        Selected Fine Weight
+                      </th>
+                      {!readOnly && (
+                        <th className="px-3 py-2 text-right font-semibold">
+                          Actions
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formData.job_card_issues_to_settle.map((row) => (
+                      <tr
+                        key={row.issue_transaction}
+                        className={
+                          isDarkMode ? 'border-t border-gray-700' : 'border-t border-gray-200'
+                        }
+                      >
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.issue_job_card || '–'}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.issue_transaction}
+                        </td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          {row.consume_weight || '0.0000'}
+                        </td>
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          {row.consume_fine_weight || '0.0000'}
+                        </td>
+                        {!readOnly && (
+                          <td className="px-3 py-2 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRemoveIssueRow(row.issue_transaction)
+                              }
+                              className={`px-2 py-1 rounded text-xs font-semibold ${
+                                isDarkMode
+                                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                                  : 'bg-red-500 hover:bg-red-600 text-white'
+                              }`}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label className={labelClass}>
               Gross Weight <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
@@ -771,7 +1247,7 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
               placeholder="Enter gross weight"
               maxLength={MAX_NUMERIC_184_LENGTH}
               className={inputClass('gross_weight')}
-              disabled={readOnly}
+              disabled={readOnly || isIssueEntry}
             />
             {errors.gross_weight && <p className={`mt-1 ${errorClass}`}>{errors.gross_weight}</p>}
           </div>
