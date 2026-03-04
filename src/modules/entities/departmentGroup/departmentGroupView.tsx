@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, getEntityReferenceOptions, deleteEntity } from '../../admin/admin.api';
+import { getEntity, getEntityReferenceOptions } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
-import { toast } from '../../../stores/toast.store';
 import StaticDepartmentGroupForm, { type StaticDepartmentGroupFormData } from './departmentGroupForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import {
@@ -17,6 +16,7 @@ import type { FormSelectOption } from '../../../shared/components/FormSelect';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 
 const ENTITY_NAME = 'product_department_group';
 
@@ -101,7 +101,7 @@ export default function DepartmentGroupViewPage() {
 
   // Delete dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
 
   useEffect(() => {
     let ignore = false;
@@ -161,22 +161,14 @@ export default function DepartmentGroupViewPage() {
   // Handle delete
   const handleDelete = useCallback(async () => {
     if (!id) return;
-    setIsDeleting(true);
-    try {
-      await deleteEntity(ENTITY_NAME, id);
-      toast.success(`${entityConfig.displayName} deleted successfully.`);
-      navigate(entityConfig.routes.list);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : `Failed to delete ${entityConfig.displayName}`;
-      showErrorToastUnlessAuth(msg);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  }, [id, entityConfig, navigate]);
+    await deleteById(id, entityConfig.displayName);
+    setShowDeleteDialog(false);
+    navigate(entityConfig.routes.list);
+  }, [id, deleteById, entityConfig.displayName, entityConfig.routes.list, navigate]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
+  const isDeleting = deletingId === (id ?? '');
 
   const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
   if (!id) {

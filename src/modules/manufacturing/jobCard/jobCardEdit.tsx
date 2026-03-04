@@ -14,6 +14,8 @@ import { getSectionHeaderClass } from '../../../shared/utils/viewPageStyles';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { useUIStore } from '../../../stores/ui.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
+import { invalidateEntityListCache } from '../../admin/admin.api';
+import { useEntityMutationStore } from '../../../stores/entityMutation.store';
 import BackButton from '../../../shared/components/BackButton';
 import JobCardForm, {
   type JobCardFormData,
@@ -75,6 +77,7 @@ export default function JobCardEditPage() {
   const entityConfig = getEntityConfig(ENTITY_NAME);
   const jobCardTransactionConfig = getEntityConfig(JOB_CARD_TRANSACTION_ENTITY);
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const bumpVersion = useEntityMutationStore((state: { bumpVersion: (entityName: string) => void }) => state.bumpVersion);
 
 
   const [isLoading, setIsLoading] = useState(false);
@@ -211,6 +214,8 @@ export default function JobCardEditPage() {
         const response = await updateEntity(ENTITY_NAME, decodeURIComponent(id), payload);
 
         if (response.success) {
+          invalidateEntityListCache(ENTITY_NAME);
+          bumpVersion(ENTITY_NAME);
           toast.success(response.message || 'Job card updated successfully');
           navigate(entityConfig.routes.detail.replace(':id', id));
         }
@@ -221,7 +226,7 @@ export default function JobCardEditPage() {
         setIsLoading(false);
       }
     },
-    [navigate, entityConfig, id]
+    [navigate, entityConfig, id, bumpVersion]
   );
 
   const handleCancel = useCallback(() => {

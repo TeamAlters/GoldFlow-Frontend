@@ -20,6 +20,9 @@ import {
 import EditableWeightTable from '../../../shared/components/EditableWeightTable';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
+import { invalidateEntityListCache } from '../../admin/admin.api';
+import { useEntityMutationStore } from '../../../stores/entityMutation.store';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 
 const ENTITY_NAME = 'melting_lot';
 
@@ -41,7 +44,11 @@ export default function MeltingLotViewPage() {
   const [hasJobCardsForLot, setHasJobCardsForLot] = useState(false);
   // Submit dialog state
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
+  const bumpVersion = useEntityMutationStore((s) => s.bumpVersion);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
 
   useEffect(() => {
     if (!id) return;
@@ -117,6 +124,9 @@ export default function MeltingLotViewPage() {
       const response = await submitMeltingLot(meltingLotName);
       if (response.success) {
         toast.success(response.message || 'Melting lot submitted successfully');
+        // Submitting a melting lot creates the first job card – refresh job_card lists everywhere
+        invalidateEntityListCache('job_card');
+        bumpVersion('job_card');
         // Update local status to "Submitted"
         if (response.data && typeof response.data === 'object') {
           const data = response.data as Record<string, unknown>;
@@ -130,7 +140,7 @@ export default function MeltingLotViewPage() {
       showErrorToastUnlessAuth(msg);
       throw err; // Re-throw to let the dialog handle the error
     }
-  }, [meltingLotName]);
+  }, [meltingLotName, bumpVersion]);
 
   const handleStartDepartment = useCallback(async () => {
     if (!meltingLotName) return;
@@ -159,6 +169,7 @@ export default function MeltingLotViewPage() {
   const sectionClass = getSectionClass(isDarkMode);
 
   const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
+  const isDeleting = deletingId === (id ?? '');
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
@@ -239,6 +250,18 @@ export default function MeltingLotViewPage() {
                 }`}
               >
                 Submit
+              </button>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={isDeleting}
+                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+                  isDarkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             )}
             {status === 'Submitted' && !hasJobCardsForLot && (
@@ -440,6 +463,21 @@ export default function MeltingLotViewPage() {
         confirmLabel="Submit"
         cancelLabel="Cancel"
         variant="primary"
+      />
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={async () => {
+          if (!id) return;
+          await deleteById(id, entityConfig.displayName);
+          setShowDeleteDialog(false);
+          navigate(entityConfig.routes.list);
+        }}
+        title={`Delete ${entityConfig.displayName}`}
+        message={`Are you sure you want to delete "${meltingLotName || entityConfig.displayName}"? This action cannot be undone.`}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+        cancelLabel="Cancel"
+        variant="danger"
       />
     </div>
   );

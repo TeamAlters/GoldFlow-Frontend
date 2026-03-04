@@ -1,211 +1,43 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
-import { useAuthStore } from '../../../auth/auth.store';
 import DataTable from '../../../shared/components/DataTable';
 import type { TableColumn, TableAction } from '../../../shared/components/DataTable';
-import FilterComponent, {
-  type FilterComponentConfig,
-  type FilterConfig,
-  type FilterValue,
-} from '../../../shared/components/FilterComponent';
+import FilterComponent from '../../../shared/components/FilterComponent';
 import ListPageLayout from '../../../shared/components/ListPageLayout';
 import Pagination from '../../../shared/components/Pagination';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
-import { toast } from '../../../stores/toast.store';
-import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
-import { getEntityMetadata, getEntityList, deleteEntity, type EntityListFilter } from '../../admin/admin.api';
-import type { EntityField, EntityFilterField } from '../../admin/admin.api';
-import { getEntityConfig } from '../../../config/entity.config';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { getRowDisplayValue } from '../../../shared/utils/common';
-import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
+import { useEntityListPage } from '../../../shared/hooks/useEntityListPage';
 
 type EntityRow = Record<string, unknown>;
-
-let metadataFetchInFlight = false;
 
 export default function DepartmentPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const entityName = 'department';
-  const entityConfig = getEntityConfig(entityName);
-  const [filters, setFilters] = useState<Record<string, FilterValue>>({});
-  const [entityMetadata, setEntityMetadata] = useState<{
-    display_name: string;
-    fields: EntityField[];
-    filters: { default_visible: EntityFilterField[]; additional: EntityFilterField[] };
-    pagination?: { default_page_size?: number; page_sizes?: number[] };
-    id_field?: string;
-    detail_link_field?: string;
-  } | null>(null);
-  const [metadataLoading, setMetadataLoading] = useState(true);
-  const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [departments, setDepartments] = useState<EntityRow[]>([]);
-  const [listLoading, setListLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number | undefined>(20);
-  const [totalItems, setTotalItems] = useState<number>(0);
-  const [totalPages, setTotalPages] = useState<number>(0);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
-  const token = useAuthStore((state) => state.token);
-  const lastToastedErrorRef = useRef<string | null>(null);
-
-  const showErrorToast = useCallback((msg: string) => {
-    if (lastToastedErrorRef.current === msg) return;
-    lastToastedErrorRef.current = msg;
-    toast.error(msg);
-  }, []);
-
-  const fetchMetadata = useCallback(() => {
-    if (!token) {
-      const msg = 'Not logged in. Sign in and try again.';
-      setMetadataError(msg);
-      showErrorToast(msg);
-      setMetadataLoading(false);
-      return;
-    }
-    if (metadataFetchInFlight) return;
-    metadataFetchInFlight = true;
-    setMetadataLoading(true);
-    setMetadataError(null);
-    lastToastedErrorRef.current = null;
-    getEntityMetadata(entityName)
-      .then((res) => {
-        const data = res.data;
-        if (data && (data.fields?.length || data.display_name != null || data.filters)) {
-          const meta = {
-            display_name: data.display_name ?? 'Departments',
-            fields: Array.isArray(data.fields) ? data.fields : [],
-            filters: {
-              default_visible: Array.isArray(data.filters?.default_visible) ? data.filters.default_visible : [],
-              additional: Array.isArray(data.filters?.additional) ? data.filters.additional : [],
-            },
-            pagination: data.pagination,
-            id_field: data.id_field,
-            detail_link_field: data.detail_link_field,
-          };
-          setEntityMetadata(meta);
-          setEntityMetadataCache(entityName, meta);
-        } else {
-          setEntityMetadata({
-            display_name: 'Departments',
-            fields: [],
-            filters: { default_visible: [], additional: [] },
-            id_field: 'id',
-            detail_link_field: 'name',
-          });
-        }
-      })
-      .catch(() => {
-        setMetadataError(null);
-      })
-      .finally(() => {
-        metadataFetchInFlight = false;
-        setMetadataLoading(false);
-      });
-  }, [token, entityName, showErrorToast]);
-
-  useEffect(() => {
-    if (!token) {
-      const msg = 'Not logged in. Sign in and try again.';
-      setMetadataError(msg);
-      showErrorToast(msg);
-      setMetadataLoading(false);
-      return;
-    }
-    const cached = getEntityMetadataCache(entityName);
-    if (cached) {
-      setEntityMetadata({
-        display_name: cached.display_name,
-        fields: cached.fields,
-        filters: cached.filters,
-        id_field: cached.id_field,
-        detail_link_field: cached.detail_link_field,
-      });
-      setMetadataLoading(false);
-      setMetadataError(null);
-      return;
-    }
-    fetchMetadata();
-  }, [token, entityName, fetchMetadata, showErrorToast]);
-
-  const filterFieldTypeMap = useMemo((): Record<string, string> => {
-    const map: Record<string, string> = {};
-    if (!entityMetadata?.filters) return map;
-    const all = [
-      ...(entityMetadata.filters.default_visible ?? []),
-      ...(entityMetadata.filters.additional ?? []),
-    ];
-    all.forEach((f) => {
-      map[f.field] = f.type ?? '';
-    });
-    return map;
-  }, [entityMetadata]);
-
-  const filtersForApi = useMemo((): EntityListFilter[] => {
-    const trimValue = (v: string | string[] | null): string | string[] | null => {
-      if (v === null || v === undefined) return v;
-      if (typeof v === 'string') return v.trim();
-      if (Array.isArray(v))
-        return v.map((s) => (typeof s === 'string' ? s.trim() : s)).filter((s) => s !== '');
-      return v;
-    };
-    const out: EntityListFilter[] = [];
-    Object.entries(filters).forEach(([field, filterVal]) => {
-      if (filterVal === null || filterVal === undefined) return;
-      const isObj =
-        typeof filterVal === 'object' &&
-        filterVal !== null &&
-        'operator' in filterVal &&
-        'value' in filterVal;
-      const operator = isObj ? (filterVal as { operator: string }).operator : 'contains';
-      const raw = isObj
-        ? (filterVal as { value: string | string[] | null }).value
-        : (filterVal as string);
-      const value = trimValue(raw);
-      const isEmpty =
-        value === null ||
-        value === undefined ||
-        value === '' ||
-        (Array.isArray(value) && value.length === 0);
-      if (isEmpty) return;
-      out.push({ field, operator, value });
-    });
-    return out;
-  }, [filters, filterFieldTypeMap]);
-
-  const fetchList = useCallback(() => {
-    if (!token || !entityName) return;
-    setListLoading(true);
-    getEntityList(entityName, { page, page_size: pageSize, filters: filtersForApi })
-      .then((res) => {
-        type ResShape = { items?: unknown[]; data?: { items?: unknown[]; pagination?: Record<string, unknown> }; pagination?: Record<string, unknown> };
-        const resData = (res as ResShape).data ?? res;
-        const dataItems = (resData as { items?: unknown[] }).items;
-        const topItems = (res as ResShape).items;
-        const items: unknown[] = Array.isArray(dataItems) ? dataItems : Array.isArray(topItems) ? topItems : [];
-        const pag = (resData as { pagination?: Record<string, unknown> }).pagination ?? (res as ResShape).pagination;
-        const rows = items as EntityRow[];
-        setDepartments(rows);
-        setTotalItems((pag?.total_items as number) ?? 0);
-        setTotalPages((pag?.total_pages as number) ?? 0);
-      })
-      .catch(() => {
-        showErrorToastUnlessAuth('Failed to load departments');
-        setDepartments([]);
-        setTotalItems(0);
-        setTotalPages(1);
-      })
-      .finally(() => setListLoading(false));
-  }, [token, entityName, page, pageSize, filtersForApi]);
-
-  useEffect(() => {
-    if (!token || !entityMetadata) return;
-    fetchList();
-  }, [token, entityMetadata, fetchList]);
+  const {
+    entityConfig,
+    entityMetadata,
+    metadataLoading,
+    metadataError,
+    items,
+    listLoading,
+    page,
+    setPage,
+    pageSize,
+    totalItems,
+    totalPages,
+    filters,
+    setFilters,
+    filterConfig,
+    hasFilters,
+  } = useEntityListPage(entityName);
+  const { deleteById, deletingId } = useEntityDelete(entityName);
 
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
@@ -257,7 +89,10 @@ export default function DepartmentPage() {
     }));
   }, [entityMetadata, isDarkMode, navigate, entityConfig]);
 
-  const handleAddEntity = () => navigate(entityConfig.routes.add);
+  const handleAddEntity = () => {
+    const addRoute = entityConfig.routes.add ?? entityConfig.routes.list;
+    navigate(addRoute);
+  };
 
   const idField = entityMetadata?.id_field ?? 'id';
 
@@ -269,16 +104,9 @@ export default function DepartmentPage() {
     if (!deleteConfirmRow) return;
     const rowId = deleteConfirmRow[idField];
     if (rowId === undefined || rowId === null) return;
-    try {
-      await deleteEntity(entityName, String(rowId));
-      toast.success(`${entityConfig.displayName} deleted successfully.`);
-      fetchList();
-    } catch (err) {
-      showErrorToastUnlessAuth(err instanceof Error ? err.message : 'Failed to delete department');
-    } finally {
-      setDeleteConfirmRow(null);
-    }
-  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList]);
+    setDeleteConfirmRow(null);
+    await deleteById(String(rowId), entityConfig.displayName);
+  }, [deleteConfirmRow, entityConfig.displayName, idField, deleteById]);
 
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [
@@ -287,7 +115,10 @@ export default function DepartmentPage() {
         onClick: (row) => {
           const rowId = row[idField];
           if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
+            const editRoute = entityConfig.routes.edit;
+            if (editRoute) {
+              navigate(editRoute.replace(':id', String(rowId)));
+            }
           }
         },
         variant: 'primary' as const,
@@ -300,6 +131,7 @@ export default function DepartmentPage() {
       {
         label: 'Delete',
         onClick: handleDeleteClick,
+        disabled: (row: EntityRow) => deletingId === String(row[idField] ?? ''),
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,27 +142,6 @@ export default function DepartmentPage() {
     ],
     [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
   );
-
-  const filterConfig: FilterComponentConfig = useMemo(() => {
-    const defaultVisible = entityMetadata?.filters?.default_visible ?? [];
-    const additional = entityMetadata?.filters?.additional ?? [];
-    const hasApiFilters = defaultVisible.length > 0 || additional.length > 0;
-    const defaultConfig: Record<string, FilterConfig> = {};
-    const addableConfig: Record<string, FilterConfig> = {};
-    if (hasApiFilters) {
-      defaultVisible.forEach((f) => {
-        defaultConfig[f.field] = metadataToFilterConfig(f);
-      });
-      additional.forEach((f) => {
-        addableConfig[f.field] = metadataToFilterConfig(f);
-      });
-    }
-    return { default: defaultConfig, addable: addableConfig };
-  }, [entityMetadata]);
-
-  const hasFilters =
-    Object.keys(filterConfig.default).length > 0 ||
-    Object.keys(filterConfig.addable ?? {}).length > 0;
 
   const handleRowClick = useCallback(
     (row: EntityRow) => {
@@ -414,7 +225,7 @@ export default function DepartmentPage() {
           </p>
         )}
         <DataTable
-          data={departments}
+          data={items}
           columns={columns}
           actions={actions}
           searchable={false}

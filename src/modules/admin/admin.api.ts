@@ -7,6 +7,7 @@
 import { apiClient, messageFromAxiosError } from '../../api/axios';
 import { useAuthStore } from '../../auth/auth.store';
 import { buildEntityUrl, ENTITY_REFERENCES_PATH, getEntityConfig } from '../../config/entity.config';
+import { useEntityMutationStore } from '../../stores/entityMutation.store';
 
 function hasAuthToken(): boolean {
   const token = useAuthStore.getState().token;
@@ -269,6 +270,26 @@ const listRequestCache = new Map<
 >();
 const LIST_CACHE_TTL_MS = 60_000;
 
+/** Clears cached list responses for a specific entity so subsequent calls refetch fresh data. */
+export function invalidateEntityListCache(entityName: string): void {
+  const prefix = `${entityName}:`;
+  for (const key of Array.from(listRequestCache.keys())) {
+    if (key.startsWith(prefix)) {
+      listRequestCache.delete(key);
+    }
+  }
+}
+
+function notifyEntityMutation(entityName: string): void {
+  invalidateEntityListCache(entityName);
+  try {
+    const bumpVersion = useEntityMutationStore.getState().bumpVersion;
+    bumpVersion(entityName);
+  } catch {
+    // ignore if store is not available for some reason
+  }
+}
+
 function getEntityListCacheKey(
   entityName: string,
   page: number,
@@ -512,7 +533,9 @@ export async function createEntity(
       data?: Record<string, unknown>;
     }>(url, data);
     console.log('[GoldFlow] [admin.api] createEntity: success', { entityName });
-    return res.data ?? {};
+    const body = res.data ?? {};
+    notifyEntityMutation(entityName);
+    return body;
   } catch (err) {
     const errMsg = messageFromAxiosError(err, `Failed to create ${entityName}`);
     console.log('[GoldFlow] [admin.api] createEntity: failed', { entityName, errMsg });
@@ -573,7 +596,9 @@ export async function updateEntity(
       data?: Record<string, unknown>;
     }>(url, data);
     console.log('[GoldFlow] [admin.api] updateEntity: success', { entityName, id });
-    return res.data ?? {};
+    const body = res.data ?? {};
+    notifyEntityMutation(entityName);
+    return body;
   } catch (err) {
     const errMsg = messageFromAxiosError(err, `Failed to update ${entityName}`);
     console.log('[GoldFlow] [admin.api] updateEntity: failed', { entityName, id, errMsg });
@@ -600,7 +625,9 @@ export async function deleteEntity(
   try {
     const res = await apiClient.delete<{ success?: boolean; message?: string }>(url);
     console.log('[GoldFlow] [admin.api] deleteEntity: success', { entityName, id });
-    return res.data ?? {};
+    const body = res.data ?? {};
+    notifyEntityMutation(entityName);
+    return body;
   } catch (err) {
     const errMsg = messageFromAxiosError(err, `Failed to delete ${entityName}`);
     console.log('[GoldFlow] [admin.api] deleteEntity: failed', { entityName, id, errMsg });
