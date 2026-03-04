@@ -15,19 +15,15 @@ import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
-import {
-  getEntityMetadata,
-  getEntityList,
-  deleteEntity,
-  type EntityListFilter,
-} from '../../admin/admin.api';
+import { getEntityMetadata, getEntityList, type EntityListFilter } from '../../admin/admin.api';
 import type { EntityField, EntityFilterField } from '../../admin/admin.api';
 import { getEntityConfig } from '../../../config/entity.config';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { getRowDisplayValue } from '../../../shared/utils/common';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
-
+import { useEntityVersion } from '../../../stores/entityMutation.store';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 /**
  * Products list page. Uses the same pattern as UsersPage:
  * - GET /api/v1/entities/product/listing-metadata (via getEntityMetadata) for columns, filters, id_field, detail_link_field
@@ -62,6 +58,8 @@ export default function ProductsPage() {
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
   const token = useAuthStore((state) => state.token);
   const lastToastedErrorRef = useRef<string | null>(null);
+  const entityVersion = useEntityVersion(entityName);
+  const { deleteById, deletingId } = useEntityDelete(entityName);
 
   const showErrorToast = useCallback((msg: string) => {
     if (lastToastedErrorRef.current === msg) return;
@@ -116,7 +114,7 @@ export default function ProductsPage() {
         productMetadataFetchInFlight = false;
         setMetadataLoading(false);
       });
-  }, [token, entityName, showErrorToast]);
+  }, [token, entityName, entityVersion, showErrorToast]);
 
   // Load listing-metadata (columns, filters, id_field, detail_link_field); use cache when available
   useEffect(() => {
@@ -322,7 +320,8 @@ export default function ProductsPage() {
   }, [entityMetadata, isDarkMode, navigate, entityConfig]);
 
   const handleAddEntity = () => {
-    navigate(entityConfig.routes.add);
+    const addRoute = entityConfig.routes.add ?? entityConfig.routes.list;
+    navigate(addRoute);
   };
 
   const idField = entityMetadata?.id_field ?? 'id';
@@ -340,15 +339,9 @@ export default function ProductsPage() {
     if (!deleteConfirmRow) return;
     const rowId = deleteConfirmRow[idField];
     if (rowId === undefined || rowId === null) return;
-    try {
-      await deleteEntity(entityName, String(rowId));
-      toast.success(`${entityConfig.displayName} deleted successfully.`);
-      fetchList();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete product';
-      showErrorToastUnlessAuth(msg);
-    }
-  }, [deleteConfirmRow, entityName, entityConfig.displayName, idField, fetchList]);
+    setDeleteConfirmRow(null);
+    await deleteById(String(rowId), entityConfig.displayName);
+  }, [deleteConfirmRow, entityConfig.displayName, idField, deleteById]);
 
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [
@@ -357,7 +350,10 @@ export default function ProductsPage() {
         onClick: (row) => {
           const rowId = getRowId(row);
           if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
+            const editRoute = entityConfig.routes.edit;
+            if (editRoute) {
+              navigate(editRoute.replace(':id', String(rowId)));
+            }
           }
         },
         variant: 'primary' as const,
@@ -375,6 +371,7 @@ export default function ProductsPage() {
       {
         label: 'Delete',
         onClick: handleDeleteClick,
+        disabled: (row: EntityRow) => deletingId === String(row[idField] ?? ''),
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

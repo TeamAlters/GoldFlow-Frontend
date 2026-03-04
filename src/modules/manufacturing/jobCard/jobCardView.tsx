@@ -1,18 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
-import { formatDateTime } from '../../../shared/utils/dateUtils';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { useUIStore } from '../../../stores/ui.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import BackButton from '../../../shared/components/BackButton';
 import JobCardReadOnlyTable from '../../../shared/components/JobCardReadOnlyTable';
+import EntityViewHeader from '../../../shared/components/EntityViewHeader';
 import {
   getViewPageHeading,
   getViewBreadcrumbLabel,
-  getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
 import type { IssueTransaction } from './jobCardTransactions.api';
 
@@ -56,7 +54,6 @@ function formatBalance(val: number | string | undefined): string {
 }
 
 export default function JobCardViewPage() {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
   const isDarkMode = useUIStore((state) => state.isDarkMode);
@@ -114,16 +111,12 @@ export default function JobCardViewPage() {
       .finally(() => setDataLoading(false));
   }, [id]);
 
-  const handleBack = useCallback(() => {
-    navigate(entityConfig.routes.list);
-  }, [navigate, entityConfig.routes.list]);
-
-  const labelClass = `block text-sm font-semibold mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-    }`;
-  const valueClass = `min-h-[42px] px-4 py-2.5 flex items-center rounded-lg border text-sm font-medium ${isDarkMode
-    ? 'bg-gray-700/50 border-gray-600 text-gray-200'
-    : 'bg-gray-50 border-gray-200 text-gray-700'
-    }`;
+  const labelClass = `block text-sm font-semibold mb-1 ${
+    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+  }`;
+  const valueClass = `min-h-[42px] px-4 py-2.5 flex items-center rounded-lg border text-sm font-medium ${
+    isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-700'
+  }`;
   const linkClass = isDarkMode
     ? 'text-amber-400 hover:text-amber-300'
     : 'text-[#B87820] hover:text-[#B87820]/80';
@@ -138,7 +131,6 @@ export default function JobCardViewPage() {
   const displayValue = data?.name ?? decodeURIComponent(id);
   const viewPageHeading = getViewPageHeading(entityConfig, displayValue);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, displayValue);
-  const editUrl = entityConfig.routes.edit?.replace(':id', id) ?? '';
 
   if (dataLoading) {
     return (
@@ -191,31 +183,11 @@ export default function JobCardViewPage() {
         ]}
         className="mb-4"
       />
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1
-            className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}
-          >
-            {viewPageHeading}
-          </h1>
-          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            {getViewPageDescription(entityConfig)}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <BackButton onClick={handleBack} />
-          <Link
-            to={editUrl}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-          >
-            Edit
-          </Link>
-        </div>
-      </div>
+      <EntityViewHeader
+        entityName={ENTITY_NAME}
+        id={decodeURIComponent(id)}
+        heading={viewPageHeading}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
         <div className="lg:col-span-2 space-y-6">

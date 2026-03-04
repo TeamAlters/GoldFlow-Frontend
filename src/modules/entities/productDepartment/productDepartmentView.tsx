@@ -1,10 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { deleteEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import { toast } from '../../../stores/toast.store';
 import { useEntityLoad } from '../../../shared/hooks/useEntityLoad';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialProductDepartmentData } from './productDepartmentCreate';
@@ -17,6 +15,7 @@ import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 import ProductDepartmentDetailContent from './ProductDepartmentDetailContent';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 
 const ENTITY_NAME = 'product_department';
 
@@ -34,7 +33,7 @@ export default function ProductDepartmentViewPage() {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
 
   const initialData = useMemo(
     () => (rawEntity ? toInitialProductDepartmentData(rawEntity) : undefined),
@@ -51,22 +50,13 @@ export default function ProductDepartmentViewPage() {
 
   const handleDelete = useCallback(async () => {
     if (!id) return;
-    setIsDeleting(true);
-    try {
-      await deleteEntity(ENTITY_NAME, id);
-      toast.success(`${entityConfig.displayName} deleted successfully.`);
-      navigate(entityConfig.routes.list);
-    } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : `Failed to delete ${entityConfig.displayName}`;
-      showErrorToastUnlessAuth(msg);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  }, [id, entityConfig, navigate]);
+    await deleteById(id, entityConfig.displayName);
+    setShowDeleteDialog(false);
+    navigate(entityConfig.routes.list);
+  }, [id, deleteById, entityConfig.displayName, entityConfig.routes.list, navigate]);
 
-  const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+  const editUrl = entityConfig.routes.edit?.replace(':id', encodeURIComponent(id ?? '')) ?? '';
+  const isDeleting = deletingId === (id ?? '');
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
@@ -153,14 +143,16 @@ export default function ProductDepartmentViewPage() {
             Edit
           </Link>
           <button
+            type="button"
             onClick={() => setShowDeleteDialog(true)}
+            disabled={isDeleting}
             className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
               isDarkMode
                 ? 'bg-red-600 hover:bg-red-700 text-white'
                 : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
+            } disabled:opacity-60 disabled:cursor-not-allowed`}
           >
-            Delete
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>

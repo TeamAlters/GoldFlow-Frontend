@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, deleteEntity } from '../../admin/admin.api';
+import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
-import { toast } from '../../../stores/toast.store';
 import StaticItemTypeForm, { type StaticItemTypeFormData } from './itemTypeForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialItemTypeData } from './itemTypeCreate';
@@ -17,6 +16,7 @@ import {
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 
 const ENTITY_NAME = 'item_type';
 
@@ -33,7 +33,7 @@ export default function ItemTypeViewPage() {
   
   // Delete dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
 
   useEffect(() => {
     if (!id) return;
@@ -60,22 +60,14 @@ export default function ItemTypeViewPage() {
   // Handle delete
   const handleDelete = useCallback(async () => {
     if (!id) return;
-    setIsDeleting(true);
-    try {
-      await deleteEntity(ENTITY_NAME, id);
-      toast.success(`${entityConfig.displayName} deleted successfully.`);
-      navigate(entityConfig.routes.list);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : `Failed to delete ${entityConfig.displayName}`;
-      showErrorToastUnlessAuth(msg);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  }, [id, entityConfig, navigate]);
+    await deleteById(decodeURIComponent(id), entityConfig.displayName);
+    setShowDeleteDialog(false);
+    navigate(entityConfig.routes.list);
+  }, [id, deleteById, entityConfig.displayName, entityConfig.routes.list, navigate]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
+  const isDeleting = deletingId === (id ?? '');
 
   const editUrl = id ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id)) : '';
 
@@ -133,14 +125,16 @@ export default function ItemTypeViewPage() {
             Edit
           </Link>
           <button
+            type="button"
             onClick={() => setShowDeleteDialog(true)}
+            disabled={isDeleting}
             className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
               isDarkMode
                 ? 'bg-red-600 hover:bg-red-700 text-white'
                 : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
+            } disabled:opacity-60 disabled:cursor-not-allowed`}
           >
-            Delete
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>

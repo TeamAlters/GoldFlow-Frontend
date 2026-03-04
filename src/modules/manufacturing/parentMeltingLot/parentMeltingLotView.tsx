@@ -12,6 +12,7 @@ import Breadcrumbs from '../../../layout/Breadcrumbs';
 import BackButton from '../../../shared/components/BackButton';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 import {
   getViewPageHeading,
   getViewBreadcrumbLabel,
@@ -43,6 +44,8 @@ export default function ParentMeltingLotViewPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [isClosing, setIsClosing] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
 
   useEffect(() => {
     if (!id) return;
@@ -100,6 +103,7 @@ export default function ParentMeltingLotViewPage() {
   // Check if status allows editing
   const canEdit = data?.status !== 'Closed';
   const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
+  const isDeleting = deletingId === (id ?? '');
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
@@ -168,6 +172,20 @@ export default function ParentMeltingLotViewPage() {
           </h1>
           <div className="flex items-center gap-3">
             <BackButton onClick={handleBack} />
+            {data?.status === 'Draft' && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isDeleting}
+                className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
+                  isDarkMode
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            )}
             {data?.status === 'Draft' && (
               <button
                 type="button"
@@ -287,6 +305,21 @@ export default function ParentMeltingLotViewPage() {
         title="Close Parent Melting Lot"
         message={`Are you sure you want to close "${data?.name}"? This action cannot be undone.`}
         confirmLabel="Close"
+        cancelLabel="Cancel"
+        variant="danger"
+      />
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={async () => {
+          if (!id) return;
+          await deleteById(id, entityConfig.displayName);
+          setShowDeleteConfirm(false);
+          navigate(entityConfig.routes.list);
+        }}
+        title={`Delete ${entityConfig.displayName}`}
+        message={`Are you sure you want to delete "${data?.name || entityConfig.displayName}"? This action cannot be undone.`}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
         cancelLabel="Cancel"
         variant="danger"
       />

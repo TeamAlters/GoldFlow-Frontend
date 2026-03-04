@@ -13,12 +13,10 @@ import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { useAuthStore } from '../../../auth/auth.store';
 import { useUIStore } from '../../../stores/ui.store';
-import { toast } from '../../../stores/toast.store';
 import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
 import {
   getEntityMetadata,
   getEntityList,
-  deleteEntity,
   type EntityField,
   type EntityFilterField,
   type EntityListFilter,
@@ -28,6 +26,8 @@ import { getRowDisplayValue } from '../../../shared/utils/common';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { useEntityMutationStore, useEntityVersion } from '../../../stores/entityMutation.store';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 
 const ENTITY_NAME = 'job_card';
 type EntityRow = Record<string, unknown>;
@@ -57,6 +57,8 @@ export default function JobCardPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
+  const entityVersion = useEntityMutationStore((state) => state.versions[ENTITY_NAME]);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
 
   const fetchMetadata = useCallback(async () => {
     if (!token) return;
@@ -206,7 +208,7 @@ export default function JobCardPage() {
     if (!metadataLoading) {
       fetchList();
     }
-  }, [metadataLoading, fetchList]);
+  }, [metadataLoading, entityVersion, fetchList]);
 
   const idField = metadata?.id_field ?? 'name';
 
@@ -280,16 +282,10 @@ export default function JobCardPage() {
     if (!deleteConfirmRow) return;
     const rowId = deleteConfirmRow[idField];
     if (rowId === undefined || rowId === null) return;
-    try {
-      await deleteEntity(ENTITY_NAME, String(rowId));
-      toast.success(`${entityConfig.displayName} deleted successfully.`);
-      setDeleteConfirmRow(null);
-      fetchList();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete job card';
-      showErrorToastUnlessAuth(msg);
-    }
-  }, [deleteConfirmRow, idField, entityConfig.displayName, fetchList]);
+
+    setDeleteConfirmRow(null);
+    await deleteById(String(rowId), entityConfig.displayName);
+  }, [deleteConfirmRow, idField, entityConfig.displayName, deleteById]);
 
   const actions: TableAction<EntityRow>[] = useMemo(() => {
     return [
@@ -316,6 +312,7 @@ export default function JobCardPage() {
       {
         label: 'Delete',
         onClick: handleDeleteClick,
+        disabled: (row: EntityRow) => deletingId === String(row[idField] ?? ''),
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
