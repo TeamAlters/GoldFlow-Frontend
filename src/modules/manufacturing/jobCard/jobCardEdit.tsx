@@ -148,10 +148,27 @@ export default function JobCardEditPage() {
             design: String(entity.design ?? ''),
             previous_job_card: String(entity.previous_job_card ?? ''),
             qty: entity.qty != null ? String(entity.qty) : '',
+            karigar: entity.karigar ? String(entity.karigar) : '',
+            description: entity.description ? String(entity.description) : '',
           });
           setReceiptTransactions(receipts);
           setIssueTransactions(issues);
-          setIssueRows(issues.map(toIssueRow));
+
+          // If no issues exist, create a default row from job card details
+          if (issues.length === 0) {
+            const defaultIssueRow: IssueRow = {
+              item: '', // Leave empty for user to select from item dropdown
+              weight: '',
+              fine_weight: '',
+              karigar: (entity as any)?.karigar ? String(entity.karigar) : '',
+              qty: (entity as any)?.qty != null ? String(entity.qty) : '',
+              design: (entity as any)?.design ? String(entity.design) : '',
+              purity: (entity as any)?.purity ? String(entity.purity) : '',
+            };
+            setIssueRows([defaultIssueRow]);
+          } else {
+            setIssueRows(issues.map(toIssueRow));
+          }
           setBalanceWeight(entity.balance_weight as number | string | undefined);
           setBalanceFineWeight(entity.balance_fine_weight as number | string | undefined);
           setIssuedWeight(
@@ -209,6 +226,8 @@ export default function JobCardEditPage() {
           design: data.design,
           previous_job_card: data.previous_job_card || '',
           qty: data.qty.trim() ? parseInt(data.qty, 10) : 0,
+          karigar: data.karigar || '',
+          description: data.description || '',
         };
 
         const response = await updateEntity(ENTITY_NAME, decodeURIComponent(id), payload);
@@ -237,7 +256,6 @@ export default function JobCardEditPage() {
     setIssueRows((prev) => [
       ...prev,
       {
-        name: '',
         item: '',
         weight: '',
         fine_weight: '',
@@ -289,7 +307,7 @@ export default function JobCardEditPage() {
     issueDetailName != null
       ? issueTransactions.find((t) => t.name === issueDetailName) ?? null
       : null;
-  const linkClass = isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700';
+
   useEffect(() => {
     if (issueDetailName != null) {
       const row =
@@ -385,8 +403,54 @@ export default function JobCardEditPage() {
     }
   }, [entityName, issueDetailName, issueDetailIndex, issueEditDraft]);
 
+  // Validation functions
+  const validateWeight = (value: string): string | null => {
+    if (value === '') return null;
+    // Allow numbers with up to 4 decimal places, max 18 digits total
+    const weightRegex = /^\d{0,14}(\.\d{0,4})?$/;
+    if (!weightRegex.test(value)) {
+      return 'Weight must be numeric with max 4 decimal places (18,4)';
+    }
+    const num = parseFloat(value);
+    if (num < 0) {
+      return 'Weight must be positive';
+    }
+    return null;
+  };
+
+  const validateQty = (value: string): string | null => {
+    if (value === '') return null;
+    // Allow max 4 digits, no decimals
+    const qtyRegex = /^\d{0,4}$/;
+    if (!qtyRegex.test(value)) {
+      return 'Quantity must be max 4 digits';
+    }
+    const num = parseInt(value, 10);
+    if (num < 0) {
+      return 'Quantity must be positive';
+    }
+    return null;
+  };
+
   const handleIssueCellChange = useCallback(
     (index: number, key: string, value: string) => {
+      // Validate input
+      if (key === 'weight') {
+        const validationError = validateWeight(value);
+        if (validationError) {
+          // Don't update the value if invalid
+          return;
+        }
+      }
+
+      if (key === 'qty') {
+        const validationError = validateQty(value);
+        if (validationError) {
+          // Don't update the value if invalid
+          return;
+        }
+      }
+
       setIssueRows((prev) => {
         if (index < 0 || index >= prev.length) return prev;
         const next = [...prev];
@@ -408,27 +472,26 @@ export default function JobCardEditPage() {
               ? (w * p) / 100
               : NaN;
 
-          (current as Record<string, string>)['fine_weight'] =
-            !Number.isNaN(fine) && fine > 0 ? fine.toFixed(4) : '';
+          const fineWeightStr = !Number.isNaN(fine) && fine > 0 ? fine.toFixed(4) : '';
+          (current as Record<string, string>)['fine_weight'] = fineWeightStr;
         }
 
         next[index] = current;
         return next;
       });
     },
-    []
+    [validateWeight, validateQty]
   );
 
   const modalLabelClass = `block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`;
   const modalInputClass = (readOnly?: boolean) =>
-    `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-0 ${
-      readOnly
-        ? isDarkMode
-          ? 'bg-gray-700/30 border-gray-600 text-gray-300'
-          : 'bg-gray-100 border-gray-200 text-gray-700'
-        : isDarkMode
-          ? 'bg-gray-700/50 border-gray-600 text-white'
-          : 'bg-white border-gray-300 text-gray-900'
+    `w-full min-h-[42px] px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-0 ${readOnly
+      ? isDarkMode
+        ? 'bg-gray-700/30 border-gray-600 text-gray-300'
+        : 'bg-gray-100 border-gray-200 text-gray-700'
+      : isDarkMode
+        ? 'bg-gray-700/50 border-gray-600 text-white'
+        : 'bg-white border-gray-300 text-gray-900'
     }`;
   const modalFieldGridClass = 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4';
 
@@ -550,6 +613,7 @@ export default function JobCardEditPage() {
               purityOptions={purityOptions}
               departmentOptions={departmentOptions}
               designOptions={designOptions}
+              karigarOptions={karigarOptions}
             />
           </div>
 

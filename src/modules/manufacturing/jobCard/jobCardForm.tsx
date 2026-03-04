@@ -17,6 +17,8 @@ export interface JobCardFormData {
   design: string;
   previous_job_card: string;
   qty: string;
+  karigar: string;
+  description: string;
 }
 
 export interface JobCardFormProps {
@@ -28,6 +30,7 @@ export interface JobCardFormProps {
   purityOptions: FormSelectOption[];
   departmentOptions: FormSelectOption[];
   designOptions: FormSelectOption[];
+  karigarOptions: FormSelectOption[];
 }
 
 function validateInteger(value: string, fieldLabel: string): string | null {
@@ -52,6 +55,7 @@ export default function JobCardForm({
   purityOptions,
   departmentOptions,
   designOptions,
+  karigarOptions,
 }: JobCardFormProps) {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
@@ -66,6 +70,8 @@ export default function JobCardForm({
     design: initialData?.design ?? '',
     previous_job_card: initialData?.previous_job_card ?? '',
     qty: initialData?.qty ?? '',
+    karigar: initialData?.karigar ?? '',
+    description: initialData?.description ?? '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -110,8 +116,13 @@ export default function JobCardForm({
   };
 
   const inputClass = `w-full px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${isDarkMode
-      ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-      : 'bg-white border-gray-300 text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+    ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+    : 'bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+    }`;
+
+  const textareaClass = `w-full min-h-[6rem] px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:border-transparent ${isDarkMode
+    ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-blue-500'
+    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500'
     }`;
 
   const labelClass = `block text-sm font-semibold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -129,23 +140,22 @@ export default function JobCardForm({
     ? 'text-amber-400 hover:text-amber-300'
     : 'text-amber-600 hover:text-amber-700';
 
-  const valueInInputClass = `w-full min-h-[42px] px-4 py-2.5 flex items-center rounded-lg border text-sm font-medium ${
-    isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-black'
-  }`;
+  const valueInInputClass = `w-full min-h-[42px] px-4 py-2.5 flex items-center rounded-lg border text-sm font-medium ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'
+    }`;
 
   function EditModeRef({
     fieldKey,
     value,
   }: {
     fieldKey:
-      | 'product'
-      | 'melting_lot'
-      | 'department'
-      | 'department_group'
-      | 'purity'
-      | 'design'
-      | 'parent_melting_lot'
-      | 'previous_job_card';
+    | 'product'
+    | 'melting_lot'
+    | 'department'
+    | 'department_group'
+    | 'purity'
+    | 'design'
+    | 'parent_melting_lot'
+    | 'previous_job_card';
     value: string;
   }) {
     const str = value || '–';
@@ -275,7 +285,7 @@ export default function JobCardForm({
           <label htmlFor="design" className={labelClass}>
             Design
           </label>
-          {designOptions.length > 1 ? (
+          {designOptions.length >= 1 ? (
             <FormSelect
               value={formData.design}
               onChange={(value) => handleChange('design', value)}
@@ -301,6 +311,34 @@ export default function JobCardForm({
         </div>
 
         <div>
+          <label htmlFor="karigar" className={labelClass}>
+            Karigar
+          </label>
+          {karigarOptions.length >= 1 ? (
+            <FormSelect
+              value={formData.karigar}
+              onChange={(value) => handleChange('karigar', value)}
+              options={karigarOptions}
+              placeholder="Select Karigar"
+              isDarkMode={isDarkMode}
+              className={selectClass('karigar')}
+            />
+          ) : (
+            <input
+              type="text"
+              id="karigar"
+              name="karigar"
+              value={formData.karigar}
+              onChange={(e) => handleChange('karigar', e.target.value.slice(0, MAX_TEXT_FIELD_LENGTH))}
+              maxLength={MAX_TEXT_FIELD_LENGTH}
+              className={`${inputClass} ${errors.karigar ? 'border-red-500' : ''}`}
+              placeholder="Enter karigar"
+            />
+          )}
+          {errors.karigar && <p className={errorClass}>{errors.karigar}</p>}
+        </div>
+
+        <div>
           <label htmlFor="qty" className={labelClass}>
             Qty
           </label>
@@ -314,6 +352,22 @@ export default function JobCardForm({
             placeholder="Enter quantity"
           />
           {errors.qty && <p className={errorClass}>{errors.qty}</p>}
+        </div>
+
+        <div className="md:col-span-2 lg:col-span-3">
+          <label htmlFor="description" className={labelClass}>
+            Description
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            value={formData.description}
+            onChange={(e) => handleChange('description', e.target.value)}
+            className={`${textareaClass} ${errors.description ? 'border-red-500' : ''}`}
+            rows={4}
+            placeholder="Enter description (optional)"
+          />
+          {errors.description && <p className={errorClass}>{errors.description}</p>}
         </div>
       </div>
     </form>

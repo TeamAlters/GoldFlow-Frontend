@@ -16,9 +16,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('sidebarMode') as SidebarMode | null;
       if (saved === 'expanded' || saved === 'collapsed') return saved;
-      return window.innerWidth >= 1024 ? 'expanded' : 'hidden';
+      return window.innerWidth >= 1024 ? 'collapsed' : 'hidden';
     }
-    return 'expanded';
+    return 'collapsed';
   });
   const location = useLocation();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
