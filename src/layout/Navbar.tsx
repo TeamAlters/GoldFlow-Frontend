@@ -3,7 +3,8 @@ import { useUIStore } from '../stores/ui.store';
 import { useAuthStore } from '../auth/auth.store';
 import { logout as logoutApi } from '../auth/auth.api';
 import { showErrorToastUnlessAuth } from '../shared/utils/errorHandling';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, type KeyboardEvent } from 'react';
+import { buildEntitySearchIndex, filterEntitySearchIndex } from '../shared/utils/entitySearch';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -15,15 +16,56 @@ export default function Navbar() {
   const logout = useAuthStore((state) => state.logout);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [activeResultIndex, setActiveResultIndex] = useState(0);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const entityIndex = useMemo(() => buildEntitySearchIndex(), []);
+  const filteredResults = useMemo(
+    () => filterEntitySearchIndex(entityIndex, searchQuery),
+    [entityIndex, searchQuery]
+  );
+
+  /** Flat list: one option per "View all" and per "Create new" (when available) */
+  const searchOptions = useMemo(() => {
+    const options: { entityIndex: number; type: 'list' | 'create'; label: string }[] = [];
+    filteredResults.forEach((item, index) => {
+      options.push({
+        entityIndex: index,
+        type: 'list',
+        label: `View all ${item.displayNamePlural}`,
+      });
+      if (item.canCreate && item.routes.add) {
+        options.push({
+          entityIndex: index,
+          type: 'create',
+          label: `Create new ${item.displayName}`,
+        });
+      }
+    });
+    return options;
+  }, [filteredResults]);
+
+  const hasResults = searchQuery.trim().length > 0 && searchOptions.length > 0;
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setActiveResultIndex(0);
+  };
 
   useEffect(() => {
     if (isSearchOpen) searchInputRef.current?.focus();
   }, [isSearchOpen]);
 
-  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (searchOptions.length > 0 && activeResultIndex >= searchOptions.length) {
+      setActiveResultIndex(Math.max(0, searchOptions.length - 1));
+    }
+  }, [searchOptions.length, activeResultIndex]);
+
+  // Close user dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -33,6 +75,81 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+        clearSearch();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setActiveResultIndex(0);
+  };
+
+  /** Run the selected option (list or create) by flat index */
+  const runSearchOption = (optionIndex: number) => {
+    const option = searchOptions[optionIndex];
+    if (!option) return;
+    if (option.type === 'list') handleOpenListing(option.entityIndex);
+    else handleCreateNew(option.entityIndex);
+  };
+
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      clearSearch();
+      return;
+    }
+
+    if (!hasResults) {
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveResultIndex((prev) => {
+        const next = prev + 1;
+        return next >= searchOptions.length ? 0 : next;
+      });
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveResultIndex((prev) => {
+        const next = prev - 1;
+        return next < 0 ? searchOptions.length - 1 : next;
+      });
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      runSearchOption(activeResultIndex);
+    }
+  };
+
+  const handleOpenListing = (index: number) => {
+    const item = filteredResults[index];
+    if (!item) return;
+    navigate(item.routes.list);
+    clearSearch();
+    setIsSearchOpen(false);
+  };
+
+  const handleCreateNew = (index: number) => {
+    const item = filteredResults[index];
+    if (!item || !item.canCreate || !item.routes.add) return;
+    navigate(item.routes.add);
+    clearSearch();
+    setIsSearchOpen(false);
+  };
 
   const handleLogout = async () => {
     setIsUserDropdownOpen(false);
@@ -96,9 +213,9 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {/* Search - icon expands to input on hover */}
             <div
-              className="hidden sm:flex items-center overflow-hidden mr-2"
+              ref={searchContainerRef}
+              className="hidden sm:flex items-center overflow-visible mr-2 relative"
               onMouseEnter={() => setIsSearchOpen(true)}
-              onMouseLeave={() => setIsSearchOpen(false)}
             >
               <button
                 type="button"
@@ -120,24 +237,75 @@ export default function Navbar() {
                 </svg>
               </button>
               <div
-                className={`overflow-hidden rounded-md transition-all duration-300 ease-in-out will-change-[width,margin] ${
-                  isSearchOpen ? 'w-64 ml-2' : 'w-0 ml-0'
+                className={`rounded-md transition-all duration-300 ease-in-out will-change-[width,margin] ${
+                  isSearchOpen ? 'w-64 ml-2 overflow-visible' : 'w-0 ml-0 overflow-hidden'
                 }`}
               >
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setIsSearchOpen(true)}
-                  onBlur={() => setIsSearchOpen(false)}
-                  placeholder="Search..."
-                  className={`w-full min-w-0 px-3 py-1.5 text-sm rounded-md border transition-all focus:outline-none focus:ring-2 focus:ring-inset ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-amber-400 focus:ring-amber-400/25'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-amber-500 focus:ring-amber-500/20'
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    onFocus={() => setIsSearchOpen(true)}
+                    onKeyDown={handleSearchKeyDown}
+                    placeholder="Search entities..."
+                    className={`w-full min-w-0 px-3 py-1.5 text-sm rounded-md border transition-all focus:outline-none focus:ring-2 focus:ring-inset ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500 focus:border-amber-400 focus:ring-amber-400/25'
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-amber-500 focus:ring-amber-500/20'
+                    }`}
+                  />
+
+                  {/* Search results dropdown */}
+                  {searchQuery.trim().length > 0 && (
+                    <div
+                      className={`absolute left-0 right-0 mt-1 rounded-md shadow-lg border z-[60] max-h-72 overflow-y-auto ${
+                        isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                      }`}
+                    >
+                      {hasResults ? (
+                        <ul className="py-1 text-sm">
+                          {searchOptions.map((option, index) => {
+                            const isActive = index === activeResultIndex;
+                            return (
+                              <li key={`${option.entityIndex}-${option.type}`}>
+                                <button
+                                  type="button"
+                                  className={`w-full text-left px-3 py-2 transition-colors ${
+                                    isActive
+                                      ? isDarkMode
+                                        ? 'bg-amber-500/15 text-amber-300'
+                                        : 'bg-amber-50 text-amber-700'
+                                      : isDarkMode
+                                        ? 'text-gray-100 hover:bg-gray-700'
+                                        : 'text-gray-800 hover:bg-gray-100'
+                                  }`}
+                                  onMouseEnter={() => setActiveResultIndex(index)}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    runSearchOption(index);
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <div
+                          className={`px-3 py-2 text-sm ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                          }`}
+                        >
+                          No entities found
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             {/* Theme Toggle */}
