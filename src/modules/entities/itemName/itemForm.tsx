@@ -8,6 +8,7 @@ import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 export type StaticItemFormData = {
   item_name: string;
   item_type: string;
+  allow_material_issue: boolean;
 };
 
 export interface StaticItemFormRef {
@@ -35,6 +36,7 @@ export interface StaticItemFormProps {
 const emptyForm: StaticItemFormData = {
   item_name: '',
   item_type: '',
+  allow_material_issue: false,
 };
 
 const StaticItemFormInner = forwardRef<StaticItemFormRef, StaticItemFormProps>(
@@ -67,9 +69,13 @@ const StaticItemFormInner = forwardRef<StaticItemFormRef, StaticItemFormProps>(
       }
     }, [initialData]);
 
-    const handleChange = (key: keyof StaticItemFormData, value: string) => {
+    const handleChange = (key: 'item_name' | 'item_type', value: string) => {
       setFormData((prev) => ({ ...prev, [key]: value }));
       if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
+    };
+
+    const handleCheckboxChange = (checked: boolean) => {
+      setFormData((prev) => ({ ...prev, allow_material_issue: checked }));
     };
 
     const validate = (): boolean => {
@@ -103,60 +109,98 @@ const StaticItemFormInner = forwardRef<StaticItemFormRef, StaticItemFormProps>(
     const errorClass = `text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`;
 
     const fields = (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className={labelClass}>
-            Item Name <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
-          </label>
-          <input
-            type="text"
-            value={formData.item_name}
-            onChange={(e) => handleChange('item_name', e.target.value)}
-            placeholder="e.g. Item-01"
-            maxLength={MAX_LENGTH_36}
-            className={inputClass('item_name')}
-            disabled={readOnly}
-            readOnly={readOnly}
-          />
-          {errors.item_name && (
-            <p className={`mt-1 ${errorClass}`}>{errors.item_name}</p>
-          )}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className={labelClass}>
+              Item Name <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.item_name}
+              onChange={(e) => handleChange('item_name', e.target.value)}
+              placeholder="e.g. Item-01"
+              maxLength={MAX_LENGTH_36}
+              className={inputClass('item_name')}
+              disabled={readOnly}
+              readOnly={readOnly}
+            />
+            {errors.item_name && (
+              <p className={`mt-1 ${errorClass}`}>{errors.item_name}</p>
+            )}
+          </div>
+          <div>
+            <label className={labelClass}>
+              Item Type <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
+            </label>
+            {(() => {
+              if (readOnly && formData.item_type) {
+                const route = getEntityDetailRoute('item_type', formData.item_type);
+                if (route) {
+                  return (
+                    <div
+                      className={`w-full min-h-[42px] px-4 py-2.5 flex items-center text-sm rounded-lg border ${
+                        isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <Link
+                        to={route}
+                        className={
+                          isDarkMode
+                            ? 'text-amber-400 hover:text-amber-300'
+                            : 'text-amber-600 hover:text-amber-700'
+                        }
+                      >
+                        {formData.item_type}
+                      </Link>
+                    </div>
+                  );
+                }
+              }
+              return itemTypeOptions.length > 0 ? (
+                <FormSelect
+                  value={formData.item_type}
+                  onChange={(v) => handleChange('item_type', v)}
+                  options={itemTypeOptions}
+                  placeholder="Select item type"
+                  disabled={readOnly}
+                  className={inputClass('item_type')}
+                  isDarkMode={isDarkMode}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={formData.item_type}
+                  onChange={(e) => handleChange('item_type', e.target.value)}
+                  placeholder="Item type"
+                  maxLength={MAX_LENGTH_36}
+                  className={inputClass('item_type')}
+                  disabled={readOnly}
+                  readOnly={readOnly}
+                />
+              );
+            })()}
+            {errors.item_type && (
+              <p className={`mt-1 ${errorClass}`}>{errors.item_type}</p>
+            )}
+          </div>
         </div>
-        <div>
-          <label className={labelClass}>
-            Item Type <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
+
+        <div className="flex items-center gap-2 pt-2">
+          <input
+            id="allow_material_issue"
+            type="checkbox"
+            checked={formData.allow_material_issue}
+            onChange={(e) => handleCheckboxChange(e.target.checked)}
+            disabled={readOnly}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label
+            htmlFor="allow_material_issue"
+            className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}
+          >
+            Allow Material issue
           </label>
-          {(() => {
-            if (readOnly && formData.item_type) {
-              const route = getEntityDetailRoute('item_type', formData.item_type);
-              if (route) return <div className={`w-full min-h-[42px] px-4 py-2.5 flex items-center text-sm rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'}`}><Link to={route} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{formData.item_type}</Link></div>;
-            }
-            return itemTypeOptions.length > 0 ? (
-              <FormSelect
-                value={formData.item_type}
-                onChange={(v) => handleChange('item_type', v)}
-                options={itemTypeOptions}
-                placeholder="Select item type"
-                disabled={readOnly}
-                className={inputClass('item_type')}
-                isDarkMode={isDarkMode}
-              />
-            ) : (
-              <input
-                type="text"
-                value={formData.item_type}
-                onChange={(e) => handleChange('item_type', e.target.value)}
-                placeholder="Item type"
-                maxLength={MAX_LENGTH_36}
-                className={inputClass('item_type')}
-                disabled={readOnly}
-                readOnly={readOnly}
-              />
-            );
-          })()}
-          {errors.item_type && (
-            <p className={`mt-1 ${errorClass}`}>{errors.item_type}</p>
-          )}
         </div>
       </div>
     );

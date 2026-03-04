@@ -22,6 +22,7 @@ export function toInitialItemData(
   return {
     item_name: entity.item_name != null ? String(entity.item_name) : '',
     item_type: entity.item_type != null ? String(entity.item_type) : '',
+    allow_material_issue: entity.allow_material_issue === true,
   };
 }
 
@@ -29,6 +30,7 @@ export function toItemPayload(data: StaticItemFormData): Record<string, unknown>
   return {
     item_name: data.item_name.trim(),
     item_type: data.item_type.trim(),
+    allow_material_issue: data.allow_material_issue,
   };
 }
 
