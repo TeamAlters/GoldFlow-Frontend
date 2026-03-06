@@ -178,7 +178,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   purity: {
     displayName: 'Purity',
-    displayNamePlural: 'Purities',
+    displayNamePlural: 'Purity',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -204,7 +204,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   purity_range: {
     displayName: 'Purity Range',
-    displayNamePlural: 'Purity Ranges',
+    displayNamePlural: 'Purity Range',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -230,7 +230,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   accessory_purity: {
     displayName: 'Accessory Purity',
-    displayNamePlural: 'Accessory Purities',
+    displayNamePlural: 'Accessory Purity',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -256,7 +256,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   accessories_purity_range: {
     displayName: 'Accessories Purity Range',
-    displayNamePlural: 'Accessories Purity Ranges',
+    displayNamePlural: 'Accessories Purity Range',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -282,7 +282,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   design: {
     displayName: 'Design',
-    displayNamePlural: 'Designs',
+    displayNamePlural: 'Design',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -308,7 +308,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   thickness: {
     displayName: 'Thickness',
-    displayNamePlural: 'Thicknesses',
+    displayNamePlural: 'Thickness',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -334,7 +334,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   wire_size: {
     displayName: 'Wire Size',
-    displayNamePlural: 'Wire Sizes',
+    displayNamePlural: 'Wire Size',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -360,7 +360,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   machine: {
     displayName: 'Machine',
-    displayNamePlural: 'Machines',
+    displayNamePlural: 'Machine',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -386,7 +386,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   item: {
     displayName: 'Item',
-    displayNamePlural: 'Items',
+    displayNamePlural: 'Item',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -412,7 +412,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   item_type: {
     displayName: 'Item Type',
-    displayNamePlural: 'Item Types',
+    displayNamePlural: 'Item Type',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -438,7 +438,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   karigar: {
     displayName: 'Karigar',
-    displayNamePlural: 'Karigars',
+    displayNamePlural: 'Karigar',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -464,7 +464,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   customer: {
     displayName: 'Customer',
-    displayNamePlural: 'Customers',
+    displayNamePlural: 'Customer',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -490,7 +490,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   department_group: {
     displayName: 'Department Group',
-    displayNamePlural: 'Department Groups',
+    displayNamePlural: 'Department Group',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -516,7 +516,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   product_department_group: {
     displayName: 'Product Department Group',
-    displayNamePlural: 'Product Department Groups',
+    displayNamePlural: 'Product Department Group',
     api: {
       listingMetadata: '/api/v1/entities/product_department_group/listing-metadata',
       formMetadata: '/api/v1/entities/product_department_group/form-metadata',
@@ -542,7 +542,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   product_department: {
     displayName: 'Product Department',
-    displayNamePlural: 'Product Departments',
+      displayNamePlural: 'Product Department',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -568,7 +568,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   department: {
     displayName: 'Department',
-    displayNamePlural: 'Departments',
+    displayNamePlural: 'Department',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -594,7 +594,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   role: {
     displayName: 'Role',
-    displayNamePlural: 'Roles',
+    displayNamePlural: 'Role',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -620,7 +620,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   workorder: {
     displayName: 'Work Order',
-    displayNamePlural: 'Work Orders',
+    displayNamePlural: 'Work Order',   
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -646,7 +646,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   metal_ledger: {
     displayName: 'Metal Ledger',
-    displayNamePlural: 'Metal Ledgers',
+    displayNamePlural: 'Metal Ledger',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -672,7 +672,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   melting_pool_transaction: {
     displayName: 'Melting Pool Transaction',
-    displayNamePlural: 'Melting Pool Transactions',
+    displayNamePlural: 'Melting Pool Transaction',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -698,7 +698,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   job_card: {
     displayName: 'Job Card',
-    displayNamePlural: 'Job Cards',
+    displayNamePlural: 'Job Card',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -722,7 +722,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   job_card_transaction: {
     displayName: 'Job Card Transaction',
-    displayNamePlural: 'Job Card Transactions',
+    displayNamePlural: 'Job Card Transaction',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -743,7 +743,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   melting_lot: {
     displayName: 'Melting Lot',
-    displayNamePlural: 'Melting Lots',
+    displayNamePlural: 'Melting Lot',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,
@@ -769,7 +769,7 @@ const ENTITY_CONFIG: Record<string, Omit<EntityConfig, 'name'>> = {
 
   parent_melting_lot: {
     displayName: 'Parent Melting Lot',
-    displayNamePlural: 'Parent Melting Lots',
+    displayNamePlural: 'Parent Melting Lot',
     api: {
       listingMetadata: DEFAULT_API_PATHS.listingMetadata,
       formMetadata: DEFAULT_API_PATHS.formMetadata,

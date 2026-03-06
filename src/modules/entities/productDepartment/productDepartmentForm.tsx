@@ -151,6 +151,12 @@ const ProductDepartmentFormInner = forwardRef<
     if (formData.loss_percentage.trim()) {
       const err = validateNumeric52(formData.loss_percentage, 'Loss percentage', { nonNegative: true });
       if (err) next.loss_percentage = err;
+      else {
+        const num = parseFloat(formData.loss_percentage.trim());
+        if (Number.isFinite(num) && num > 100) {
+          next.loss_percentage = 'Loss percentage must be between 0 and 100';
+        }
+      }
     }
 
     if (formData.expected_processing_time_mins.trim()) {
@@ -312,12 +318,15 @@ const ProductDepartmentFormInner = forwardRef<
               onChange={(e) =>
                 handleChange('loss_percentage', sanitizeNumeric52Input(e.target.value))
               }
-              placeholder="e.g. 0.50"
+              placeholder="e.g. 0.50 (0–100)"
               maxLength={MAX_NUMERIC_52_LENGTH}
               className={inputClass('loss_percentage')}
               disabled={readOnly}
               readOnly={readOnly}
             />
+            <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Enter a value between 0 and 100
+            </p>
             {errors.loss_percentage && (
               <p className={`mt-1 ${errorClass}`}>{errors.loss_percentage}</p>
             )}

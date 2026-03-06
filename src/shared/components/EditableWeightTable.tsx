@@ -5,6 +5,8 @@ export type ColumnDef<T> = {
   key: string;
   header: string;
   width?: string;
+  /** Explicit width for the column (e.g. '12rem'). Used in colgroup so selected dropdown values cannot expand the table. */
+  widthStyle?: string;
   isEditable?: boolean;
   isReadOnly?: boolean;
   isDropdown?: boolean;
@@ -96,17 +98,24 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
       }`}
     >
       <div className="overflow-x-auto overflow-y-visible">
-        <table className="min-w-full">
+        <table className="min-w-full table-fixed w-full">
+        <colgroup>
+          <col style={{ width: '3rem' }} />
+          {columns.map((col) => (
+            <col key={col.key} style={col.widthStyle ? { width: col.widthStyle } : undefined} />
+          ))}
+          {showActionsColumn && <col style={{ width: '5rem' }} />}
+        </colgroup>
         <thead>
           <tr className={isDarkMode ? 'border-b border-gray-600' : 'border-b border-gray-200'}>
-            <th className={`${thClass} border-r w-12`}>Sr.no</th>
+            <th className={`${thClass} border-r w-12 shrink-0`}>Sr.no</th>
             {columns.map((col, i) => (
-              <th key={col.key} className={`${thClass} ${i < columns.length - 1 ? 'border-r' : ''} ${col.width || ''}`}>
-                {col.header}
+              <th key={col.key} className={`${thClass} ${i < columns.length - 1 ? 'border-r' : ''} ${col.width || ''} overflow-hidden`}>
+                <span className="block truncate" title={col.header}>{col.header}</span>
               </th>
             ))}
             {showActionsColumn && (
-              <th className={`${thClass} ${renderActions && showActionButtons ? 'w-32' : renderActions ? 'w-20' : 'w-24'}`}>
+              <th className={`${thClass} shrink-0 ${renderActions && showActionButtons ? 'w-32' : renderActions ? 'w-20' : 'w-24'}`}>
                 Actions
               </th>
             )}
@@ -115,7 +124,7 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
         <tbody className={isDarkMode ? 'divide-y divide-gray-600 bg-gray-800' : 'divide-y divide-gray-200 bg-white'}>
           {data.map((row, index) => (
             <tr key={getRowId ? getRowId(row, index) : index}>
-              <td className={`${tdClass} border-r text-center font-medium ${
+              <td className={`${tdClass} border-r text-center font-medium shrink-0 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-500'
               }`}>
                 {index + 1}
@@ -125,9 +134,10 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                   key={col.key}
                   className={`${tdClass} ${colIndex < columns.length - 1 ? 'border-r' : ''} ${
                     col.width || ''
-                  }`}
+                  } overflow-hidden align-middle`}
+                  style={col.widthStyle ? { width: col.widthStyle, minWidth: col.widthStyle, maxWidth: col.widthStyle } : undefined}
                 >
-                  <div className="flex items-center justify-center min-h-[42px]">
+                  <div className="flex items-center justify-center min-h-[42px] min-w-0 w-full max-w-full overflow-hidden px-1">
                     {col.renderCell ? (
                       col.renderCell(row, index)
                     ) : col.isDropdown && col.dropdownOptions ? (
@@ -139,7 +149,7 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                         disabled={readOnly}
                         isDarkMode={isDarkMode}
                         usePortal={true}
-                        className={`min-w-0 w-full ${
+                        className={`min-w-0 w-full max-w-full truncate px-2 py-1.5 text-sm rounded border-[1px] outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus:border-blue-500 ${
                           isDarkMode
                             ? 'bg-gray-700/50 border-gray-600 text-gray-200'
                             : 'bg-white border-gray-300 text-gray-900'
@@ -154,13 +164,13 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                         className={inputClass}
                       />
                     ) : col.isReadOnly ? (
-                      <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                      <span className={`block truncate w-full text-left ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`} title={row[col.key] !== undefined && row[col.key] !== null ? String(row[col.key]) : undefined}>
                         {row[col.key] !== undefined && row[col.key] !== null
                           ? String(row[col.key])
                           : '–'}
                       </span>
                     ) : (
-                      <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
+                      <span className={`block truncate w-full text-left ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`} title={String(row[col.key] || '')}>
                         {String(row[col.key] || '')}
                       </span>
                     )}
@@ -168,7 +178,7 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                 </td>
               ))}
               {showActionsColumn && (
-                <td className={`${tdClass} text-center`}>
+                <td className={`${tdClass} text-center shrink-0 w-20`}>
                   <div className="flex items-center justify-center gap-1 flex-wrap">
                     {renderActions && renderActions(row, index)}
                     {onClearRow && (

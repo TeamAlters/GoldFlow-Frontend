@@ -45,7 +45,6 @@ export const OPERATOR_MAP: Record<string, FilterOperatorOption[]> = {
     { value: 'is set', label: 'Is Set', requiresValue: false },
   ],
   Boolean: [
-    { value: '=', label: 'Equals', requiresValue: true },
     { value: 'is not set', label: 'Is Not Set', requiresValue: false },
     { value: 'is set', label: 'Is Set', requiresValue: false },
   ],

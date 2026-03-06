@@ -15,6 +15,7 @@ import {
   getViewBreadcrumbLabel,
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
@@ -73,7 +74,9 @@ export default function ProductCategoryViewPage() {
   const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   if (dataLoading) {
@@ -91,28 +94,7 @@ export default function ProductCategoryViewPage() {
 
   if (loadError && !initialData) {
     return (
-      <div className="w-full">
-        <Breadcrumbs
-          items={[
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
-            { label: getViewPageHeading(entityConfig, undefined) },
-          ]}
-          className="mb-4"
-        />
-        <div
-          className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}
-        >
-          <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{loadError}</p>
-          <button
-            type="button"
-            onClick={() => navigate(entityConfig.routes.list)}
-            className={`mt-4 px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-          >
-            Back to list
-          </button>
-        </div>
-      </div>
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

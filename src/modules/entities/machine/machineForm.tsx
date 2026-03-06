@@ -2,7 +2,8 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
-import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_36, validateTextMaxLength, getTextInputDescription } from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticMachineFormData = {
@@ -76,8 +77,10 @@ const StaticMachineFormInner = forwardRef<StaticMachineFormRef, StaticMachineFor
       const next: Record<string, string> = {};
       const name = formData.machine_name.trim();
       if (!name) next.machine_name = 'Machine name is required';
-      else if (name.length > MAX_LENGTH_36)
-        next.machine_name = maxLengthError('Machine name', MAX_LENGTH_36);
+      else {
+        const err = validateTextMaxLength(name, 'Machine name', MAX_LENGTH_36);
+        if (err) next.machine_name = err;
+      }
       if (!formData.product_name.trim()) next.product_name = 'Product is required';
       setErrors(next);
       return Object.keys(next).length === 0;
@@ -118,6 +121,7 @@ const StaticMachineFormInner = forwardRef<StaticMachineFormRef, StaticMachineFor
             disabled={readOnly}
             readOnly={readOnly}
           />
+          <FormFieldHint>{getTextInputDescription(MAX_LENGTH_36)}</FormFieldHint>
           {errors.machine_name && (
             <p className={`mt-1 ${errorClass}`}>{errors.machine_name}</p>
           )}
@@ -142,16 +146,19 @@ const StaticMachineFormInner = forwardRef<StaticMachineFormRef, StaticMachineFor
                 isDarkMode={isDarkMode}
               />
             ) : (
-              <input
-                type="text"
-                value={formData.product_name}
-                onChange={(e) => handleChange('product_name', e.target.value)}
-                placeholder="Product name"
-                maxLength={MAX_LENGTH_36}
-                className={inputClass('product_name')}
-                disabled={readOnly}
-                readOnly={readOnly}
-              />
+              <>
+                <input
+                  type="text"
+                  value={formData.product_name}
+                  onChange={(e) => handleChange('product_name', e.target.value)}
+                  placeholder="Product name"
+                  maxLength={MAX_LENGTH_36}
+                  className={inputClass('product_name')}
+                  disabled={readOnly}
+                  readOnly={readOnly}
+                />
+                <FormFieldHint>{getTextInputDescription(MAX_LENGTH_36)}</FormFieldHint>
+              </>
             );
           })()}
           {errors.product_name && (

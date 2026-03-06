@@ -19,7 +19,7 @@ export interface FormSelectProps {
   navigateTo?: string;
   /** Controls whether the dropdown opens below (default) or above the trigger button. */
   placement?: 'top' | 'bottom';
-  /** When true, renders the dropdown menu in a portal to avoid clipping inside scrollable containers (e.g. tables). */
+  /** When false, renders the dropdown in place (absolute). Default true so dropdowns are not clipped by overflow/scroll in tables or modals. */
   usePortal?: boolean;
 }
 
@@ -36,7 +36,7 @@ export function FormSelect({
   isDarkMode = false,
   navigateTo,
   placement = 'bottom',
-  usePortal = false,
+  usePortal = true,
 }: FormSelectProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,14 +67,21 @@ export function FormSelect({
         setOpen(false);
       }
     };
+    const handleScroll = () => {
+      if (usePortal) setOpen(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
   }, [open, usePortal]);
 
   const menuPositionClass =
     placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1';
 
-  const menuBaseClass = `py-1 rounded-lg border shadow-lg max-h-60 overflow-y-auto min-w-0 scrollbar-hide ${isDarkMode
+  const menuBaseClass = `py-1 rounded-lg border shadow-lg max-h-60 overflow-y-auto scrollbar-hide ${isDarkMode
       ? 'bg-gray-700 border-gray-600'
       : 'bg-white border-gray-200'
     }`;
@@ -88,7 +95,7 @@ export function FormSelect({
           onChange('');
           setOpen(false);
         }}
-        className={`px-4 py-2.5 text-sm cursor-pointer truncate ${value === ''
+        className={`px-4 py-2.5 text-sm cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis ${value === ''
             ? isDarkMode
               ? 'bg-blue-600/30 text-white'
               : 'bg-blue-50 text-blue-900'
@@ -108,7 +115,7 @@ export function FormSelect({
             onChange(opt.value);
             setOpen(false);
           }}
-          className={`px-4 py-2.5 text-sm cursor-pointer truncate ${value === opt.value
+          className={`px-4 py-2.5 text-sm cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis ${value === opt.value
               ? isDarkMode
                 ? 'bg-blue-600/30 text-white'
                 : 'bg-blue-50 text-blue-900'
@@ -136,7 +143,8 @@ export function FormSelect({
         left: rect.left,
         top: isTop ? undefined : top,
         bottom: isTop ? window.innerHeight - rect.top + 4 : undefined,
-        width: rect.width,
+        width: Math.max(rect.width, 280),
+        minWidth: 280,
         zIndex: 9999,
       };
 
@@ -165,19 +173,20 @@ export function FormSelect({
   };
 
   return (
-    <div ref={containerRef} className="relative min-w-0 max-w-full">
+    <div ref={containerRef} className="relative min-w-0 max-w-full overflow-hidden">
       <button
         type="button"
         onClick={() => !disabled && setOpen((prev) => !prev)}
         disabled={disabled}
-        className={`w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 text-left flex items-center justify-between gap-2 min-w-0 ${isDarkMode
-            ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500 focus:border-transparent'
-            : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-transparent'
+        title={selectedLabel || undefined}
+        className={`w-full min-w-0 max-w-full overflow-hidden px-4 py-2.5 text-sm rounded-lg border-[1px] transition-colors outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus:border-blue-500 text-left flex items-center justify-between gap-2 ${isDarkMode
+            ? 'bg-gray-700 border-gray-600 text-gray-100'
+            : 'bg-white border-gray-300 text-gray-900'
           } ${className}`}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="truncate min-w-0">
+        <span className="truncate min-w-0 flex-1">
           {selectedLabel || <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>{placeholder}</span>}
         </span>
         <svg

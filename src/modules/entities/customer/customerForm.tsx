@@ -2,7 +2,16 @@ import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 're
 import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
-import { MAX_NUMERIC_63_LENGTH, MAX_TEXT_FIELD_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
+import {
+  MAX_NUMERIC_63_LENGTH,
+  MAX_TEXT_FIELD_LENGTH,
+  validateTextMaxLength,
+  getTextInputDescription,
+  getDecimalInputDescription,
+  sanitizeNumeric63Input,
+  validateNumeric63,
+} from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticCustomerMasterFormData = {
@@ -109,6 +118,7 @@ const StaticCustomerMasterFormInner = forwardRef<
     setFormData((prev) => {
       const next = { ...prev, [key]: value };
       if (key === 'product_name') {
+        next.product_category = '';
         next.design_name = '';
         next.machine_size = '';
         onProductNameChange?.(value);
@@ -122,8 +132,10 @@ const StaticCustomerMasterFormInner = forwardRef<
     const next: Record<string, string> = {};
     const name = formData.customer_name.trim();
     if (!name) next.customer_name = 'Customer name is required';
-    else if (name.length > MAX_TEXT_FIELD_LENGTH)
-      next.customer_name = maxLengthError('Customer name', 32);
+    else {
+      const err = validateTextMaxLength(name, 'Customer name', MAX_TEXT_FIELD_LENGTH);
+      if (err) next.customer_name = err;
+    }
     if (!formData.purity.trim()) next.purity = 'Purity is required';
     if (!formData.product_name.trim()) next.product_name = 'Product is required';
     if (formData.issue_purity.trim() !== '') {
@@ -144,14 +156,13 @@ const StaticCustomerMasterFormInner = forwardRef<
   };
 
   const inputClass = (key: string) =>
-    `w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${
-      errors[key]
-        ? isDarkMode
-          ? 'border-red-500 focus:ring-red-500/20 bg-red-500/10'
-          : 'border-red-300 focus:ring-red-500/20 bg-red-50'
-        : isDarkMode
-          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
-          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+    `w-full px-4 py-2.5 text-sm rounded-lg border transition-all focus:outline-none focus:ring-2 ${errors[key]
+      ? isDarkMode
+        ? 'border-red-500 focus:ring-red-500/20 bg-red-500/10'
+        : 'border-red-300 focus:ring-red-500/20 bg-red-50'
+      : isDarkMode
+        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
+        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
     }`;
 
   const labelClass = `block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`;
@@ -175,7 +186,8 @@ const StaticCustomerMasterFormInner = forwardRef<
         );
       }
     }
-    if (options.length > 0) {
+    const alwaysDropdown = (key === 'product_category' || key === 'machine_size' || key === 'design_name') && !readOnly;
+    if (options.length > 0 || alwaysDropdown) {
       return (
         <FormSelect
           value={value}
@@ -263,7 +275,7 @@ const StaticCustomerMasterFormInner = forwardRef<
         )}
       </div>
       <div>
-        <label className={labelClass}>Machine Size</label>
+        <label className={labelClass}>Machine</label>
         {renderSelect('machine_size', machineOptions, 'Select machine')}
         {errors.machine_size && (
           <p className={`mt-1 ${errorClass}`}>{errors.machine_size}</p>
@@ -301,22 +313,20 @@ const StaticCustomerMasterFormInner = forwardRef<
         <button
           type="button"
           onClick={onCancel}
-          className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-            isDarkMode
+          className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
               ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
               : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-          }`}
+            }`}
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={submitLoading}
-          className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-            isDarkMode
+          className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
               ? 'bg-blue-600 hover:bg-blue-700 text-white'
               : 'bg-blue-500 hover:bg-blue-600 text-white'
-          } disabled:opacity-60`}
+            } disabled:opacity-60`}
         >
           {submitLoading
             ? 'Saving...'

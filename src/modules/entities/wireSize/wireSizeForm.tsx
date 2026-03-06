@@ -2,7 +2,8 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
-import { MAX_LENGTH_24, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_24, validateTextMaxLength, getTextInputDescription } from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticWireSizeFormData = {
@@ -76,8 +77,10 @@ const StaticWireSizeFormInner = forwardRef<StaticWireSizeFormRef, StaticWireSize
       const next: Record<string, string> = {};
       const ws = formData.wire_size.trim();
       if (!ws) next.wire_size = 'Wire size is required';
-      else if (ws.length > MAX_LENGTH_24)
-        next.wire_size = maxLengthError('Wire size', MAX_LENGTH_24);
+      else {
+        const err = validateTextMaxLength(ws, 'Wire size', MAX_LENGTH_24);
+        if (err) next.wire_size = err;
+      }
       if (!formData.product_name.trim()) next.product_name = 'Product is required';
       setErrors(next);
       return Object.keys(next).length === 0;
@@ -118,6 +121,7 @@ const StaticWireSizeFormInner = forwardRef<StaticWireSizeFormRef, StaticWireSize
             disabled={readOnly}
             readOnly={readOnly}
           />
+          <FormFieldHint>{getTextInputDescription(MAX_LENGTH_24)}</FormFieldHint>
           {errors.wire_size && <p className={`mt-1 ${errorClass}`}>{errors.wire_size}</p>}
         </div>
         <div>
@@ -140,16 +144,19 @@ const StaticWireSizeFormInner = forwardRef<StaticWireSizeFormRef, StaticWireSize
                 isDarkMode={isDarkMode}
               />
             ) : (
-              <input
-                type="text"
-                value={formData.product_name}
-                onChange={(e) => handleChange('product_name', e.target.value)}
-                placeholder="Product name"
-                maxLength={MAX_LENGTH_24}
-                className={inputClass('product_name')}
-                disabled={readOnly}
-                readOnly={readOnly}
-              />
+              <>
+                <input
+                  type="text"
+                  value={formData.product_name}
+                  onChange={(e) => handleChange('product_name', e.target.value)}
+                  placeholder="Product name"
+                  maxLength={MAX_LENGTH_24}
+                  className={inputClass('product_name')}
+                  disabled={readOnly}
+                  readOnly={readOnly}
+                />
+                <FormFieldHint>{getTextInputDescription(MAX_LENGTH_24)}</FormFieldHint>
+              </>
             );
           })()}
           {errors.product_name && (

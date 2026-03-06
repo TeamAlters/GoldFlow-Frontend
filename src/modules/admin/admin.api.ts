@@ -144,8 +144,9 @@ export async function getEntityMetadata(entityName: string): Promise<EntityMetad
       }).catch(() => {});
     }
     // #endregion
+    const name = (f.name as string) ?? (f.field as string) ?? '';
     return {
-      name: (f.name as string) ?? (f.field as string) ?? '',
+      name,
       label,
       type: (f.type as string) ?? 'String',
       visible_in_list: (f.visible_in_list as boolean) ?? true,

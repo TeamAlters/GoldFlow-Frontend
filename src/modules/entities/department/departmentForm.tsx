@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_LENGTH_4, MAX_DEPARTMENT_NAME_LENGTH, MAX_DESCRIPTION_LENGTH, maxLengthError, sanitizeDepartmentAbbreviationInput, validateUppercaseOnly } from '../../../shared/utils/formValidation';
+import {
+  MAX_LENGTH_4,
+  MAX_DEPARTMENT_NAME_LENGTH,
+  MAX_DESCRIPTION_LENGTH,
+  validateTextMaxLength,
+  getTextInputDescription,
+  sanitizeDepartmentAbbreviationInput,
+  validateUppercaseOnly,
+} from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 
 export type StaticDepartmentFormData = {
   abbreviation: string;
@@ -76,19 +85,25 @@ const StaticDepartmentFormInner = forwardRef<
     const next: Record<string, string> = {};
     const abbr = formData.abbreviation.trim();
     if (!abbr) next.abbreviation = 'Department abbreviation is required';
-    else if (abbr.length > MAX_LENGTH_4)
-      next.abbreviation = maxLengthError('Department abbreviation', MAX_LENGTH_4);
     else {
-      const err = validateUppercaseOnly(abbr, 'Department abbreviation');
-      if (err) next.abbreviation = err;
+      const lenErr = validateTextMaxLength(abbr, 'Department abbreviation', MAX_LENGTH_4);
+      if (lenErr) next.abbreviation = lenErr;
+      else {
+        const err = validateUppercaseOnly(abbr, 'Department abbreviation');
+        if (err) next.abbreviation = err;
+      }
     }
     const name = formData.name.trim();
     if (!name) next.name = 'Department name is required';
-    else if (name.length > MAX_DEPARTMENT_NAME_LENGTH)
-      next.name = maxLengthError('Department name', MAX_DEPARTMENT_NAME_LENGTH);
+    else {
+      const err = validateTextMaxLength(name, 'Department name', MAX_DEPARTMENT_NAME_LENGTH);
+      if (err) next.name = err;
+    }
     const desc = formData.description.trim();
-    if (desc && desc.length > MAX_DESCRIPTION_LENGTH)
-      next.description = maxLengthError('Description', MAX_DESCRIPTION_LENGTH);
+    if (desc) {
+      const err = validateTextMaxLength(desc, 'Description', MAX_DESCRIPTION_LENGTH);
+      if (err) next.description = err;
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -128,6 +143,7 @@ const StaticDepartmentFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
+        <FormFieldHint>Enter up to {MAX_LENGTH_4} uppercase letters only</FormFieldHint>
      
         {errors.abbreviation && <p className={`mt-1 ${errorClass}`}>{errors.abbreviation}</p>}
       </div>
@@ -145,6 +161,7 @@ const StaticDepartmentFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
+        <FormFieldHint>{getTextInputDescription(MAX_DEPARTMENT_NAME_LENGTH)}</FormFieldHint>
  
         {errors.name && <p className={`mt-1 ${errorClass}`}>{errors.name}</p>}
       </div>
@@ -160,6 +177,7 @@ const StaticDepartmentFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
+        <FormFieldHint>{getTextInputDescription(MAX_DESCRIPTION_LENGTH)}</FormFieldHint>
         {errors.description && <p className={`mt-1 ${errorClass}`}>{errors.description}</p>}
       </div>
     </div>

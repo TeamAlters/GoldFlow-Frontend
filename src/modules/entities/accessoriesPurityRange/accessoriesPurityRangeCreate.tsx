@@ -7,6 +7,7 @@ import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
+import { FormSelect } from '../../../shared/components/FormSelect';
 import type { StaticAccessoriesPurityRangeFormData } from './accessoriesPurityRangeForm';
 import { MAX_NUMERIC_63_LENGTH, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -221,21 +222,17 @@ export default function AccessoriesPurityRangeCreatePage() {
               Accessory Purity <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
             </label>
             {accessoryPurityOptions.length > 0 ? (
-              <select
+              <FormSelect
                 value={accessoryPurity}
-                onChange={(e) => {
-                  setAccessoryPurity(e.target.value);
+                onChange={(v) => {
+                  setAccessoryPurity(v);
                   if (errors.accessory_purity) setErrors((prev) => ({ ...prev, accessory_purity: '' }));
                 }}
+                options={accessoryPurityOptions}
+                placeholder="Select accessory purity"
                 className={inputClass('accessory_purity')}
-              >
-                <option value="">Select accessory purity</option>
-                {accessoryPurityOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                isDarkMode={isDarkMode}
+              />
             ) : (
               <input
                 type="text"

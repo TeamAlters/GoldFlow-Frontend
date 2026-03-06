@@ -63,6 +63,57 @@ export function maxLengthError(fieldLabel: string, max = MAX_TEXT_FIELD_LENGTH):
   return `${fieldLabel} must be at most ${max} characters`;
 }
 
+/**
+ * Validates a text/character field: max length only.
+ * Use in form validate() for string inputs. For required check, add separately.
+ * @returns Error message or null if valid
+ */
+export function validateTextMaxLength(
+  value: string,
+  fieldLabel: string,
+  maxLength: number
+): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length > maxLength) return maxLengthError(fieldLabel, maxLength);
+  return null;
+}
+
+/**
+ * Validates an integer field: must be a number in [min, max] (inclusive).
+ * Use in form validate() for numeric inputs. Empty string is allowed (optional field).
+ * @returns Error message or null if valid
+ */
+export function validateIntegerInRange(
+  value: string,
+  fieldLabel: string,
+  min: number,
+  max: number
+): string | null {
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  const num = parseInt(trimmed, 10);
+  if (!Number.isInteger(num))
+    return `${fieldLabel} must be a whole number between ${min} and ${max}`;
+  if (num < min || num > max)
+    return `${fieldLabel} must be between ${min} and ${max}`;
+  return null;
+}
+
+/** Description for text inputs: "Enter text (letters/numbers), max X characters". Use under input. */
+export function getTextInputDescription(maxLength: number): string {
+  return `Enter text (letters or numbers), max ${maxLength} characters`;
+}
+
+/** Description for integer inputs: "Enter a whole number between X and Y". Use under input. */
+export function getIntegerInputDescription(min: number, max: number): string {
+  return `Enter a whole number between ${min} and ${max}`;
+}
+
+/** Description for decimal inputs. Use under input. */
+export function getDecimalInputDescription(example?: string): string {
+  return example ? `Enter a number, e.g. ${example}` : 'Enter a number';
+}
+
 /** Returns error message if value contains lowercase; use for uppercase-only fields. */
 export function uppercaseOnlyError(fieldLabel: string): string {
   return `${fieldLabel} must be uppercase only (lowercase not allowed)`;

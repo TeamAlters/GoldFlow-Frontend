@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { useAuthStore } from '../../../auth/auth.store';
 import DataTable from '../../../shared/components/DataTable';
 import type { TableColumn, TableAction } from '../../../shared/components/DataTable';
@@ -19,7 +18,7 @@ import { getEntityMetadata, getEntityList, deleteEntity, type EntityListFilter }
 import type { EntityField, EntityFilterField } from '../../admin/admin.api';
 import { getEntityConfig } from '../../../config/entity.config';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { getRowDisplayValue } from '../../../shared/utils/common';
+import { buildEntityListColumns } from '../../../shared/utils/entityListColumns';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 
@@ -285,51 +284,17 @@ export default function UsersPage() {
     if (!visibleFields.length) return [];
     const detailLinkField = entityMetadata?.detail_link_field ?? visibleFields[0]?.name;
     const idField = entityMetadata?.id_field || 'id';
-
-    return visibleFields.map((f) => ({
-      key: f.name,
-      header: f.label,
-      sortable: true,
-      accessor: (row: EntityRow) => {
-        const value = getRowDisplayValue(row, f.name, f.type);
-        const isDetailLink = f.name === detailLinkField;
-
-        if (isDetailLink) {
-          const rowId = row[idField];
-          return (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
-              }}
-              className={
-                isDarkMode
-                  ? 'text-amber-400 hover:text-amber-300'
-                  : 'text-amber-600 hover:text-amber-700'
-              }
-            >
-              {value}
-            </button>
-          );
-        }
-
-        const referenceRoute = typeof value === 'string' && value ? getEntityDetailRoute(f.name, value) : null;
-        if (referenceRoute) {
-          return (
-            <button type="button" onClick={(e) => { e.stopPropagation(); navigate(referenceRoute); }} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>
-              {value}
-            </button>
-          );
-        }
-        return (
-          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
-            {value}
-          </span>
-        );
-      },
-    }));
-  }, [entityMetadata, isDarkMode, navigate, entityConfig]);
+    return buildEntityListColumns({
+      visibleFields,
+      detailLinkField,
+      idField,
+      detailRoute: entityConfig.routes.detail,
+      isDarkMode,
+      navigate,
+      encodeId: false,
+      data: items,
+    });
+  }, [entityMetadata, isDarkMode, navigate, entityConfig, items]);
 
   // Handle add entity - navigate to add page
   const handleAddEntity = () => {

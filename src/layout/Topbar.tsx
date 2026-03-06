@@ -8,6 +8,7 @@ import {
   sidebarNavConfig,
   type NavCategory,
 } from '../config/navigation.config';
+import ConfirmationDialog from '../shared/components/ConfirmationDialog';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -380,8 +381,10 @@ function LogoutButton({ isDarkMode }: { isDarkMode: boolean }) {
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
+    setShowLogoutConfirm(false);
     if (token) {
       try {
         await logoutApi(token);
@@ -395,9 +398,10 @@ function LogoutButton({ isDarkMode }: { isDarkMode: boolean }) {
   };
 
   return (
+    <>
     <button
       type="button"
-      onClick={handleLogout}
+      onClick={() => setShowLogoutConfirm(true)}
       className={`flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
         isDarkMode
           ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
@@ -414,6 +418,17 @@ function LogoutButton({ isDarkMode }: { isDarkMode: boolean }) {
       </svg>
       <span className="ml-3">Logout</span>
     </button>
+    <ConfirmationDialog
+      isOpen={showLogoutConfirm}
+      onClose={() => setShowLogoutConfirm(false)}
+      onConfirm={handleLogout}
+      title="Logout"
+      message="Are you sure you want to logout?"
+      confirmLabel="Logout"
+      cancelLabel="Cancel"
+      variant="primary"
+    />
+    </>
   );
 }
 

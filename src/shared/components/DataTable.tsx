@@ -144,7 +144,7 @@ export default function DataTable<T extends Record<string, any>>({
   const getSortIcon = (key: string) => {
     if (sortConfig?.key !== key) {
       return (
-        <svg className="w-4 h-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 shrink-0 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -155,11 +155,11 @@ export default function DataTable<T extends Record<string, any>>({
       );
     }
     return sortConfig.direction === 'asc' ? (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
       </svg>
     ) : (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
       </svg>
     );
@@ -209,7 +209,7 @@ export default function DataTable<T extends Record<string, any>>({
           }`}
       >
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full" style={{ textAlign: 'left' }}>
             <thead>
               <tr
                 className={`border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-[#F2EFE9] border-gray-200'
@@ -223,28 +223,28 @@ export default function DataTable<T extends Record<string, any>>({
                       : 'hover:bg-gray-200'
                     : '';
                   return (
-                  <th
-                    key={column.key}
-                    style={{ width: column.width }}
-                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${thBgClass} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'
-                      } ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left'} ${column.sortable
-                        ? `cursor-pointer ${thHoverClass}`
-                        : ''
-                      }`}
-                    onClick={() => column.sortable && handleSort(column.key)}
-                  >
-                    <div
-                      className={`flex items-center gap-2 ${column.align === 'center' ? 'justify-center' : column.align === 'right' ? 'justify-end' : 'justify-start'}`}
+                    <th
+                      key={column.key}
+                      style={{ width: column.width }}
+                      className={`align-middle px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap min-w-[6rem] ${thBgClass} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'
+                        } ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : '!text-left'} ${column.sortable
+                          ? `cursor-pointer ${thHoverClass}`
+                          : ''
+                        }`}
+                      onClick={() => column.sortable && handleSort(column.key)}
                     >
-                      <span>{column.header}</span>
-                      {column.sortable && getSortIcon(column.key)}
-                    </div>
-                  </th>
-                );
+                      <div
+                        className={`flex items-center gap-2.5 min-w-0 ${column.align === 'center' ? 'justify-center' : column.align === 'right' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <span title={column.header}>{column.header}</span>
+                        {column.sortable && getSortIcon(column.key)}
+                      </div>
+                    </th>
+                  );
                 })}
                 {actions.length > 0 && (
                   <th
-                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#F2EFE9] text-gray-800'
+                    className={`align-middle px-4 py-3 text-xs font-bold uppercase tracking-wider !text-left whitespace-nowrap min-w-[6rem] ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#F2EFE9] text-gray-800'
                       }`}
                   >
                     Actions
@@ -293,25 +293,43 @@ export default function DataTable<T extends Record<string, any>>({
                     {columns.map((column) => (
                       <td
                         key={column.key}
-                        className={`px-4 py-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-900'
-                          } ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : ''}`}
+                        className={`align-middle px-4 py-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-900'
+                          } ${column.align === 'center'
+                            ? 'text-center'
+                            : column.align === 'right'
+                              ? 'text-right'
+                              : '!text-left'
+                          }`}
+                        style={{ textAlign: column.align === 'center' ? 'center' : column.align === 'right' ? 'right' : 'left' }}
                       >
-                        {column.accessor ? column.accessor(row) : row[column.key] || '–'}
+                        <div
+                          className={`w-full min-w-0 ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : '!text-left'}`}
+                          style={{
+                            textAlign: column.align === 'center' ? 'center' : column.align === 'right' ? 'right' : 'left',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                          }}
+                        >
+                          {column.accessor ? column.accessor(row) : row[column.key] || '–'}
+                        </div>
                       </td>
                     ))}
                     {actions.length > 0 && (
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-center sm:justify-end gap-1">
+                      <td className="px-4 py-3 !text-left">
+                        <div className="flex items-center justify-start gap-1">
                           {actions
                             .filter((action) => action.shouldShow === undefined || action.shouldShow(row))
                             .map((action, actionIndex) => (
                               <button
                                 key={actionIndex}
+                                type="button"
+                                title={action.label}
+                                aria-label={action.label}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   action.onClick(row);
                                 }}
-                                className={`px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 active:scale-95 ${action.variant === 'danger'
+                                className={`p-1.5 rounded-md transition-all duration-200 active:scale-95 ${action.variant === 'danger'
                                   ? isDarkMode
                                     ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/30 hover:border-red-500/50'
                                     : 'text-red-600 hover:bg-red-50 hover:text-red-700 border border-red-200 hover:border-red-300'
@@ -324,10 +342,7 @@ export default function DataTable<T extends Record<string, any>>({
                                       : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700 border border-blue-200 hover:border-blue-300'
                                   } ${action.className || ''}`}
                               >
-                                <div className="flex items-center gap-1.5">
-                                  {action.icon}
-                                  <span>{action.label}</span>
-                                </div>
+                                {action.icon}
                               </button>
                             ))}
                         </div>
@@ -341,51 +356,53 @@ export default function DataTable<T extends Record<string, any>>({
         </div>
 
         {/* Pagination */}
-        {pagination && totalPages > 1 && (
-          <div
-            className={`px-4 py-3 border-t flex items-center justify-between ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'
-              }`}
-          >
-            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Showing {(currentPage - 1) * pageSize + 1} to{' '}
-              {Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length} results
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${currentPage === 1
-                  ? isDarkMode
-                    ? 'text-gray-600 cursor-not-allowed'
-                    : 'text-gray-400 cursor-not-allowed'
-                  : isDarkMode
-                    ? 'text-gray-300 hover:bg-gray-700'
-                    : 'text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
-                Previous
-              </button>
-              <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Page {currentPage} of {totalPages}
+        {
+          pagination && totalPages > 1 && (
+            <div
+              className={`px-4 py-3 border-t flex items-center justify-between ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'
+                }`}
+            >
+              <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                {Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length} results
               </div>
-              <button
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${currentPage === totalPages
-                  ? isDarkMode
-                    ? 'text-gray-600 cursor-not-allowed'
-                    : 'text-gray-400 cursor-not-allowed'
-                  : isDarkMode
-                    ? 'text-gray-300 hover:bg-gray-700'
-                    : 'text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
-                Next
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${currentPage === 1
+                    ? isDarkMode
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-400 cursor-not-allowed'
+                    : isDarkMode
+                      ? 'text-gray-300 hover:bg-gray-700'
+                      : 'text-gray-700 hover:bg-gray-200'
+                    }`}
+                >
+                  Previous
+                </button>
+                <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Page {currentPage} of {totalPages}
+                </div>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${currentPage === totalPages
+                    ? isDarkMode
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-400 cursor-not-allowed'
+                    : isDarkMode
+                      ? 'text-gray-300 hover:bg-gray-700'
+                      : 'text-gray-700 hover:bg-gray-200'
+                    }`}
+                >
+                  Next
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-    </div>
+          )
+        }
+      </div >
+    </div >
   );
 }

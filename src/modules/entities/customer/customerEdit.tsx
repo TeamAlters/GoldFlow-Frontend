@@ -24,6 +24,7 @@ import {
   getEditBreadcrumbLabel,
   getEditPageDescription,
 } from '../../../shared/utils/entityPageLabels';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'customer';
 
@@ -56,6 +57,12 @@ export default function CustomerEditPage() {
   }, [loadError]);
 
   useEffect(() => {
+    if (initialData?.product_name) {
+      setSelectedProduct(initialData.product_name);
+    }
+  }, [initialData?.product_name]);
+
+  useEffect(() => {
     Promise.all([
       getEntityReferences('purity').then((items) =>
         setPurityOptions(mapReferenceItemsToOptions(items, 'purity'))
@@ -68,37 +75,32 @@ export default function CustomerEditPage() {
         });
         setProductOptions(opts);
       }),
-      getEntityReferences('product_category').then((items) =>
-        setProductCategoryOptions(mapReferenceItemsToOptions(items, 'product_category'))
-      ),
     ]).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (initialData?.product_name) {
-      setSelectedProduct(initialData.product_name);
-    }
-  }, [initialData?.product_name]);
-
-  useEffect(() => {
     const productName = selectedProduct?.trim();
     if (!productName) {
+      setProductCategoryOptions([]);
       setMachineOptions([]);
       setDesignOptions([]);
       return;
     }
     let ignore = false;
     Promise.all([
+      getEntityReferenceOptionsFiltered('product_category', productName, 'product_category', 'product_category'),
       getEntityReferenceOptionsFiltered('machine', productName, 'machine_name', 'machine_name'),
       getEntityReferenceOptionsFiltered('design', productName, 'design_name', 'design_name'),
     ])
-      .then(([machine, design]) => {
+      .then(([productCategory, machine, design]) => {
         if (ignore) return;
+        setProductCategoryOptions(productCategory);
         setMachineOptions(machine);
         setDesignOptions(design);
       })
       .catch(() => {
         if (ignore) return;
+        setProductCategoryOptions([]);
         setMachineOptions([]);
         setDesignOptions([]);
       });
@@ -147,7 +149,9 @@ export default function CustomerEditPage() {
   const sectionClass = getSectionClass(isDarkMode);
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   if (dataLoading) {

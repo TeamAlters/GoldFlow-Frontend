@@ -97,13 +97,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
         onCollapseToggle={handleCollapseToggle}
         onMobileClose={() => setSidebarMode('hidden')}
       />
-      {/* Mobile backdrop */}
-      {sidebarMode !== 'hidden' && (
-        <div
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-          onClick={() => setSidebarMode('hidden')}
-        />
-      )}
       <main
         className={`pt-28 md:pt-28 transition-[margin] duration-300 ease-in-out ${mainMargin}`}
       >

@@ -1,6 +1,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_36, validateTextMaxLength, getTextInputDescription } from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 
 export type StaticKarigarFormData = {
   karigar: string;
@@ -64,8 +65,10 @@ const StaticKarigarFormInner = forwardRef<StaticKarigarFormRef, StaticKarigarFor
       const next: Record<string, string> = {};
       const value = formData.karigar.trim();
       if (!value) next.karigar = 'Karigar is required';
-      else if (value.length > MAX_LENGTH_36)
-        next.karigar = maxLengthError('Karigar', MAX_LENGTH_36);
+      else {
+        const err = validateTextMaxLength(value, 'Karigar', MAX_LENGTH_36);
+        if (err) next.karigar = err;
+      }
       setErrors(next);
       return Object.keys(next).length === 0;
     };
@@ -105,6 +108,7 @@ const StaticKarigarFormInner = forwardRef<StaticKarigarFormRef, StaticKarigarFor
             disabled={readOnly}
             readOnly={readOnly}
           />
+          <FormFieldHint>{getTextInputDescription(MAX_LENGTH_36)}</FormFieldHint>
           {errors.karigar && (
             <p className={`mt-1 ${errorClass}`}>{errors.karigar}</p>
           )}

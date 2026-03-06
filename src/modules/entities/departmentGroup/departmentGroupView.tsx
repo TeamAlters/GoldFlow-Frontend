@@ -17,6 +17,7 @@ import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'product_department_group';
 
@@ -81,6 +82,7 @@ function parseDepartmentGroupResponse(data: DepartmentGroupResponse['data']): Pa
     name: data.name || '',
     order: String(data.step_no || ''),
     product_id: data.product || '',
+    is_active: data.is_active ?? true,
     departments,
   };
 }
@@ -172,7 +174,9 @@ export default function DepartmentGroupViewPage() {
 
   const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   const displayValue = initialData?.name as string | undefined;
@@ -193,48 +197,8 @@ export default function DepartmentGroupViewPage() {
   }
 
   if (loadError) {
-    const isEntityNotRegistered =
-      /not registered|Entity .* not|404|not found/i.test(loadError);
     return (
-      <div className="w-full">
-        <Breadcrumbs
-          items={[
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: entityConfig.displayNamePlural, href: entityConfig.routes.list },
-            { label: 'View' },
-          ]}
-          className="mb-4"
-        />
-        <div
-          className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
-            }`}
-        >
-          <h2
-            className={`text-lg font-semibold mb-3 ${isDarkMode ? 'text-red-400' : 'text-red-600'
-              }`}
-          >
-            Cannot load department group
-          </h2>
-          <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            {loadError}
-          </p>
-          {isEntityNotRegistered && (
-            <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              The department group API is not available. Please check the backend.
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={handleBack}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
-                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-              }`}
-          >
-            Back to list
-          </button>
-        </div>
-      </div>
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

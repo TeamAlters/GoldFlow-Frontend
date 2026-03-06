@@ -41,7 +41,7 @@ export function toDepartmentGroupPayload(
       is_optional: existing?.is_optional ?? false,
       allow_rework: existing?.allow_rework ?? true,
       is_final_department: existing?.is_final_department ?? false,
-      is_active: r.is_active,
+      is_active: data.is_active,
     };
   });
 
@@ -148,6 +148,11 @@ export default function DepartmentGroupCreatePage() {
           }`}
       >
         <div className={sectionClass}>
+        <h2
+          className={`text-lg font-semibold mb-4 pb-2 border-b ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'}`}
+        >
+          {entityConfig.displayName} Info
+        </h2>
         <StaticDepartmentGroupForm
           ref={formRef}
           initialData={undefined}

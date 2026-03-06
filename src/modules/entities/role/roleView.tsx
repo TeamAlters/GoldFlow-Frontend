@@ -14,6 +14,7 @@ import { getRole, type RoleDetail } from './role.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 function permissionsFromRole(role: RoleDetail | null, entityNames: string[]): PermissionsMatrix {
     const base = buildInitialMatrix(entityNames);
@@ -73,7 +74,9 @@ export default function RoleViewPage() {
     const editUrl = id ? roleConfig.routes.edit.replace(':id', id) : roleConfig.routes.list;
 
     if (!id) {
-        return <Navigate to={roleConfig.routes.list} replace />;
+        return (
+            <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+        );
     }
 
     if (loading) {

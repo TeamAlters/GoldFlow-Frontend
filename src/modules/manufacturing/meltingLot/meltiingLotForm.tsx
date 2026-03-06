@@ -329,9 +329,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
     // Live validation for Total Alloy Vadotar: numeric(18,4) NOT NULL
     if (key === 'total_alloy_vadotar') {
       const val = trimmed.trim();
-      if (!val) {
-        setErrors((prev) => ({ ...prev, total_alloy_vadotar: 'Total Alloy Vadotar is required' }));
-      } else {
+      if (val){
         const vadErr = validateNumeric184(val, 'Total Alloy Vadotar');
         setErrors((prev) => ({ ...prev, total_alloy_vadotar: vadErr ?? '' }));
       }
@@ -641,9 +639,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
 
     // Total Alloy Vadotar numeric (18,4) NOT NULL
     const vadotar = formData.total_alloy_vadotar.trim();
-    if (!vadotar) {
-      next.total_alloy_vadotar = 'Total Alloy Vadotar is required';
-    } else {
+    if (vadotar) {
       const vadErr = validateNumeric184(
         vadotar,
         'Total Alloy Vadotar',
@@ -763,7 +759,6 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
             ))}
           </div>
         )}
-        {errors[key] && <p className={`mt-1 ${errorClass}`}>{errors[key]}</p>}
       </div>
     );
   };
@@ -1118,7 +1113,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
               onChange={(e) => handleTextChange('total_alloy_vadotar', e.target.value, MAX_TEXT_FIELD_LENGTH)}
               onKeyDown={handleTotalAlloyVadotarKeyDown}
               onPaste={handleTotalAlloyVadotarPaste}
-              placeholder="Max 12345678901234.1234"
+              placeholder="Enter Vadotar"
               className={inputClass('total_alloy_vadotar')}
             />
           )}

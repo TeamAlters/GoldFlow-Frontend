@@ -11,7 +11,7 @@ import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialMetalLedgerData } from './metalLedgerCreate';
 import BackButton from '../../../shared/components/BackButton';
 import { closeMetalLedger } from './metalLedger.api';
-
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'metal_ledger';
 
@@ -108,7 +108,9 @@ export default function MetalLedgerViewPage() {
   const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   const displayValue = initialData?.voucher_no ?? id;

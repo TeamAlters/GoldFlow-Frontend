@@ -17,6 +17,7 @@ import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'karigar';
 
@@ -72,7 +73,9 @@ export default function KarigarViewPage() {
   const editUrl = id ? entityConfig.routes.edit?.replace(':id', encodeURIComponent(id)) ?? '' : '';
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   if (dataLoading) {

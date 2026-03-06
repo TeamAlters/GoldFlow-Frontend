@@ -18,6 +18,7 @@ import {
   getViewBreadcrumbLabel,
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'parent_melting_lot';
 
@@ -106,7 +107,9 @@ export default function ParentMeltingLotViewPage() {
   const isDeleting = deletingId === (id ?? '');
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   const displayValue = data?.name || 'Parent Melting Lot';
@@ -232,10 +235,6 @@ export default function ParentMeltingLotViewPage() {
             Parent Melting Lot Details
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className={labelClass}>Name</label>
-              <div className={valueClass}>{data?.name || '–'}</div>
-            </div>
             <div>
               <label className={labelClass}>Product</label>
               <div className={valueClass}>

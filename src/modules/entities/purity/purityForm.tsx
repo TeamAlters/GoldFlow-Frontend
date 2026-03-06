@@ -1,7 +1,16 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
-import { MAX_LENGTH_24, MAX_NUMERIC_63_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
+import {
+  MAX_LENGTH_24,
+  MAX_NUMERIC_63_LENGTH,
+  validateTextMaxLength,
+  getTextInputDescription,
+  getDecimalInputDescription,
+  sanitizeNumeric63Input,
+  validateNumeric63,
+} from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 
 export type StaticPurityFormData = {
     purity: string;
@@ -75,7 +84,10 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
             const next: Record<string, string> = {};
             const purityTrimmed = formData.purity.trim();
             if (!purityTrimmed) next.purity = 'Purity is required';
-            else if (purityTrimmed.length > MAX_LENGTH_24) next.purity = maxLengthError('Purity', MAX_LENGTH_24);
+            else {
+                const err = validateTextMaxLength(purityTrimmed, 'Purity', MAX_LENGTH_24);
+                if (err) next.purity = err;
+            }
             const pct = formData.purity_percentage.trim();
             if (!pct) next.purity_percentage = 'Purity percentage is required';
             else {
@@ -125,16 +137,19 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
                             isDarkMode={isDarkMode}
                         />
                     ) : (
-                        <input
-                            type="text"
-                            value={formData.purity}
-                            onChange={(e) => handleChange('purity', e.target.value)}
-                            placeholder="e.g. 24K, 22K"
-                            maxLength={MAX_LENGTH_24}
-                            className={inputClass('purity')}
-                            disabled={readOnly}
-                            readOnly={readOnly}
-                        />
+                        <>
+                            <input
+                                type="text"
+                                value={formData.purity}
+                                onChange={(e) => handleChange('purity', e.target.value)}
+                                placeholder="e.g. 24K, 22K"
+                                maxLength={MAX_LENGTH_24}
+                                className={inputClass('purity')}
+                                disabled={readOnly}
+                                readOnly={readOnly}
+                            />
+                            <FormFieldHint>{getTextInputDescription(MAX_LENGTH_24)}</FormFieldHint>
+                        </>
                     )}
                     {errors.purity && <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>}
                 </div>
@@ -153,6 +168,7 @@ const StaticPurityFormInner = forwardRef<StaticPurityFormRef, StaticPurityFormPr
                         disabled={readOnly}
                         readOnly={readOnly}
                     />
+                    <FormFieldHint>{getDecimalInputDescription('99.999 (0–100)')}</FormFieldHint>
                     {errors.purity_percentage && (
                         <p className={`mt-1 ${errorClass}`}>{errors.purity_percentage}</p>
                     )}

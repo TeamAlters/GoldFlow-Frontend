@@ -9,6 +9,7 @@ import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import BackButton from '../../../shared/components/BackButton';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'job_card_transaction';
 
@@ -51,7 +52,9 @@ export default function JobCardTransactionViewPage() {
     navigate(entityConfig.routes.list);
   };
 
-  if (!id) return <Navigate to={entityConfig.routes.list} replace />;
+  if (!id) return (
+    <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+  );
 
   const labelClass = `block text-sm font-semibold mb-1 ${
     isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -83,7 +86,8 @@ export default function JobCardTransactionViewPage() {
   }
 
   const auditFields = ['created_at', 'modified_at', 'created_by', 'modified_by'];
-  const fields = entity ? Object.keys(entity).filter((key) => !auditFields.includes(key)) : [];
+  const excludeFromDetails = ['id', 'name', ...auditFields];
+  const fields = entity ? Object.keys(entity).filter((key) => !excludeFromDetails.includes(key)) : [];
 
   return (
     <div className="w-full">

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
-import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_36, validateTextMaxLength, getTextInputDescription } from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 
 export type StaticProductCategoryFormData = {
   product_category: string;
@@ -82,8 +83,10 @@ const StaticProductCategoryFormInner = forwardRef<
     const next: Record<string, string> = {};
     const name = formData.product_category.trim();
     if (!name) next.product_category = 'Product category is required';
-    else if (name.length > MAX_LENGTH_36)
-      next.product_category = maxLengthError('Product category', MAX_LENGTH_36);
+    else {
+      const err = validateTextMaxLength(name, 'Product category', MAX_LENGTH_36);
+      if (err) next.product_category = err;
+    }
     if (!formData.product_name.trim()) next.product_name = 'Product is required';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -124,6 +127,7 @@ const StaticProductCategoryFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
+        <FormFieldHint>{getTextInputDescription(MAX_LENGTH_36)}</FormFieldHint>
         {errors.product_category && (
           <p className={`mt-1 ${errorClass}`}>{errors.product_category}</p>
         )}
@@ -143,16 +147,19 @@ const StaticProductCategoryFormInner = forwardRef<
             isDarkMode={isDarkMode}
           />
         ) : (
-          <input
-            type="text"
-            value={formData.product_name}
-            onChange={(e) => handleChange('product_name', e.target.value)}
-            placeholder="Product name"
-            maxLength={MAX_LENGTH_36}
-            className={inputClass('product_name')}
-            disabled={readOnly}
-            readOnly={readOnly}
-          />
+          <>
+            <input
+              type="text"
+              value={formData.product_name}
+              onChange={(e) => handleChange('product_name', e.target.value)}
+              placeholder="Product name"
+              maxLength={MAX_LENGTH_36}
+              className={inputClass('product_name')}
+              disabled={readOnly}
+              readOnly={readOnly}
+            />
+            <FormFieldHint>{getTextInputDescription(MAX_LENGTH_36)}</FormFieldHint>
+          </>
         )}
         {errors.product_name && (
           <p className={`mt-1 ${errorClass}`}>{errors.product_name}</p>

@@ -9,6 +9,7 @@ import Breadcrumbs from '../../../layout/Breadcrumbs';
 import ParentMeltingLotForm, {
   type ParentMeltingLotFormData,
 } from './parentMeltingLotForm';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'parent_melting_lot';
 
@@ -102,7 +103,9 @@ export default function ParentMeltingLotEdit() {
   }, [navigate, entityConfig.routes.list]);
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   if (dataLoading || optionsLoading) {

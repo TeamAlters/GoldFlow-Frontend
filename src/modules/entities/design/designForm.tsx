@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 're
 import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
-import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_36, validateTextMaxLength, getTextInputDescription } from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticDesignFormData = {
@@ -87,12 +88,16 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
       const next: Record<string, string> = {};
       const designName = formData.design_name.trim();
       if (!designName) next.design_name = 'Design name is required';
-      else if (designName.length > MAX_LENGTH_36)
-        next.design_name = maxLengthError('Design name', MAX_LENGTH_36);
+      else {
+        const err = validateTextMaxLength(designName, 'Design name', MAX_LENGTH_36);
+        if (err) next.design_name = err;
+      }
       const productName = formData.product_name.trim();
       if (!productName) next.product_name = 'Product is required';
-      else if (productName.length > MAX_LENGTH_36)
-        next.product_name = maxLengthError('Product', MAX_LENGTH_36);
+      else if (productName.length > MAX_LENGTH_36) {
+        const err = validateTextMaxLength(productName, 'Product', MAX_LENGTH_36);
+        if (err) next.product_name = err;
+      }
       setErrors(next);
       return Object.keys(next).length === 0;
     };
@@ -131,6 +136,7 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
             disabled={readOnly}
             readOnly={readOnly}
           />
+          <FormFieldHint>{getTextInputDescription(MAX_LENGTH_36)}</FormFieldHint>
           {errors.design_name && (
             <p className={`mt-1 ${errorClass}`}>{errors.design_name}</p>
           )}
@@ -155,16 +161,19 @@ const StaticDesignFormInner = forwardRef<StaticDesignFormRef, StaticDesignFormPr
                 isDarkMode={isDarkMode}
               />
             ) : (
-              <input
-                type="text"
-                value={formData.product_name}
-                onChange={(e) => handleChange('product_name', e.target.value)}
-                placeholder="Product name"
-                maxLength={MAX_LENGTH_36}
-                className={inputClass('product_name')}
-                disabled={readOnly}
-                readOnly={readOnly}
-              />
+              <>
+                <input
+                  type="text"
+                  value={formData.product_name}
+                  onChange={(e) => handleChange('product_name', e.target.value)}
+                  placeholder="Product name"
+                  maxLength={MAX_LENGTH_36}
+                  className={inputClass('product_name')}
+                  disabled={readOnly}
+                  readOnly={readOnly}
+                />
+                <FormFieldHint>{getTextInputDescription(MAX_LENGTH_36)}</FormFieldHint>
+              </>
             );
           })()}
           {errors.product_name && (

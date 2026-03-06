@@ -1,6 +1,15 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_LENGTH_24, MAX_NUMERIC_63_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
+import {
+  MAX_LENGTH_24,
+  MAX_NUMERIC_63_LENGTH,
+  validateTextMaxLength,
+  getTextInputDescription,
+  getDecimalInputDescription,
+  sanitizeNumeric63Input,
+  validateNumeric63,
+} from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 
 export type StaticAccessoryPurityFormData = {
   accessory_purity: string;
@@ -75,8 +84,10 @@ const StaticAccessoryPurityFormInner = forwardRef<
     const next: Record<string, string> = {};
     const name = formData.accessory_purity.trim();
     if (!name) next.accessory_purity = 'Accessory purity is required';
-    else if (name.length > MAX_LENGTH_24)
-      next.accessory_purity = maxLengthError('Accessory purity', MAX_LENGTH_24);
+    else {
+      const err = validateTextMaxLength(name, 'Accessory purity', MAX_LENGTH_24);
+      if (err) next.accessory_purity = err;
+    }
     if (!formData.purity.trim()) next.purity = 'Accessory percentage is required';
     else {
       const err = validateNumeric63(formData.purity, 'Accessory percentage', { nonNegative: true });
@@ -127,6 +138,7 @@ const StaticAccessoryPurityFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
+        <FormFieldHint>{getTextInputDescription(MAX_LENGTH_24)}</FormFieldHint>
         {errors.accessory_purity && (
           <p className={`mt-1 ${errorClass}`}>{errors.accessory_purity}</p>
         )}
@@ -147,6 +159,7 @@ const StaticAccessoryPurityFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
+        <FormFieldHint>{getDecimalInputDescription('92 or 92.5 (0–100)')}</FormFieldHint>
         {errors.purity && (
           <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>
         )}

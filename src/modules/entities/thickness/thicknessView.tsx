@@ -17,6 +17,7 @@ import {
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'thickness';
 
@@ -79,7 +80,9 @@ export default function ThicknessViewPage() {
   const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   if (dataLoading) {

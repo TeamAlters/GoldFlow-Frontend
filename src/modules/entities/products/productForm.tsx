@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_LENGTH_4, MAX_LENGTH_36, maxLengthError, validateUppercaseOnly } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_4, MAX_LENGTH_36, validateTextMaxLength, getTextInputDescription, validateUppercaseOnly } from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 
 export type StaticProductFormData = {
     product_name: string;
@@ -75,13 +76,15 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
             const next: Record<string, string> = {};
             const name = formData.product_name.trim();
             if (!name) next.product_name = 'Product name is required';
-            else if (name.length > MAX_LENGTH_36)
-                next.product_name = maxLengthError('Product name', MAX_LENGTH_36);
+            else {
+                const err = validateTextMaxLength(name, 'Product name', MAX_LENGTH_36);
+                if (err) next.product_name = err;
+            }
             const abbr = formData.product_abbrevation.trim();
             if (!abbr) next.product_abbrevation = 'Product abbreviation is required';
             else {
-                if (abbr.length > MAX_LENGTH_4)
-                    next.product_abbrevation = maxLengthError('Product abbreviation', MAX_LENGTH_4);
+                const lenErr = validateTextMaxLength(abbr, 'Product abbreviation', MAX_LENGTH_4);
+                if (lenErr) next.product_abbrevation = lenErr;
                 else {
                     const uppercaseErr = validateUppercaseOnly(abbr, 'Product abbreviation');
                     if (uppercaseErr) next.product_abbrevation = uppercaseErr;
@@ -125,6 +128,7 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         disabled={readOnly}
                         readOnly={readOnly}
                     />
+                    <FormFieldHint>{getTextInputDescription(MAX_LENGTH_36)}</FormFieldHint>
                     {errors.product_name && (
                         <p className={`mt-1 ${errorClass}`}>{errors.product_name}</p>
                     )}
@@ -144,6 +148,7 @@ const StaticProductFormInner = forwardRef<StaticProductFormRef, StaticProductFor
                         readOnly={readOnly}
                         autoComplete="off"
                     />
+                    <FormFieldHint>Enter up to {MAX_LENGTH_4} uppercase letters only</FormFieldHint>
                     {errors.product_abbrevation && (
                         <p className={`mt-1 ${errorClass}`}>{errors.product_abbrevation}</p>
                     )}

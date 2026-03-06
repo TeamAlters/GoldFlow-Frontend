@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { useUIStore } from '../../../stores/ui.store';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { getEntityConfig } from '../../../config/entity.config';
@@ -8,6 +9,7 @@ import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import BackButton from '../../../shared/components/BackButton';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'melting_pool_transaction';
 
@@ -50,7 +52,9 @@ export default function MeltingPoolTransactionViewPage() {
     navigate(entityConfig.routes.list);
   };
 
-  if (!id) return <Navigate to={entityConfig.routes.list} replace />;
+  if (!id) return (
+    <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+  );
 
   const labelClass = `block text-sm font-semibold mb-1 ${
     isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -81,9 +85,26 @@ export default function MeltingPoolTransactionViewPage() {
     );
   }
 
-  // Get all fields from entity, excluding audit fields (they're shown in separate card)
+  // Get all fields from entity, excluding audit fields and id/name. Put description last.
   const auditFields = ['created_at', 'modified_at', 'created_by', 'modified_by'];
-  const fields = entity ? Object.keys(entity).filter(key => !auditFields.includes(key)) : [];
+  const excludeFromDetails = ['id', 'name', ...auditFields];
+  const allKeys = entity ? Object.keys(entity).filter(key => !excludeFromDetails.includes(key)) : [];
+  const descriptionKey = 'description';
+  const fieldsWithoutDescription = allKeys.filter(key => key !== descriptionKey);
+  const hasDescription = allKeys.includes(descriptionKey);
+
+  const linkClass = isDarkMode
+    ? 'text-amber-400 hover:text-amber-300'
+    : 'text-amber-600 hover:text-amber-700';
+
+  const renderFieldValue = (key: string, value: unknown) => {
+    const str = formatValue(value);
+    const route = typeof value === 'string' && value.trim() ? getEntityDetailRoute(key, value) : null;
+    if (route) {
+      return <Link to={route} className={linkClass}>{str}</Link>;
+    }
+    return str;
+  };
 
   return (
     <div className="w-full">
@@ -128,14 +149,22 @@ export default function MeltingPoolTransactionViewPage() {
             Transaction Details
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fields.map((key) => (
+            {fieldsWithoutDescription.map((key) => (
               <div key={key}>
                 <label className={labelClass}>
                   {key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                 </label>
-                <div className={valueClass}>{formatValue(entity?.[key])}</div>
+                <div className={valueClass}>{renderFieldValue(key, entity?.[key])}</div>
               </div>
             ))}
+            {hasDescription && (
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className={labelClass}>Description</label>
+                <div className={valueClass}>
+                  {renderFieldValue(descriptionKey, entity?.[descriptionKey])}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -33,6 +33,7 @@ export function toInitialCustomerMasterData(
 ): Partial<StaticCustomerMasterFormData> {
   const productVal = entity.product ?? entity.product_name;
   const designVal = entity.design ?? entity.design_name;
+  const machineVal = entity.machine ?? entity.machine_name ?? entity.machine_size;
   return {
     customer_name: entity.customer_name != null ? String(entity.customer_name) : '',
     purity: entity.purity != null ? String(entity.purity) : '',
@@ -41,7 +42,7 @@ export function toInitialCustomerMasterData(
     product_name: productVal != null ? String(productVal) : '',
     product_category:
       entity.product_category != null ? String(entity.product_category) : '',
-    machine_size: entity.machine_size != null ? String(entity.machine_size) : '',
+    machine_size: machineVal != null ? String(machineVal) : '',
     design_name: designVal != null ? String(designVal) : '',
     wastage: entity.wastage != null ? String(entity.wastage) : '',
   };
@@ -90,31 +91,32 @@ export default function CustomerCreatePage() {
         });
         setProductOptions(opts);
       }),
-      getEntityReferences('product_category').then((items) =>
-        setProductCategoryOptions(mapReferenceItemsToOptions(items, 'product_category'))
-      ),
     ]).catch(() => {});
   }, []);
 
   useEffect(() => {
     const productName = selectedProduct?.trim();
     if (!productName) {
+      setProductCategoryOptions([]);
       setMachineOptions([]);
       setDesignOptions([]);
       return;
     }
     let ignore = false;
     Promise.all([
+      getEntityReferenceOptionsFiltered('product_category', productName, 'product_category', 'product_category'),
       getEntityReferenceOptionsFiltered('machine', productName, 'machine_name', 'machine_name'),
       getEntityReferenceOptionsFiltered('design', productName, 'design_name', 'design_name'),
     ])
-      .then(([machine, design]) => {
+      .then(([productCategory, machine, design]) => {
         if (ignore) return;
+        setProductCategoryOptions(productCategory);
         setMachineOptions(machine);
         setDesignOptions(design);
       })
       .catch(() => {
         if (ignore) return;
+        setProductCategoryOptions([]);
         setMachineOptions([]);
         setDesignOptions([]);
       });

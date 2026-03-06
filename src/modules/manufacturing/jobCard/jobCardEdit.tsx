@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 import {
   getEntity,
   updateEntity,
   getEntityReferenceOptions,
   getEntityReferenceOptionsFiltered,
+  getEntityReferences,
 } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { toast } from '../../../stores/toast.store';
@@ -86,6 +88,8 @@ export default function JobCardEditPage() {
   const [entityName, setEntityName] = useState<string>('');
   const [productOptions, setProductOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [purityOptions, setPurityOptions] = useState<Array<{ value: string; label: string }>>([]);
+  /** Map purity name -> purity_percentage (numeric) for fine weight formula: fine_weight = weight * purity_percentage / 100 */
+  const [purityPercentageMap, setPurityPercentageMap] = useState<Record<string, number>>({});
   const [departmentOptions, setDepartmentOptions] = useState<
     Array<{ value: string; label: string }>
   >([]);
@@ -121,14 +125,27 @@ export default function JobCardEditPage() {
       setDataLoading(true);
       try {
         const decodedId = decodeURIComponent(id);
-        const [entityRes, products, purities, departments, karigars, items] = await Promise.all([
+        const [entityRes, products, purityRefs, departments, karigars, items] = await Promise.all([
           getEntity(ENTITY_NAME, decodedId),
           getEntityReferenceOptions('product', 'product_name', 'product_name'),
-          getEntityReferenceOptions('purity', 'purity', 'purity'),
+          getEntityReferences('purity'),
           getEntityReferenceOptions('department', 'name', 'name'),
           getEntityReferenceOptions('karigar', 'karigar', 'karigar'),
           getEntityReferenceOptions('item', 'item_name', 'item_name'),
         ]);
+
+        const purities = purityRefs.map((row) => ({
+          value: String(row.purity ?? row.name ?? ''),
+          label: String(row.purity ?? row.name ?? ''),
+        }));
+        const pctMap: Record<string, number> = {};
+        purityRefs.forEach((row) => {
+          const name = String(row.purity ?? row.name ?? '');
+          const pct = row.purity_percentage != null ? Number(row.purity_percentage) : NaN;
+          if (name && !Number.isNaN(pct)) pctMap[name] = pct;
+        });
+        setPurityOptions(purities);
+        setPurityPercentageMap(pctMap);
 
         if (entityRes.data && typeof entityRes.data === 'object') {
           const entity = entityRes.data as Record<string, unknown>;
@@ -143,6 +160,10 @@ export default function JobCardEditPage() {
             parent_melting_lot: String(entity.parent_melting_lot ?? ''),
             melting_lot: String(entity.melting_lot ?? ''),
             purity: String(entity.purity ?? ''),
+            purity_percentage:
+              entity.purity_percentage !== undefined && entity.purity_percentage !== null
+                ? String(entity.purity_percentage)
+                : '',
             department: String(entity.department ?? ''),
             department_group: String(entity.department_group ?? ''),
             design: String(entity.design ?? ''),
@@ -194,7 +215,6 @@ export default function JobCardEditPage() {
         }
 
         setProductOptions(products);
-        setPurityOptions(purities);
         setDepartmentOptions(departments);
         setKarigarOptions(karigars);
         setItemOptions(items);
@@ -221,6 +241,9 @@ export default function JobCardEditPage() {
           parent_melting_lot: data.parent_melting_lot || '',
           melting_lot: data.melting_lot,
           purity: data.purity,
+          purity_percentage: data.purity_percentage.trim()
+            ? parseFloat(data.purity_percentage)
+            : null,
           department: data.department,
           department_group: data.department_group,
           design: data.design,
@@ -269,29 +292,29 @@ export default function JobCardEditPage() {
 
   const handleDeleteIssueRow = useCallback(
     (index: number) => {
-      setIssueRows((prev) => {
-        const row = prev[index];
-        const name = row?.name;
-        if (name) {
-          deleteIssueTransaction(name)
-            .then(() => {
-              setIssueTransactions((txs) =>
-                txs.filter((t) => t.name !== name)
-              );
-              toast.success('Issue transaction deleted successfully');
-            })
-            .catch((err) => {
-              const msg =
-                err instanceof Error
-                  ? err.message
-                  : 'Failed to delete issue transaction';
-              showErrorToastUnlessAuth(msg);
-            });
-        }
-        return prev.filter((_, i) => i !== index);
-      });
+      const row = issueRows[index];
+      const name = row?.name;
+      if (name) {
+        deleteIssueTransaction(name)
+          .then(() => {
+            setIssueTransactions((prev) =>
+              prev.filter((t) => t.name !== name)
+            );
+            setIssueRows((prev) => prev.filter((_, i) => i !== index));
+            toast.success('Issue transaction deleted successfully');
+          })
+          .catch((err) => {
+            const msg =
+              err instanceof Error
+                ? err.message
+                : 'Failed to delete issue transaction';
+            showErrorToastUnlessAuth(msg);
+          });
+      } else {
+        setIssueRows((prev) => prev.filter((_, i) => i !== index));
+      }
     },
-    []
+    [issueRows]
   );
 
   const cardWrapperClass = `p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
@@ -348,6 +371,7 @@ export default function JobCardEditPage() {
         design: issueEditDraft.design || undefined,
         karigar: issueEditDraft.karigar || undefined,
         qty: qtyNumber,
+        purity: issueEditDraft.purity || undefined,
       });
 
       setIssueTransactions((prev) => {
@@ -392,6 +416,9 @@ export default function JobCardEditPage() {
       setIssueDetailName(null);
       setIssueDetailIndex(null);
       setIssueEditDraft(null);
+      if (id) {
+        navigate(entityConfig.routes.detail.replace(':id', id));
+      }
     } catch (err) {
       const msg =
         err instanceof Error
@@ -401,7 +428,7 @@ export default function JobCardEditPage() {
     } finally {
       setIssueModalSaving(false);
     }
-  }, [entityName, issueDetailName, issueDetailIndex, issueEditDraft]);
+  }, [entityName, issueDetailName, issueDetailIndex, issueEditDraft, id, navigate, entityConfig.routes.detail]);
 
   // Validation functions
   const validateWeight = (value: string): string | null => {
@@ -461,18 +488,19 @@ export default function JobCardEditPage() {
         if (key === 'weight' || key === 'purity') {
           const weightStr =
             key === 'weight' ? value : String(current.weight ?? '');
-          const purityStr =
-            key === 'purity' ? value : String(current.purity ?? '');
-
+          const purityName = key === 'purity' ? value : String(current.purity ?? '');
           const w = parseFloat(weightStr);
-          const p = parseFloat(purityStr);
-
+          // Fine weight = weight * purity_percentage / 100 — use percentage from map or job card
+          const pct =
+            purityPercentageMap[purityName] ??
+            (initialData?.purity === purityName && initialData?.purity_percentage
+              ? parseFloat(String(initialData.purity_percentage))
+              : NaN);
           const fine =
-            !Number.isNaN(w) && w > 0 && !Number.isNaN(p) && p > 0
-              ? (w * p) / 100
+            !Number.isNaN(w) && w > 0 && !Number.isNaN(pct) && pct >= 0 && pct <= 100
+              ? (w * pct) / 100
               : NaN;
-
-          const fineWeightStr = !Number.isNaN(fine) && fine > 0 ? fine.toFixed(4) : '';
+          const fineWeightStr = !Number.isNaN(fine) && fine >= 0 ? fine.toFixed(4) : '';
           (current as Record<string, string>)['fine_weight'] = fineWeightStr;
         }
 
@@ -480,7 +508,7 @@ export default function JobCardEditPage() {
         return next;
       });
     },
-    [validateWeight, validateQty]
+    [validateWeight, validateQty, purityPercentageMap, initialData]
   );
 
   const modalLabelClass = `block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`;
@@ -512,50 +540,60 @@ export default function JobCardEditPage() {
       header: 'Item',
       isDropdown: true,
       dropdownOptions: itemOptions,
-      width: 'w-40',
+      width: 'w-[12rem] min-w-[12rem]',
+      widthStyle: '12rem',
     },
     {
       key: 'weight',
       header: 'Weight (G)',
       isEditable: true,
-      width: 'w-32',
+      width: 'w-32 min-w-[8rem]',
+      widthStyle: '8rem',
     },
     {
       key: 'fine_weight',
       header: 'Fine WT (G)',
       isEditable: true,
-      width: 'w-32',
+      width: 'w-32 min-w-[8rem]',
+      widthStyle: '8rem',
     },
     {
       key: 'karigar',
       header: 'Karigar',
       isDropdown: true,
       dropdownOptions: karigarOptions,
-      width: 'w-32',
+      width: 'w-[11rem] min-w-[11rem]',
+      widthStyle: '11rem',
     },
     {
       key: 'qty',
       header: 'Qty',
       isEditable: true,
-      width: 'w-24',
+      width: 'w-28 min-w-[7rem]',
+      widthStyle: '7rem',
     },
     {
       key: 'design',
       header: 'Design',
       isDropdown: true,
       dropdownOptions: designOptions,
-      width: 'w-32',
+      width: 'w-[11rem] min-w-[11rem]',
+      widthStyle: '11rem',
     },
     {
       key: 'purity',
       header: 'Purity',
       isDropdown: true,
       dropdownOptions: purityOptions,
+      width: 'w-36 min-w-[9rem]',
+      widthStyle: '9rem',
     },
   ];
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   if (dataLoading) {
@@ -593,7 +631,9 @@ export default function JobCardEditPage() {
             Update {entityConfig.displayName.toLowerCase()} details below.
           </p>
         </div>
-
+        <div className="flex items-center shrink-0">
+          <BackButton onClick={handleCancel} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
@@ -705,6 +745,29 @@ export default function JobCardEditPage() {
                 </button>
               )}
             />
+            <div className={`flex items-center justify-end gap-3 pt-4 mt-4 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
+                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                  }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="job-card-form"
+                disabled={isLoading}
+                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  } disabled:opacity-60`}
+              >
+                {isLoading ? 'Saving...' : 'Update'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1073,18 +1136,17 @@ export default function JobCardEditPage() {
                     setIssueEditDraft((p) => {
                       if (!p) return null;
                       const w = parseFloat(newWeight);
-                      const puritySource =
-                        p.purity ??
-                        (issueDetail?.purity != null
-                          ? String(issueDetail.purity)
-                          : '');
-                      const pVal = parseFloat(puritySource);
+                      const purityName = p.purity ?? (issueDetail?.purity != null ? String(issueDetail.purity) : '');
+                      const pct =
+                        purityPercentageMap[purityName] ??
+                        (initialData?.purity === purityName && initialData?.purity_percentage
+                          ? parseFloat(String(initialData.purity_percentage))
+                          : NaN);
                       const fine =
-                        !Number.isNaN(w) && w > 0 && !Number.isNaN(pVal) && pVal > 0
-                          ? (w * pVal) / 100
+                        !Number.isNaN(w) && w > 0 && !Number.isNaN(pct) && pct >= 0 && pct <= 100
+                          ? (w * pct) / 100
                           : NaN;
-                      const nextFine =
-                        !Number.isNaN(fine) && fine > 0 ? fine.toFixed(4) : '';
+                      const nextFine = !Number.isNaN(fine) && fine >= 0 ? fine.toFixed(4) : '';
                       return { ...p, weight: newWeight, fine_weight: nextFine };
                     });
                   }}
@@ -1129,6 +1191,30 @@ export default function JobCardEditPage() {
                   isDarkMode={isDarkMode}
                 />
               </div>
+              <div>
+                <label className={modalLabelClass}>Purity</label>
+                <FormSelect
+                  value={issueEditDraft.purity ?? ''}
+                  onChange={(v) => setIssueEditDraft((p) => {
+                    if (!p) return null;
+                    const w = parseFloat(p.weight ?? '');
+                    const pct =
+                      purityPercentageMap[v] ??
+                      (initialData?.purity === v && initialData?.purity_percentage
+                        ? parseFloat(String(initialData.purity_percentage))
+                        : NaN);
+                    const fine =
+                      !Number.isNaN(w) && w > 0 && !Number.isNaN(pct) && pct >= 0 && pct <= 100
+                        ? (w * pct) / 100
+                        : NaN;
+                    const nextFine = !Number.isNaN(fine) && fine >= 0 ? fine.toFixed(4) : '';
+                    return { ...p, purity: v, fine_weight: nextFine };
+                  })}
+                  options={purityOptions}
+                  placeholder="Select Purity"
+                  isDarkMode={isDarkMode}
+                />
+              </div>
             </div>
             <div className={modalFooterClass}>
               <button type="button" onClick={() => { setIssueDetailName(null); setIssueDetailIndex(null); setIssueEditDraft(null); }} className={cancelBtnClass}>
@@ -1151,30 +1237,6 @@ export default function JobCardEditPage() {
         )}
       </Modal>
 
-      <div className="flex items-center justify-end gap-3 shrink-0 mt-6">
-        <BackButton onClick={handleCancel} />
-        <button
-          type="button"
-          onClick={handleCancel}
-          className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
-            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            }`}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          form="job-card-form"
-          disabled={isLoading}
-          className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-            : 'bg-blue-500 hover:bg-blue-600 text-white'
-            } disabled:opacity-60`}
-        >
-          {isLoading ? 'Saving...' : 'Update'}
-        </button>
-      </div>
     </div>
   );
 }
