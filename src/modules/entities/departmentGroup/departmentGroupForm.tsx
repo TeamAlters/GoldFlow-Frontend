@@ -4,9 +4,13 @@ import { useUIStore } from '../../../stores/ui.store';
 import {
   MAX_DEPARTMENT_GROUP_NAME_LENGTH,
   MAX_STEP_NO_VALUE,
-  maxLengthError,
+  validateTextMaxLength,
+  validateIntegerInRange,
+  getTextInputDescription,
+  getIntegerInputDescription,
 } from '../../../shared/utils/formValidation';
 import { FormSelect } from '../../../shared/components/FormSelect';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 import SortableTableWithAdd, { type SortableTableRow } from '../../../shared/components/SortableTableWithAdd';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
@@ -18,6 +22,7 @@ export type StaticDepartmentGroupFormData = {
   name: string;
   order: string;
   product_id: string;
+  is_active: boolean;
   departments: SortableTableRow[];
 };
 
@@ -49,6 +54,7 @@ const emptyForm: StaticDepartmentGroupFormData = {
   name: '',
   order: '',
   product_id: '',
+  is_active: true,
   departments: [],
 };
 
@@ -103,6 +109,10 @@ const StaticDepartmentGroupFormInner = forwardRef<
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
   };
 
+  const handleActiveChange = (checked: boolean) => {
+    setFormData((prev) => ({ ...prev, is_active: checked }));
+  };
+
   const handleDepartmentsChange = (departments: SortableTableRow[]) => {
     setFormData((prev) => ({ ...prev, departments }));
     if (errors.departments) setErrors((prev) => ({ ...prev, departments: '' }));
@@ -112,13 +122,14 @@ const StaticDepartmentGroupFormInner = forwardRef<
     const next: Record<string, string> = {};
     const name = formData.name.trim();
     if (!name) next.name = 'Department group name is required';
-    else if (name.length > MAX_DEPARTMENT_GROUP_NAME_LENGTH)
-      next.name = maxLengthError('Department group name', MAX_DEPARTMENT_GROUP_NAME_LENGTH);
+    else {
+      const err = validateTextMaxLength(name, 'Department group name', MAX_DEPARTMENT_GROUP_NAME_LENGTH);
+      if (err) next.name = err;
+    }
     const orderVal = formData.order.trim();
     if (orderVal !== '') {
-      const num = parseInt(orderVal, 10);
-      if (!Number.isInteger(num) || num < 0 || num > MAX_STEP_NO_VALUE)
-        next.order = `Step No must be between 0 and ${MAX_STEP_NO_VALUE}`;
+      const err = validateIntegerInRange(orderVal, 'Step No', 0, MAX_STEP_NO_VALUE);
+      if (err) next.order = err;
     }
     if (!formData.product_id.trim()) next.product_id = 'Product is required';
     if (formData.departments.length === 0) {
@@ -186,9 +197,7 @@ const StaticDepartmentGroupFormInner = forwardRef<
                 maxLength={MAX_DEPARTMENT_GROUP_NAME_LENGTH}
                 className={inputClass('name')}
               />
-              <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Max {MAX_DEPARTMENT_GROUP_NAME_LENGTH} characters
-              </p>
+              <FormFieldHint>{getTextInputDescription(MAX_DEPARTMENT_GROUP_NAME_LENGTH)}</FormFieldHint>
             </>
           )}
           {errors.name && <p className={`mt-1 ${errorClass}`}>{errors.name}</p>}
@@ -207,43 +216,66 @@ const StaticDepartmentGroupFormInner = forwardRef<
                 value={formData.order}
                 onChange={(e) => handleChange('order', sanitizeOrderInput(e.target.value))}
                 placeholder="e.g. 1, 2, 43"
-                maxLength={3} 
+                maxLength={3}
                 className={inputClass('order')}
               />
-              <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Max {MAX_STEP_NO_VALUE} (0-99)
-              </p>
+              <FormFieldHint>{getIntegerInputDescription(0, MAX_STEP_NO_VALUE)}</FormFieldHint>
             </>
           )}
-          {errors.step_no && <p className={`mt-1 ${errorClass}`}>{errors.step_no}</p>}
+          {errors.order && <p className={`mt-1 ${errorClass}`}>{errors.order}</p>}
         </div>
       </div>
 
-      <div>
-        <label className={labelClass}>
-          Product <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
-        </label>
-        {readOnly ? (() => {
-          const displayLabel = productOptions.find((o) => o.value === formData.product_id)?.label ?? formData.product_id;
-          const route = formData.product_id ? getEntityDetailRoute('product_id', formData.product_id) : null;
-          return route ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className={labelClass}>
+            Product <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
+          </label>
+          {readOnly ? (() => {
+            const displayLabel = productOptions.find((o) => o.value === formData.product_id)?.label ?? formData.product_id;
+            const route = formData.product_id ? getEntityDetailRoute('product_id', formData.product_id) : null;
+            return route ? (
+              <div className={readOnlyFieldClass}>
+                <Link to={route} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{displayLabel || '–'}</Link>
+              </div>
+            ) : (
+              <div className={readOnlyFieldClass}>{displayLabel || '–'}</div>
+            );
+          })() : (
+            <FormSelect
+              value={formData.product_id}
+              onChange={(v) => handleChange('product_id', v)}
+              options={productOptions}
+              placeholder="Select product"
+              className={inputClass('product_id')}
+              isDarkMode={isDarkMode}
+            />
+          )}
+          {errors.product_id && <p className={`mt-1 ${errorClass}`}>{errors.product_id}</p>}
+        </div>
+
+        <div>
+          <label className={labelClass}>Active</label>
+          {readOnly ? (
             <div className={readOnlyFieldClass}>
-              <Link to={route} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{displayLabel || '–'}</Link>
+              {formData.is_active ? 'Yes' : 'No'}
             </div>
           ) : (
-            <div className={readOnlyFieldClass}>{displayLabel || '–'}</div>
-          );
-        })() : (
-          <FormSelect
-            value={formData.product_id}
-            onChange={(v) => handleChange('product_id', v)}
-            options={productOptions}
-            placeholder="Select product"
-            className={inputClass('product_id')}
-            isDarkMode={isDarkMode}
-          />
-        )}
-        {errors.product_id && <p className={`mt-1 ${errorClass}`}>{errors.product_id}</p>}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="department-group-is-active"
+                checked={formData.is_active}
+                onChange={(e) => handleActiveChange(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-500 dark:bg-gray-700 dark:checked:bg-blue-600"
+                aria-label="Active"
+              />
+              <label htmlFor="department-group-is-active" className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Department group is active
+              </label>
+            </div>
+          )}
+        </div>
       </div>
 
       <section className={`mt-8 pt-6  ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>

@@ -25,6 +25,7 @@ export type CreateIssuePayload = {
   design?: string;
   karigar?: string;
   qty?: number;
+  purity?: string;
 };
 
 type IssueTransactionResponse = {

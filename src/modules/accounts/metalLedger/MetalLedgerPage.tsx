@@ -17,7 +17,7 @@ import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/e
 import { getEntityMetadata, getEntityList, deleteEntity, type EntityListFilter, type EntityField, type EntityFilterField } from '../../admin/admin.api';
 import { getEntityConfig } from '../../../config/entity.config';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { getRowDisplayValue } from '../../../shared/utils/common';
+import { buildEntityListColumns } from '../../../shared/utils/entityListColumns';
 import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 
@@ -278,51 +278,20 @@ export default function MetalLedgerPage() {
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
     if (!visibleFields.length) return [];
-    const detailLinkField = entityMetadata?.detail_link_field;
+    const detailLinkField = entityMetadata?.detail_link_field ?? visibleFields[0]?.name;
     const idField = entityMetadata?.id_field || 'voucher_no';
-
-    return visibleFields.map((f) => ({
-      key: f.name,
-      header: f.label,
-      sortable: true,
-      // sortValue returns raw value for proper sorting (instead of React nodes)
-      sortValue: (row: EntityRow) => {
-        const value = getRowDisplayValue(row, f.name, f.type);
-        // Return the raw value for sorting
-        return value;
-      },
-      accessor: (row: EntityRow) => {
-        const value = getRowDisplayValue(row, f.name, f.type);
-        const isDetailLink = f.name === detailLinkField;
-
-        if (isDetailLink) {
-          const rowId = row[idField];
-          return (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
-              }}
-              className={
-                isDarkMode
-                  ? 'text-amber-400 hover:text-amber-300'
-                  : 'text-amber-600 hover:text-amber-700'
-              }
-            >
-              {value}
-            </button>
-          );
-        }
-
-        return (
-          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>
-            {value}
-          </span>
-        );
-      },
-    }));
-  }, [entityMetadata, isDarkMode, navigate, entityConfig]);
+    return buildEntityListColumns({
+      visibleFields,
+      detailLinkField,
+      idField,
+      detailRoute: entityConfig.routes.detail,
+      isDarkMode,
+      navigate,
+      encodeId: false,
+      useStringSortForNonBoolean: true,
+      data: items,
+    });
+  }, [entityMetadata, isDarkMode, navigate, entityConfig, items]);
 
   // Handle add entity
   const handleAddEntity = () => {

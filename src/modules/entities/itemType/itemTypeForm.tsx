@@ -1,6 +1,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
-import { MAX_LENGTH_36, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_LENGTH_36, validateTextMaxLength, getTextInputDescription } from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 
 export type StaticItemTypeFormData = {
   item_type: string;
@@ -64,8 +65,10 @@ const StaticItemTypeFormInner = forwardRef<StaticItemTypeFormRef, StaticItemType
       const next: Record<string, string> = {};
       const value = formData.item_type.trim();
       if (!value) next.item_type = 'Item type is required';
-      else if (value.length > MAX_LENGTH_36)
-        next.item_type = maxLengthError('Item type', MAX_LENGTH_36);
+      else {
+        const err = validateTextMaxLength(value, 'Item type', MAX_LENGTH_36);
+        if (err) next.item_type = err;
+      }
       setErrors(next);
       return Object.keys(next).length === 0;
     };
@@ -105,6 +108,7 @@ const StaticItemTypeFormInner = forwardRef<StaticItemTypeFormRef, StaticItemType
             disabled={readOnly}
             readOnly={readOnly}
           />
+          <FormFieldHint>{getTextInputDescription(MAX_LENGTH_36)}</FormFieldHint>
           {errors.item_type && (
             <p className={`mt-1 ${errorClass}`}>{errors.item_type}</p>
           )}

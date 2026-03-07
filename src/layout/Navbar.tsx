@@ -5,6 +5,7 @@ import { logout as logoutApi } from '../auth/auth.api';
 import { showErrorToastUnlessAuth } from '../shared/utils/errorHandling';
 import { useState, useRef, useEffect, useMemo, type KeyboardEvent } from 'react';
 import { buildEntitySearchIndex, filterEntitySearchIndex } from '../shared/utils/entitySearch';
+import ConfirmationDialog from '../shared/components/ConfirmationDialog';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeResultIndex, setActiveResultIndex] = useState(0);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -152,6 +154,7 @@ export default function Navbar() {
   };
 
   const handleLogout = async () => {
+    setShowLogoutConfirm(false);
     setIsUserDropdownOpen(false);
     if (token) {
       try {
@@ -176,6 +179,7 @@ export default function Navbar() {
   }
 
   return (
+    <>
     <nav
       className={`fixed top-0 left-0 right-0 z-50 ${
         isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
@@ -399,7 +403,10 @@ export default function Navbar() {
 
                   {/* Logout Button */}
                   <button
-                    onClick={handleLogout}
+                    onClick={() => {
+                      setIsUserDropdownOpen(false);
+                      setShowLogoutConfirm(true);
+                    }}
                     className={`w-full px-4 py-3 flex items-center gap-3 transition-colors ${
                       isDarkMode
                         ? 'text-red-400 hover:bg-red-500/10'
@@ -424,5 +431,16 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
+    <ConfirmationDialog
+      isOpen={showLogoutConfirm}
+      onClose={() => setShowLogoutConfirm(false)}
+      onConfirm={handleLogout}
+      title="Logout"
+      message="Are you sure you want to logout?"
+      confirmLabel="Logout"
+      cancelLabel="Cancel"
+      variant="primary"
+    />
+    </>
   );
 }

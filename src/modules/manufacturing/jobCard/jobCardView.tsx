@@ -13,6 +13,7 @@ import {
   getViewBreadcrumbLabel,
 } from '../../../shared/utils/entityPageLabels';
 import type { IssueTransaction } from './jobCardTransactions.api';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'job_card';
 
@@ -30,11 +31,13 @@ interface JobCardData {
   parent_melting_lot?: string;
   melting_lot?: string;
   purity?: string;
+  purity_percentage?: string | number;
   department?: string;
   department_group?: string;
   design?: string;
   previous_job_card?: string;
   qty?: string | number | null;
+  description?: string;
   receipts?: IssueTransaction[];
   issues?: IssueTransaction[];
   balance_weight?: number;
@@ -76,6 +79,10 @@ export default function JobCardViewPage() {
               entity.parent_melting_lot != null ? String(entity.parent_melting_lot) : undefined,
             melting_lot: entity.melting_lot != null ? String(entity.melting_lot) : undefined,
             purity: entity.purity != null ? String(entity.purity) : undefined,
+            purity_percentage:
+              entity.purity_percentage !== undefined && entity.purity_percentage !== null
+                ? String(entity.purity_percentage)
+                : undefined,
             department: entity.department != null ? String(entity.department) : undefined,
             department_group:
               entity.department_group != null ? String(entity.department_group) : undefined,
@@ -97,6 +104,8 @@ export default function JobCardViewPage() {
                 : undefined,
             next_department:
               entity.next_department != null ? String(entity.next_department) : undefined,
+            description:
+              entity.description != null ? String(entity.description) : undefined,
             created_by: entity.created_by as string | undefined,
             created_at: entity.created_at as string | undefined,
             modified_at: entity.modified_at as string | undefined,
@@ -125,7 +134,9 @@ export default function JobCardViewPage() {
     (isDarkMode ? 'text-white' : 'text-[rgb(217,119,6)]');
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   const displayValue = data?.name ?? decodeURIComponent(id);
@@ -207,10 +218,6 @@ export default function JobCardViewPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className={labelClass}>Name</label>
-                <div className={valueClass}>{data?.name ?? '–'}</div>
-              </div>
-              <div>
                 <label className={labelClass}>Product</label>
                 <div className={valueClass}>
                   {data?.product ? (
@@ -290,6 +297,14 @@ export default function JobCardViewPage() {
                 </div>
               </div>
               <div>
+                <label className={labelClass}>Purity %</label>
+                <div className={valueClass}>
+                  {data?.purity_percentage != null && data.purity_percentage !== ''
+                    ? String(data.purity_percentage)
+                    : '–'}
+                </div>
+              </div>
+              <div>
                 <label className={labelClass}>Department</label>
                 <div className={valueClass}>
                   {data?.department ? (
@@ -332,7 +347,22 @@ export default function JobCardViewPage() {
               </div>
               <div>
                 <label className={labelClass}>Design</label>
-                <div className={valueClass}>{data?.design ?? '–'}</div>
+                <div className={valueClass}>
+                  {data?.design ? (
+                    (() => {
+                      const r = getEntityDetailRoute('design', data.design);
+                      return r ? (
+                        <Link to={r} className={linkClass}>
+                          {data.design}
+                        </Link>
+                      ) : (
+                        data.design
+                      );
+                    })()
+                  ) : (
+                    '–'
+                  )}
+                </div>
               </div>
               <div>
                 <label className={labelClass}>Previous Job Card</label>
@@ -362,6 +392,14 @@ export default function JobCardViewPage() {
                   {data?.qty != null && data.qty !== '' ? String(data.qty) : '–'}
                 </div>
               </div>
+              {data?.description != null && data.description !== '' && (
+                <div className="md:col-span-2 lg:col-span-3">
+                  <label className={labelClass}>Description</label>
+                  <div className={`${valueClass} font-normal whitespace-pre-wrap`}>
+                    {data.description}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

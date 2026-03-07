@@ -1,367 +1,122 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../shared/components/DataTable';
 import type { TableColumn, TableAction } from '../../../shared/components/DataTable';
-import FilterComponent, {
-  type FilterComponentConfig,
-  type FilterConfig,
-  type FilterValue,
-} from '../../../shared/components/FilterComponent';
+import FilterComponent from '../../../shared/components/FilterComponent';
 import ListPageLayout from '../../../shared/components/ListPageLayout';
 import Pagination from '../../../shared/components/Pagination';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
-import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { useAuthStore } from '../../../auth/auth.store';
 import { useUIStore } from '../../../stores/ui.store';
-import { toast } from '../../../stores/toast.store';
-import { getEntityMetadataCache, setEntityMetadataCache } from '../../../utils/entityCache';
-import {
-  getEntityMetadata,
-  getEntityList,
-  deleteEntity,
-  type EntityField,
-  type EntityFilterField,
-  type EntityListFilter,
-} from '../../admin/admin.api';
-import { getEntityConfig } from '../../../config/entity.config';
-import { getRowDisplayValue } from '../../../shared/utils/common';
-import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
-import { metadataToFilterConfig } from '../../../shared/utils/entityFilters';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import Breadcrumbs from '../../../layout/Breadcrumbs';
+import { buildEntityListColumns } from '../../../shared/utils/entityListColumns';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
+import { useEntityListPage } from '../../../shared/hooks/useEntityListPage';
 
 const ENTITY_NAME = 'parent_melting_lot';
 type EntityRow = Record<string, unknown>;
 
-// Module-level in-flight flag so it survives Strict Mode unmount/remount
-let metadataFetchInFlight = false;
-
 export default function ParentMeltingLotPage() {
   const navigate = useNavigate();
-  const token = useAuthStore((state) => state.token);
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const entityConfig = getEntityConfig(ENTITY_NAME);
-
-  const [metadataLoading, setMetadataLoading] = useState(true);
-  const [listLoading, setListLoading] = useState(false);
-  const [filters, setFilters] = useState<Record<string, FilterValue>>({});
-  const [metadata, setMetadata] = useState<{
-    display_name: string;
-    fields: EntityField[];
-    filters: { default_visible: EntityFilterField[]; additional: EntityFilterField[] };
-    id_field?: string;
-    detail_link_field?: string;
-    pagination?: { default_page_size?: number };
-  } | null>(null);
-  const [items, setItems] = useState<EntityRow[]>([]);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
+  const {
+    entityConfig,
+    entityMetadata,
+    metadataLoading,
+    metadataError,
+    items,
+    listLoading,
+    page,
+    setPage,
+    pageSize,
+    totalItems,
+    totalPages,
+    filters,
+    setFilters,
+    filterConfig,
+    hasFilters,
+    refreshList,
+  } = useEntityListPage(ENTITY_NAME);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
 
-  const fetchMetadata = useCallback(async () => {
-    if (!token) return;
-    if (metadataFetchInFlight) return;
-    metadataFetchInFlight = true;
-    setMetadataLoading(true);
-    try {
-      const res = await getEntityMetadata(ENTITY_NAME);
-      const meta = res.data;
-      if (!meta) return;
-      const normalizedMeta = {
-        display_name: meta.display_name ?? entityConfig.displayNamePlural,
-        fields: Array.isArray(meta.fields) ? meta.fields : [],
-        filters: {
-          default_visible: Array.isArray(meta.filters?.default_visible)
-            ? meta.filters.default_visible
-            : [],
-          additional: Array.isArray(meta.filters?.additional) ? meta.filters.additional : [],
-        },
-        id_field: meta.id_field,
-        detail_link_field: meta.detail_link_field,
-        pagination: meta.pagination,
-      };
-      setMetadata(normalizedMeta);
-      setEntityMetadataCache(ENTITY_NAME, normalizedMeta);
-      if (meta.pagination?.default_page_size) {
-        setPageSize(meta.pagination.default_page_size);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load metadata';
-      showErrorToastUnlessAuth(msg);
-    } finally {
-      metadataFetchInFlight = false;
-      setMetadataLoading(false);
-    }
-  }, [token, entityConfig.displayNamePlural]);
-
-  useEffect(() => {
-    if (!token) return;
-    const cached = getEntityMetadataCache(ENTITY_NAME);
-    if (cached) {
-      setMetadata({
-        display_name: cached.display_name,
-        fields: cached.fields as EntityField[],
-        filters: cached.filters as {
-          default_visible: EntityFilterField[];
-          additional: EntityFilterField[];
-        },
-        id_field: cached.id_field,
-        detail_link_field: cached.detail_link_field,
-      });
-      setMetadataLoading(false);
-      return;
-    }
-    fetchMetadata();
-  }, [token, fetchMetadata]);
-
-  const filterFieldTypeMap = useMemo((): Record<string, string> => {
-    const map: Record<string, string> = {};
-    if (!metadata?.filters) return map;
-    const all = [...(metadata.filters.default_visible ?? []), ...(metadata.filters.additional ?? [])];
-    all.forEach((f) => {
-      map[f.field] = f.type ?? '';
-    });
-    return map;
-  }, [metadata]);
-
-  const filtersForApi = useMemo((): EntityListFilter[] => {
-    const trimValue = (v: string | string[] | null): string | string[] | null => {
-      if (v === null || v === undefined) return v;
-      if (typeof v === 'string') return v.trim();
-      if (Array.isArray(v)) {
-        return v.map((s) => (typeof s === 'string' ? s.trim() : s)).filter((s) => s !== '');
-      }
-      return v;
-    };
-
-    const isDateOnly = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(String(s).trim());
-    const out: EntityListFilter[] = [];
-
-    Object.entries(filters).forEach(([field, filterVal]) => {
-      if (filterVal === null || filterVal === undefined) return;
-      const isObj =
-        typeof filterVal === 'object' &&
-        filterVal !== null &&
-        'operator' in filterVal &&
-        'value' in filterVal;
-
-      const operator = isObj ? (filterVal as { operator: string }).operator : 'contains';
-      const raw = isObj
-        ? (filterVal as { value: string | string[] | null }).value
-        : (filterVal as string);
-      const value = trimValue(raw);
-
-      if (operator === 'is not set') {
-        out.push({ field, operator: 'is not set', value: true });
-        return;
-      }
-      if (operator === 'is set') {
-        out.push({ field, operator: 'is set', value: true });
-        return;
-      }
-
-      const isEmpty =
-        value === null ||
-        value === undefined ||
-        value === '' ||
-        (Array.isArray(value) && value.length === 0);
-      if (isEmpty) return;
-
-      const fieldType = filterFieldTypeMap[field]?.toLowerCase() ?? '';
-      const isDateTimeField =
-        fieldType === 'datetime' || fieldType === 'date' || fieldType === 'date_time';
-
-      if (isDateTimeField && operator === '=' && typeof value === 'string' && isDateOnly(value)) {
-        const dateStr = value.trim();
-        out.push({ field, operator: 'between', value: [`${dateStr}T00:00:00`, `${dateStr}T23:59:59`] });
-        return;
-      }
-
-      out.push({ field, operator, value });
-    });
-
-    return out;
-  }, [filters, filterFieldTypeMap]);
-
-  const fetchList = useCallback(async () => {
-    if (!token) return;
-    setListLoading(true);
-    try {
-      const res = await getEntityList(ENTITY_NAME, { page, page_size: pageSize, filters: filtersForApi });
-      const list = res.data?.items ?? [];
-      const pagination = res.data?.pagination;
-      setItems(Array.isArray(list) ? list : []);
-      setTotalItems(pagination?.total_items ?? 0);
-      setTotalPages(pagination?.total_pages ?? 0);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load list';
-      showErrorToastUnlessAuth(msg);
-      setItems([]);
-    } finally {
-      setListLoading(false);
-    }
-  }, [token, page, pageSize, filtersForApi]);
-
-  useEffect(() => {
-    if (!metadataLoading) {
-      fetchList();
-    }
-  }, [metadataLoading, fetchList]);
-
-  const idField = metadata?.id_field ?? 'name';
+  const idField = entityMetadata?.id_field ?? 'name';
 
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
-    const visibleFields = metadata?.fields?.filter((field) => field.visible_in_list) ?? [];
-    const detailLinkField = metadata?.detail_link_field ?? visibleFields[0]?.name;
+    const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
+    if (!visibleFields.length) return [];
+    const detailLinkField = entityMetadata?.detail_link_field ?? visibleFields[0]?.name;
+    return buildEntityListColumns({
+      visibleFields,
+      detailLinkField,
+      idField,
+      detailRoute: entityConfig.routes.detail,
+      isDarkMode,
+      navigate,
+      encodeId: true,
+      data: items,
+    });
+  }, [entityMetadata, isDarkMode, navigate, entityConfig.routes.detail, items, idField]);
 
-    const makeAccessor = (fieldKey: string, fieldType: string, isDetailLink: boolean) => {
-      return (row: EntityRow) => {
-        const value = getRowDisplayValue(row, fieldKey, fieldType);
-        if (isDetailLink) {
-          const rowId = row[idField] ?? row.id;
-          if (rowId === undefined || rowId === null) {
-            return (
-              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>
-            );
-          }
-          return (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(String(rowId))));
-              }}
-              className={
-                isDarkMode
-                  ? 'text-amber-400 hover:text-amber-300'
-                  : 'text-amber-600 hover:text-amber-700'
-              }
-            >
-              {value}
-            </button>
-          );
-        }
-        const referenceRoute = typeof value === 'string' && value ? getEntityDetailRoute(fieldKey, value) : null;
-        if (referenceRoute) {
-          return (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(referenceRoute);
-              }}
-              className={
-                isDarkMode
-                  ? 'text-amber-400 hover:text-amber-300'
-                  : 'text-amber-600 hover:text-amber-700'
-              }
-            >
-              {value}
-            </button>
-          );
-        }
-        return <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>;
-      };
-    };
+  const handleAddEntity = () => {
+    navigate(entityConfig.routes.add ?? entityConfig.routes.list);
+  };
 
-    return visibleFields.map((field) => ({
-      key: field.name,
-      header: field.label,
-      sortable: true,
-      accessor: makeAccessor(field.name, field.type, field.name === detailLinkField),
-    }));
-  }, [metadata, isDarkMode, navigate, entityConfig.routes.detail, idField]);
-
-  // Handle delete click
   const handleDeleteClick = useCallback((row: EntityRow) => {
     setDeleteConfirmRow(row);
   }, []);
 
-  // Handle delete confirm
   const handleDeleteConfirm = useCallback(async () => {
     if (!deleteConfirmRow) return;
     const rowId = deleteConfirmRow[idField];
     if (rowId === undefined || rowId === null) return;
-    try {
-      await deleteEntity(ENTITY_NAME, String(rowId));
-      toast.success(`${entityConfig.displayName} deleted successfully.`);
-      fetchList();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete parent melting lot';
-      showErrorToastUnlessAuth(msg);
-    }
-  }, [deleteConfirmRow, idField, entityConfig.displayName, fetchList]);
+    setDeleteConfirmRow(null);
+    await deleteById(String(rowId), entityConfig.displayName);
+    refreshList();
+  }, [deleteConfirmRow, idField, entityConfig.displayName, deleteById, refreshList]);
 
-  // Define table actions
-  const actions: TableAction<EntityRow>[] = useMemo(() => {
-    return [
+  const actions: TableAction<EntityRow>[] = useMemo(
+    () => [
       {
         label: 'Edit',
         onClick: (row: EntityRow) => {
           const rowStatus = row.status;
-          if (rowStatus === 'Closed') return; // Don't navigate if closed
+          if (rowStatus === 'Closed') return;
           const rowId = row[idField];
-          if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit?.replace(':id', String(rowId)) ?? '');
+          if (rowId !== undefined && rowId !== null && entityConfig.routes.edit) {
+            navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
           }
         },
         variant: 'primary' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
         ),
-        shouldShow: (row: EntityRow) => {
-          const rowStatus = row.status;
-          return rowStatus !== 'Closed';
-        },
+        shouldShow: (row: EntityRow) => row.status !== 'Closed',
       },
       {
         label: 'Delete',
         onClick: handleDeleteClick,
+        disabled: (row: EntityRow) => deletingId === String(row[idField] ?? ''),
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         ),
       },
-    ];
-  }, [idField, navigate, entityConfig.routes.edit, handleDeleteClick]);
+    ],
+    [idField, navigate, entityConfig.routes.edit, handleDeleteClick, deletingId]
+  );
 
-  const filterConfig: FilterComponentConfig = useMemo(() => {
-    if (!metadata?.filters) return { default: {}, addable: {} };
-    const defaultVisible = metadata.filters.default_visible ?? [];
-    const additional = metadata.filters.additional ?? [];
-    const defaultConfig: Record<string, FilterConfig> = {};
-    defaultVisible.forEach((f) => {
-      defaultConfig[f.field] = metadataToFilterConfig(f);
-    });
-    const addableConfig: Record<string, FilterConfig> = {};
-    additional.forEach((f) => {
-      addableConfig[f.field] = metadataToFilterConfig(f);
-    });
-    return { default: defaultConfig, addable: addableConfig };
-  }, [metadata]);
-
-  const hasFilters =
-    Object.keys(filterConfig.default).length > 0 ||
-    Object.keys(filterConfig.addable ?? {}).length > 0;
-
-  const handleAddEntity = () => {
-    navigate(entityConfig.routes.add ?? '' as string);
-  };
+  const handleRowClick = useCallback(
+    (row: EntityRow) => {
+      const rowId = row[idField];
+      if (rowId === undefined || rowId === null) return;
+      navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(String(rowId))));
+    },
+    [idField, navigate, entityConfig.routes.detail]
+  );
 
   const deleteDisplayName =
     deleteConfirmRow != null
@@ -392,13 +147,15 @@ export default function ParentMeltingLotPage() {
         className="mb-4"
       />
       <ListPageLayout
-        title={metadataLoading ? '...' : (metadata?.display_name ?? entityConfig.displayNamePlural)}
+        title={
+          metadataLoading
+            ? '...'
+            : (entityMetadata?.display_name ?? entityConfig.displayNamePlural)
+        }
         description={`Manage all ${entityConfig.displayNamePlural.toLowerCase()}`}
         toolbarLeft={
           <h2
-            className={`flex items-center gap-2 text-xl font-bold tracking-tight ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-700'
-            }`}
+            className={`flex items-center gap-2 flex-nowrap whitespace-nowrap text-xl font-bold tracking-tight ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
           >
             <span>Total Data:</span>
             <span>{listLoading ? '...' : totalItems}</span>
@@ -407,9 +164,7 @@ export default function ParentMeltingLotPage() {
         toolbarRight={
           <button
             className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
+              isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
             }`}
             onClick={handleAddEntity}
           >
@@ -430,6 +185,11 @@ export default function ParentMeltingLotPage() {
           ) : undefined
         }
       >
+        {!metadataLoading && !metadataError && columns.length === 0 && (
+          <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Loading table columns and filters…
+          </p>
+        )}
         <DataTable
           data={items}
           columns={columns}
@@ -437,12 +197,13 @@ export default function ParentMeltingLotPage() {
           searchable={false}
           pagination={totalPages <= 1}
           pageSize={pageSize}
-          loading={listLoading || metadataLoading}
+          loading={listLoading}
+          onRowClick={handleRowClick}
           emptyMessage={`No ${entityConfig.displayNamePlural.toLowerCase()} found`}
         />
         <Pagination
           page={page}
-          pageSize={pageSize}
+          pageSize={pageSize ?? 20}
           totalItems={totalItems}
           totalPages={totalPages}
           onPageChange={setPage}

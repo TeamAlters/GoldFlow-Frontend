@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_TEXT_FIELD_LENGTH } from '../../../shared/utils/formValidation';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export interface JobCardFormData {
@@ -12,6 +12,7 @@ export interface JobCardFormData {
   parent_melting_lot: string;
   melting_lot: string;
   purity: string;
+  purity_percentage: string;
   department: string;
   department_group: string;
   design: string;
@@ -65,6 +66,7 @@ export default function JobCardForm({
     parent_melting_lot: initialData?.parent_melting_lot ?? '',
     melting_lot: initialData?.melting_lot ?? '',
     purity: initialData?.purity ?? '',
+    purity_percentage: initialData?.purity_percentage ?? '',
     department: initialData?.department ?? '',
     department_group: initialData?.department_group ?? '',
     design: initialData?.design ?? '',
@@ -87,10 +89,6 @@ export default function JobCardForm({
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-
-    if (formData.name.length > MAX_TEXT_FIELD_LENGTH) {
-      newErrors.name = maxLengthError('Name');
-    }
 
     const qtyError = validateInteger(formData.qty, 'Qty');
     if (qtyError) {
@@ -120,7 +118,7 @@ export default function JobCardForm({
     : 'bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
     }`;
 
-  const textareaClass = `w-full min-h-[6rem] px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:border-transparent ${isDarkMode
+  const textareaClass = `w-full min-h-[6rem] px-4 py-2.5 rounded-lg border text-sm font-normal transition-colors focus:outline-none focus:ring-2 focus:border-transparent ${isDarkMode
     ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-blue-500'
     : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500'
     }`;
@@ -177,25 +175,6 @@ export default function JobCardForm({
   return (
     <form id="job-card-form" onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {!isEdit && (
-          <div>
-            <label htmlFor="name" className={labelClass}>
-              Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value.slice(0, MAX_TEXT_FIELD_LENGTH))}
-              maxLength={MAX_TEXT_FIELD_LENGTH}
-              className={`${inputClass} ${errors.name ? 'border-red-500' : ''}`}
-              placeholder="Enter name"
-            />
-            {errors.name && <p className={errorClass}>{errors.name}</p>}
-          </div>
-        )}
-
         <div>
           <label htmlFor="product" className={labelClass}>
             Product <span className="text-red-500">*</span>
@@ -248,6 +227,28 @@ export default function JobCardForm({
             {errors.purity && <p className={errorClass}>{errors.purity}</p>}
           </div>
         )}
+
+        <div>
+          <label htmlFor="purity_percentage" className={labelClass}>
+            Purity %
+          </label>
+          {isEdit ? (
+            <div className={valueInInputClass}>
+              {formData.purity_percentage || '–'}
+            </div>
+          ) : (
+            <input
+              type="text"
+              id="purity_percentage"
+              name="purity_percentage"
+              value={formData.purity_percentage}
+              onChange={(e) => handleChange('purity_percentage', e.target.value)}
+              className={`${inputClass} ${errors.purity_percentage ? 'border-red-500' : ''}`}
+              placeholder="e.g. 99.9"
+            />
+          )}
+          {errors.purity_percentage && <p className={errorClass}>{errors.purity_percentage}</p>}
+        </div>
 
         {isEdit ? (
           <div>

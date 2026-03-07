@@ -101,6 +101,7 @@ import ParentMeltingLotPage from '../modules/manufacturing/parentMeltingLot/pare
 import ParentMeltingLotCreatePage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotCreate';
 import ParentMeltingLotEditPage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotEdit';
 import ParentMeltingLotViewPage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotView';
+import PageNotFound from './PageNotFound';
 
 /** Redirects / to /dashboard when logged in, otherwise to /login */
 function RootRedirect() {
@@ -244,6 +245,9 @@ export default function AppRouter() {
           <Route path="metal-ledger/:id" element={<MetalLedgerViewPage />} />
           <Route path="settings" element={<DashboardIndex />} />
           <Route path="profile" element={<DashboardIndex />} />
+          <Route path="404" element={<PageNotFound />} />
+          {/* Catch-all — must be last */}
+          <Route path="*" element={<PageNotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -49,12 +49,18 @@ export default function ListPageLayout({
 
       {/* Toolbar - Total / summary on left, primary action on right */}
       {(toolbarLeft != null || toolbarRight != null) && (
-        <div className="mb-4 p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex-1 w-full sm:w-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div
+          className={`mb-4 rounded-xl border p-4 ${
+            isDarkMode
+              ? 'bg-gray-800/70 border-gray-700'
+              : 'bg-white border-gray-200 shadow-sm'
+          }`}
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
               {toolbarLeft}
             </div>
-            <div className="w-full sm:w-auto">{toolbarRight}</div>
+            {toolbarRight && <div className="w-full sm:w-auto">{toolbarRight}</div>}
           </div>
         </div>
       )}

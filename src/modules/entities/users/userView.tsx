@@ -19,6 +19,7 @@ import {
 } from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'user';
 
@@ -77,7 +78,9 @@ export default function UserViewPage() {
         'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-500 dark:bg-gray-700 dark:checked:bg-blue-600 pointer-events-none';
 
     if (!id) {
-        return <Navigate to={entityConfig.routes.list} replace />;
+        return (
+            <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+        );
     }
 
     const displayValue = (initialData?.username ?? initialData?.email) as string | undefined;

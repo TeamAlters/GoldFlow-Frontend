@@ -2,7 +2,16 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
-import { MAX_NUMERIC_63_LENGTH, MAX_TEXT_FIELD_LENGTH, maxLengthError, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
+import {
+  MAX_NUMERIC_63_LENGTH,
+  MAX_TEXT_FIELD_LENGTH,
+  validateTextMaxLength,
+  getTextInputDescription,
+  getDecimalInputDescription,
+  sanitizeNumeric63Input,
+  validateNumeric63,
+} from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticPurityRangeFormData = {
@@ -87,8 +96,10 @@ const StaticPurityRangeFormInner = forwardRef<
     if (!hidePurityRangeField) {
       const name = formData.purity_range.trim();
       if (!name) next.purity_range = 'Purity range is required';
-      else if (name.length > MAX_TEXT_FIELD_LENGTH)
-        next.purity_range = maxLengthError('Purity range');
+      else {
+        const err = validateTextMaxLength(name, 'Purity range', MAX_TEXT_FIELD_LENGTH);
+        if (err) next.purity_range = err;
+      }
     }
 
     const fromStr = formData.from_value.trim();
@@ -154,6 +165,7 @@ const StaticPurityRangeFormInner = forwardRef<
             disabled={readOnly}
             readOnly={readOnly}
           />
+          <FormFieldHint>{getTextInputDescription(MAX_TEXT_FIELD_LENGTH)}</FormFieldHint>
           {errors.purity_range && (
             <p className={`mt-1 ${errorClass}`}>{errors.purity_range}</p>
           )}
@@ -175,6 +187,7 @@ const StaticPurityRangeFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
+        <FormFieldHint>{getDecimalInputDescription('0.000')}</FormFieldHint>
         {errors.from_value && (
           <p className={`mt-1 ${errorClass}`}>{errors.from_value}</p>
         )}
@@ -194,6 +207,7 @@ const StaticPurityRangeFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
+        <FormFieldHint>{getDecimalInputDescription('99.999')}</FormFieldHint>
         {errors.to_value && (
           <p className={`mt-1 ${errorClass}`}>{errors.to_value}</p>
         )}
@@ -218,16 +232,19 @@ const StaticPurityRangeFormInner = forwardRef<
               isDarkMode={isDarkMode}
             />
           ) : (
-            <input
-              type="text"
-              value={formData.purity}
-              onChange={(e) => handleChange('purity', e.target.value)}
-              placeholder="Purity"
-              maxLength={MAX_TEXT_FIELD_LENGTH}
-              className={inputClass('purity')}
-              disabled={readOnly}
-              readOnly={readOnly}
-            />
+            <>
+              <input
+                type="text"
+                value={formData.purity}
+                onChange={(e) => handleChange('purity', e.target.value)}
+                placeholder="Purity"
+                maxLength={MAX_TEXT_FIELD_LENGTH}
+                className={inputClass('purity')}
+                disabled={readOnly}
+                readOnly={readOnly}
+              />
+              <FormFieldHint>{getTextInputDescription(MAX_TEXT_FIELD_LENGTH)}</FormFieldHint>
+            </>
           );
         })()}
         {errors.purity && (

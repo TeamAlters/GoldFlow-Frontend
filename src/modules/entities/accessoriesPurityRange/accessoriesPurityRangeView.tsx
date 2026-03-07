@@ -13,9 +13,11 @@ import {
   getViewBreadcrumbLabel,
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
+import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'accessories_purity_range';
 
@@ -85,7 +87,9 @@ export default function AccessoriesPurityRangeViewPage() {
     : '';
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   if (dataLoading) {
@@ -175,7 +179,26 @@ export default function AccessoriesPurityRangeViewPage() {
             </div>
             <div>
               <label className={labelClass}>Accessory Purity</label>
-              <div className={readOnlyInputClass}>{data?.accessory_purity ?? '–'}</div>
+              {(() => {
+                const accessoryPurityValue = data?.accessory_purity ?? '–';
+                const accessoryPurityRoute = getEntityDetailRoute('accessory_purity', data?.accessory_purity);
+                if (accessoryPurityRoute) {
+                  return (
+                      <div className={readOnlyInputClass}>
+                      <Link
+                        to={accessoryPurityRoute}
+                        className={isDarkMode
+                          ? 'text-amber-400 hover:text-amber-300'
+                          : 'text-amber-600 hover:text-amber-700'
+                        }
+                      >
+                        {accessoryPurityValue}
+                      </Link>
+                    </div>
+                  );
+                }
+                return <div className={readOnlyInputClass}>{accessoryPurityValue}</div>;
+              })()}
             </div>
           </div>
         </div>

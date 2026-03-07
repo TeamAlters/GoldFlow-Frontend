@@ -23,6 +23,7 @@ import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import { invalidateEntityListCache } from '../../admin/admin.api';
 import { useEntityMutationStore } from '../../../stores/entityMutation.store';
 import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'melting_lot';
 
@@ -172,7 +173,9 @@ export default function MeltingLotViewPage() {
   const isDeleting = deletingId === (id ?? '');
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   const displayValue = meltingLotName || initialData?.product || 'Melting Lot';
@@ -300,10 +303,6 @@ export default function MeltingLotViewPage() {
             Melting Lot Details
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className={labelClass}>Name</label>
-              <div className={valueClass}>{meltingLotName || '–'}</div>
-            </div>
             <div>
               <label className={labelClass}>Parent Melting Lot</label>
               <div className={valueClass}>

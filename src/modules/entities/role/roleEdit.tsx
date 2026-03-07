@@ -16,6 +16,7 @@ import { getRole, updateRole, type RoleDetail } from './role.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 function permissionsFromRole(role: RoleDetail | null, entityNames: string[]): PermissionsMatrix {
     const base = buildInitialMatrix(entityNames);
@@ -134,7 +135,9 @@ export default function RoleEditPage() {
         : 'bg-white border-gray-200 shadow-sm';
 
     if (!id) {
-        return <Navigate to={roleConfig.routes.list} replace />;
+        return (
+            <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+        );
     }
 
     if (dataLoading) {

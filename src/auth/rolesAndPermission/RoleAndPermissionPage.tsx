@@ -23,7 +23,7 @@ import {
 import type { EntityField, EntityFilterField } from '../../modules/admin/admin.api';
 import { getEntityConfig } from '../../config/entity.config';
 import Breadcrumbs from '../../layout/Breadcrumbs';
-import { getRowDisplayValue } from '../../shared/utils/common';
+import { buildEntityListColumns } from '../../shared/utils/entityListColumns';
 import { metadataToFilterConfig } from '../../shared/utils/entityFilters';
 import { showErrorToastUnlessAuth } from '../../shared/utils/errorHandling';
 type EntityRow = Record<string, unknown>;
@@ -229,61 +229,22 @@ export default function RoleAndPermissionPage() {
   }, [token, entityMetadata, fetchList]);
 
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
-    const visibleFields =
-      (entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? []).filter(
-        (f) => (f.name || (f as { field?: string }).field) !== 'description'
-      );
+    const visibleFields = (
+      entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? []
+    ).filter((f) => (f.name || (f as { field?: string }).field) !== 'description');
     const idField = entityMetadata?.id_field ?? 'id';
-    const detailLinkField = entityMetadata?.detail_link_field;
-
-    const getRowId = (row: EntityRow) => row[idField] ?? row['id'] ?? row['name'];
-
-    const makeAccessor = (fieldKey: string, fieldType: string, isDetailLink: boolean) => {
-      return (row: EntityRow) => {
-        const value = getRowDisplayValue(row, fieldKey, fieldType);
-        if (isDetailLink) {
-          const rowId = getRowId(row);
-          if (rowId === undefined || rowId === null) {
-            return (
-              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>
-            );
-          }
-          return (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(String(rowId))));
-              }}
-              className={
-                isDarkMode
-                  ? 'text-amber-400 hover:text-amber-300'
-                  : 'text-amber-600 hover:text-amber-700'
-              }
-            >
-              {value}
-            </button>
-          );
-        }
-        return (
-          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-900'}>{value}</span>
-        );
-      };
-    };
-
-    return visibleFields
-      .map((f) => {
-        const fieldKey = f.name || (f as { field?: string }).field || '';
-        if (!fieldKey) return null;
-        return {
-          key: fieldKey,
-          header: f.label,
-          sortable: true,
-          accessor: makeAccessor(fieldKey, f.type, fieldKey === detailLinkField),
-        };
-      })
-      .filter((col): col is NonNullable<typeof col> => col != null) as TableColumn<EntityRow>[];
-  }, [entityMetadata, isDarkMode, navigate, entityConfig]);
+    const detailLinkField = entityMetadata?.detail_link_field ?? visibleFields[0]?.name;
+    return buildEntityListColumns({
+      visibleFields,
+      detailLinkField,
+      idField,
+      detailRoute: entityConfig.routes.detail,
+      isDarkMode,
+      navigate,
+      encodeId: true,
+      data: items,
+    });
+  }, [entityMetadata, isDarkMode, navigate, entityConfig, items]);
 
   const handleAddRole = useCallback(() => {
     navigate(entityConfig.routes.add);

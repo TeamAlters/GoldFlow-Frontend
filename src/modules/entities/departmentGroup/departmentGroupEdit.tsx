@@ -19,6 +19,7 @@ import {
 } from '../../../shared/utils/entityPageLabels';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
 import type { SortableTableRow } from '../../../shared/components/SortableTableWithAdd';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'product_department_group';
 
@@ -61,6 +62,7 @@ export function toInitialDepartmentGroupData(
     name: entity.name != null ? String(entity.name) : '',
     order: entity.step_no != null ? String(entity.step_no) : '',
     product_id: entity.product != null ? String(entity.product) : entity.product_id != null ? String(entity.product_id) : '',
+    is_active: entity.is_active === true,
     departments: parseDepartments(departments),
   };
 }
@@ -180,7 +182,9 @@ export default function DepartmentGroupEditPage() {
   const breadcrumbLabel = getEditBreadcrumbLabel(entityConfig, initialData?.name);
 
   if (!decodedId) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   if (dataLoading) {
@@ -222,6 +226,11 @@ export default function DepartmentGroupEditPage() {
           }`}
       >
         <div className={sectionClass}>
+        <h2
+          className={`text-lg font-semibold mb-4 pb-2 border-b ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'}`}
+        >
+          {entityConfig.displayName} Info
+        </h2>
         <StaticDepartmentGroupForm
           ref={formRef}
           initialData={initialData}

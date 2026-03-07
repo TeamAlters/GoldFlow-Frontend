@@ -14,6 +14,7 @@ import {
   toInitialMetalLedgerData,
   toMetalLedgerPayload,
 } from './metalLedgerCreate';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'metal_ledger';
 
@@ -89,7 +90,9 @@ export default function MetalLedgerEditPage() {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
   if (!id) {
-    return <Navigate to={entityConfig.routes.list} replace />;
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
   }
 
   if (initialData?.status && initialData.status !== 'Draft') {

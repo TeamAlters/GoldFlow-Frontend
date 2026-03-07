@@ -1,6 +1,15 @@
 // Navigation Configuration - Add new menu items here
 // This config is used by both Navbar and Sidebar
 
+/** Route path for 404 page — use with Navigate to={NOT_FOUND_PATH} state={{ reason }} when resource not found */
+export const NOT_FOUND_PATH = '/404';
+
+/** Default reason shown on 404 when redirecting due to missing/invalid resource */
+export const NOT_FOUND_REASON_DEFAULT = 'The item may have been deleted or the ID is invalid.';
+
+/** Reason when URL is invalid (e.g. missing :id) */
+export const NOT_FOUND_REASON_INVALID_URL = 'The page address is invalid or the resource is missing.';
+
 export type NavItem = {
   name: string;
   path: string;
@@ -32,22 +41,11 @@ export const navbarMenuItems: NavbarMenuItem[] = [
 // Sidebar Navigation Configuration
 export const sidebarNavConfig: NavCategory[] = [
   {
-    id: 'production',
-    category: 'Production',
-    icon: 'dashboard',
-    items: [
-      { name: 'Dashboard', path: '/dashboard', icon: 'home' },
-      { name: 'Work Orders', path: '/work-orders', icon: 'clipboard' },
-      { name: 'Scheduling', path: '/scheduling', icon: 'calendar' },
-      { name: 'Resources', path: '/resources', icon: 'users' },
-    ],
-  },
-  {
     id: 'masters',
     category: 'Masters',
     icon: 'database',
     items: [
-      { name: 'Purities', path: '/purities', icon: 'sparkles', entityName: 'purity' },
+      { name: 'Purity', path: '/purities', icon: 'sparkles', entityName: 'purity' },
       { name: 'Purity Range', path: '/purity-ranges', icon: 'ruler', entityName: 'purity_range' },
       { name: 'Accessory Purity', path: '/accessory-purities', icon: 'sparkles', entityName: 'accessory_purity' },
       { name: 'Accessories Purity Range', path: '/accessories-purity-ranges', icon: 'ruler', entityName: 'accessories_purity_range' },

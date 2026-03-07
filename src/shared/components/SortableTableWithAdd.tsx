@@ -123,23 +123,20 @@ export default function SortableTableWithAdd({
     onChange(next);
   };
 
-  const inputClassTable = `w-full px-3 py-2 text-sm rounded-md border transition-all focus:outline-none focus:ring-2 ${
+  const inputClassTable = `w-full px-2.5 py-1.5 text-sm rounded border transition-all focus:outline-none focus:ring-2 ${
     isDarkMode
       ? 'bg-gray-700/80 border-gray-500 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
       : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
   }`;
+  const readOnlyCellClass = `min-h-[34px] px-2.5 py-1.5 flex items-center text-sm ${isDarkMode ? 'bg-gray-700/40 text-gray-200' : 'bg-gray-50 text-gray-700'}`;
 
-  const readOnlyCellClass = `min-h-[36px] w-full px-3 py-2 flex items-center rounded-none text-sm border-l ${
-    isDarkMode ? 'bg-gray-800/20 text-gray-200 border-gray-600/50' : 'bg-gray-50/50 text-gray-700 border-gray-200'
+  const thClass = `px-2 py-2.5 text-xs font-semibold uppercase tracking-wider border-b border-r last:border-r-0 ${isDarkMode
+    ? 'text-gray-200 bg-gray-700/80 border-gray-600'
+    : 'text-gray-700 bg-gray-100 border-gray-200'
   }`;
-
-  const thClass = `px-5 py-4 text-xs font-bold uppercase tracking-wider last:border-r-0 ${
-    isDarkMode
-      ? 'text-gray-200 bg-gray-700 border-b border-r border-gray-600'
-      : 'text-gray-700 bg-gray-100 border-b border-r border-gray-200'
-  }`;
-  const tdClass = `px-5 py-3.5 text-sm align-middle last:border-r-0 ${
-    isDarkMode ? 'text-gray-200 border-r border-gray-700' : 'text-gray-900 border-r border-gray-200'
+  const tdClass = `px-2 py-2 border-b border-r last:border-r-0 ${isDarkMode
+    ? 'text-gray-200 border-gray-700'
+    : 'text-gray-900 border-gray-200'
   }`;
 
   return (
@@ -150,23 +147,28 @@ export default function SortableTableWithAdd({
         </h3>
       )}
       <div
-        className={`rounded-xl border shadow-sm ${
+        className={`overflow-hidden rounded-xl border shadow-sm ${
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
         }`}
       >
-        <table className="min-w-full table-fixed">
+        <table className="w-full border-collapse table-fixed">
+          <colgroup>
+            {!readOnly && <col style={{ width: '2.5rem' }} />}
+            <col style={{ width: '4rem' }} />
+            <col style={{ width: '200px' }} />
+            {(!readOnly || renderViewContent) && <col style={{ width: '7rem' }} />}
+          </colgroup>
           <thead>
             <tr>
-              {!readOnly && <th className={`${thClass} w-10 text-left`} aria-label="Drag to reorder" />}
-              <th className={`${thClass} text-center`} style={{ width: '4rem' }}>Order (Sr.No)</th>
-              <th className={`${thClass} text-left`} style={{ width: '40%' }}>Department</th>
-              <th className={`${thClass} text-center`} style={{ width: '8rem' }}>Is Active</th>
+              {!readOnly && <th className={`${thClass} text-left`} aria-label="Drag to reorder" />}
+              <th className={`${thClass} text-center whitespace-nowrap`}>Order (Sr.No)</th>
+              <th className={`${thClass} text-center`}>Department</th>
               {(!readOnly || renderViewContent) && (
-                <th className={`${thClass} text-right align-middle`} style={{ width: '7rem' }}>Actions</th>
+                <th className={`${thClass} text-center whitespace-nowrap`}>Actions</th>
               )}
             </tr>
           </thead>
-          <tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+          <tbody className={isDarkMode ? 'divide-y divide-gray-700' : 'divide-y divide-gray-200'}>
             {rows.map((row, index) => (
               <tr
                 key={row.id}
@@ -189,7 +191,7 @@ export default function SortableTableWithAdd({
                 }`}
               >
                 {!readOnly && (
-                  <td className={`${tdClass} w-10 align-middle`}>
+                  <td className={`${tdClass} align-middle`} style={{ width: '2.5rem' }}>
                     <div
                       className={`inline-flex cursor-grab active:cursor-grabbing touch-none p-1 rounded select-none ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
                       draggable
@@ -202,20 +204,20 @@ export default function SortableTableWithAdd({
                     </div>
                   </td>
                 )}
-                <td className={`${tdClass} text-center font-medium`}>{index + 1}</td>
-                <td className={`${tdClass} overflow-visible relative z-10`}>
+                <td className={`${tdClass} text-center font-medium align-middle`} style={{ width: '4rem' }}>{index + 1}</td>
+                <td className={`${tdClass} align-middle`} style={{ width: '200px' }}>
                   {readOnly ? (
-                    <div className={readOnlyCellClass}>
+                    <div className={`${readOnlyCellClass} min-w-0 max-w-full truncate`}>
                       {departmentOptions.find((o) => o.value === row.department_id)?.label ?? (row.department_id ? row.department_id : '–')}
                     </div>
                   ) : (
-                    <div className="min-w-0 w-full">
+                    <div className="w-full min-w-0" onMouseDown={(e) => e.stopPropagation()}>
                       <FormSelect
                         value={row.department_id}
                         onChange={(v) => handleRowChange(index, 'department_id', v)}
                         options={departmentOptions}
                         placeholder="Select department"
-                        className={`${inputClassTable} ${getRowError?.(row, index) ? '!border-red-500' : ''}`}
+                        className={`max-w-full ${inputClassTable} ${getRowError?.(row, index) ? '!border-red-500' : ''}`}
                         isDarkMode={isDarkMode}
                       />
                       {getRowError?.(row, index) && (
@@ -226,27 +228,9 @@ export default function SortableTableWithAdd({
                     </div>
                   )}
                 </td>
-                <td className={`${tdClass} text-center`}>
-                  {readOnly ? (
-                    <div className={`${readOnlyCellClass} justify-center`}>
-                      {row.is_active ? 'Yes' : 'No'}
-                    </div>
-                  ) : (
-                    <div className="flex justify-center">
-                      <input
-                        type="checkbox"
-                        checked={row.is_active}
-                        onChange={(e) => handleRowChange(index, 'is_active', e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-500 dark:bg-gray-700 dark:checked:bg-blue-600"
-                        aria-label="Is active"
-                      />
-                    </div>
-                  )}
-                </td>
                 {(!readOnly || renderViewContent) && (
-                  <td className={`${tdClass} text-right align-middle`} style={{ width: '7rem' }}>
-                    <div className="w-full flex justify-end">
-                      <div className="inline-flex items-center gap-1.5 flex-shrink-0">
+                  <td className={`${tdClass} text-left align-middle whitespace-nowrap`} style={{ width: '7rem' }}>
+                    <div className="flex justify-center gap-1.5">
                       {renderViewContent && (
                         <button
                           type="button"
@@ -300,7 +284,6 @@ export default function SortableTableWithAdd({
                       </button>
                         </>
                       )}
-                    </div>
                     </div>
                   </td>
                 )}

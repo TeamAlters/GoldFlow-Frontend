@@ -2,7 +2,8 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
-import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
+import { MAX_TEXT_FIELD_LENGTH, validateTextMaxLength, getTextInputDescription } from '../../../shared/utils/formValidation';
+import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticAccessoriesPurityRangeFormData = {
@@ -82,8 +83,10 @@ const StaticAccessoriesPurityRangeFormInner = forwardRef<
     const next: Record<string, string> = {};
     const name = formData.accessories_purity_range.trim();
     if (!name) next.accessories_purity_range = 'Accessories purity range is required';
-    else if (name.length > MAX_TEXT_FIELD_LENGTH)
-      next.accessories_purity_range = maxLengthError('Accessories purity range');
+    else {
+      const err = validateTextMaxLength(name, 'Accessories purity range', MAX_TEXT_FIELD_LENGTH);
+      if (err) next.accessories_purity_range = err;
+    }
     if (!formData.purity_range.trim()) next.purity_range = 'Purity range is required';
     if (!formData.accessory_purity.trim()) next.accessory_purity = 'Accessory purity is required';
     setErrors(next);
@@ -130,16 +133,19 @@ const StaticAccessoriesPurityRangeFormInner = forwardRef<
         isDarkMode={isDarkMode}
       />
     ) : (
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => handleChange(key, e.target.value)}
-        placeholder={placeholder}
-        maxLength={MAX_TEXT_FIELD_LENGTH}
-        className={inputClass(key)}
-        disabled={readOnly}
-        readOnly={readOnly}
-      />
+      <>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => handleChange(key, e.target.value)}
+          placeholder={placeholder}
+          maxLength={MAX_TEXT_FIELD_LENGTH}
+          className={inputClass(key)}
+          disabled={readOnly}
+          readOnly={readOnly}
+        />
+        <FormFieldHint>{getTextInputDescription(MAX_TEXT_FIELD_LENGTH)}</FormFieldHint>
+      </>
     );
   };
 
@@ -160,6 +166,7 @@ const StaticAccessoriesPurityRangeFormInner = forwardRef<
           disabled={readOnly}
           readOnly={readOnly}
         />
+        <FormFieldHint>{getTextInputDescription(MAX_TEXT_FIELD_LENGTH)}</FormFieldHint>
         {errors.accessories_purity_range && (
           <p className={`mt-1 ${errorClass}`}>{errors.accessories_purity_range}</p>
         )}

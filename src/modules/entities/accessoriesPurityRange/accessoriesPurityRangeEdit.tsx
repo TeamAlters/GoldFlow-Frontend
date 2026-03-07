@@ -10,6 +10,7 @@ import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_NUMERIC_63_LENGTH, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toFromToAccessoryInitialData, toFromToAccessoryPayload } from './accessoriesPurityRangeCreate';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'accessories_purity_range';
 
@@ -118,7 +119,9 @@ export default function AccessoriesPurityRangeEditPage() {
   const labelClass = `block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`;
   const errorClass = `text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`;
 
-  if (!id) return <Navigate to={entityConfig.routes.list} replace />;
+  if (!id) return (
+    <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+  );
 
   if (dataLoading) {
     return (
