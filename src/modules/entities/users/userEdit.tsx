@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntity, getEntityReferences, mapReferenceItemsToOptions, updateEntity } from '../../admin/admin.api';
 import type { ReferenceOption } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
@@ -107,7 +107,7 @@ export default function EditUserPage() {
             try {
                 await updateEntity(ENTITY_NAME, id, payload);
                 toast.success(`${entityConfig.displayName} updated successfully.`);
-                navigate(entityConfig.routes.list);
+                navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, id));
             } catch (err) {
                 const msg = err instanceof Error ? err.message : 'Request failed';
                 showErrorToastUnlessAuth(msg);

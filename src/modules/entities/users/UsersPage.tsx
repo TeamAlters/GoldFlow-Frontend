@@ -292,13 +292,13 @@ export default function UsersPage() {
       isDarkMode,
       navigate,
       encodeId: false,
-      data: items,
+      data: users,
     });
-  }, [entityMetadata, isDarkMode, navigate, entityConfig, items]);
+  }, [entityMetadata, isDarkMode, navigate, entityConfig, users]);
 
   // Handle add entity - navigate to add page
   const handleAddEntity = () => {
-    navigate(entityConfig.routes.add);
+    navigate(entityConfig.routes.add ?? '/dashboard');
   };
 
   const idField = entityMetadata?.id_field ?? 'id';
@@ -329,7 +329,7 @@ export default function UsersPage() {
         onClick: (row) => {
           const rowId = row[idField];
           if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
+            navigate(entityConfig.routes.edit?.replace(':id', String(rowId)) ?? '/dashboard');
           }
         },
         variant: 'primary' as const,

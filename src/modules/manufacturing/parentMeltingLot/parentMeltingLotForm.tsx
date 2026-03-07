@@ -114,48 +114,24 @@ export default function ParentMeltingLotForm({
     }
   };
 
-  const inputClass = `w-full px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
-    isDarkMode
+  const inputClass = `w-full px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${isDarkMode
       ? 'bg-gray-700 border-gray-600 text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
       : 'bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-  }`;
+    }`;
 
-  const labelClass = `block text-sm font-semibold mb-1.5 ${
-    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-  }`;
+  const labelClass = `block text-sm font-semibold mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+    }`;
 
-  const errorClass = `text-xs mt-1 ${
-    isDarkMode ? 'text-red-400' : 'text-red-600'
-  }`;
+  const errorClass = `text-xs mt-1 ${isDarkMode ? 'text-red-400' : 'text-red-600'
+    }`;
 
   return (
     <form id="parent-melting-lot-form" onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Name */}
-        <div>
-          <label htmlFor="name" className={labelClass}>
-            Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={(e) => handleChange(e.target.name, e.target.value)}
-            maxLength={MAX_TEXT_FIELD_LENGTH}
-            disabled={!!initialData?.name} // Name is PK, cannot be edited
-            className={`${inputClass} ${errors.name ? 'border-red-500' : ''} ${
-              initialData?.name ? 'bg-gray-100 cursor-not-allowed' : ''
-            }`}
-            placeholder="Enter name"
-          />
-          {errors.name && <p className={errorClass}>{errors.name}</p>}
-        </div>
-
         {/* Product */}
         <div>
           <label htmlFor="product" className={labelClass}>
-            Product <span className="text-red-500">*</span>
+            Product <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
           </label>
           <FormSelect
             value={formData.product}
@@ -163,11 +139,10 @@ export default function ParentMeltingLotForm({
             options={productOptions}
             placeholder="Select Product"
             isDarkMode={isDarkMode}
-            className={`${errors.product ? 'border-red-500' : ''} ${
-              isDarkMode
+            className={`${errors.product ? 'border-red-500' : ''} ${isDarkMode
                 ? 'bg-gray-700 border-gray-600 text-gray-200'
                 : 'bg-white border-gray-300 text-gray-900'
-            }`}
+              }`}
           />
           {errors.product && <p className={errorClass}>{errors.product}</p>}
         </div>
@@ -201,11 +176,10 @@ export default function ParentMeltingLotForm({
             options={purityOptions}
             placeholder="Select Purity"
             isDarkMode={isDarkMode}
-            className={`${errors.purity ? 'border-red-500' : ''} ${
-              isDarkMode
+            className={`${errors.purity ? 'border-red-500' : ''} ${isDarkMode
                 ? 'bg-gray-700 border-gray-600 text-gray-200'
                 : 'bg-white border-gray-300 text-gray-900'
-            }`}
+              }`}
           />
           {errors.purity && <p className={errorClass}>{errors.purity}</p>}
         </div>

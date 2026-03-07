@@ -832,6 +832,16 @@ export function getEntityConfig(entityName: string): EntityConfig {
 }
 
 /**
+ * Returns the View (detail) page URL for redirect after a successful entity update.
+ * Use in Edit pages: after updateEntity(), navigate to this URL instead of list.
+ * Single reusable convention: Edit → Update → ViewPage → user can go Back to List.
+ */
+export function getRedirectToViewAfterEditUrl(entityName: string, id: string): string {
+  const config = getEntityConfig(entityName);
+  return config.routes.detail.replace(':id', encodeURIComponent(id));
+}
+
+/**
  * Get list of all configured entity names
  */
 export function getAllEntityNames(): string[] {

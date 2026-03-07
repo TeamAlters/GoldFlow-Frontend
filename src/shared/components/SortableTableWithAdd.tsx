@@ -123,21 +123,21 @@ export default function SortableTableWithAdd({
     onChange(next);
   };
 
-  const inputClassTable = `w-full px-2.5 py-1.5 text-sm rounded border transition-all focus:outline-none focus:ring-2 ${
-    isDarkMode
+  /** Styles for the department dropdown – no rounded so FormSelect’s rounded-2xl is used. */
+  const inputClassTableDropdown = `w-full px-2.5 py-1.5 text-sm border transition-all focus:outline-none focus:ring-2 ${isDarkMode
       ? 'bg-gray-700/80 border-gray-500 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20'
       : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/20'
-  }`;
+    }`;
   const readOnlyCellClass = `min-h-[34px] px-2.5 py-1.5 flex items-center text-sm ${isDarkMode ? 'bg-gray-700/40 text-gray-200' : 'bg-gray-50 text-gray-700'}`;
 
   const thClass = `px-2 py-2.5 text-xs font-semibold uppercase tracking-wider border-b border-r last:border-r-0 ${isDarkMode
     ? 'text-gray-200 bg-gray-700/80 border-gray-600'
     : 'text-gray-700 bg-gray-100 border-gray-200'
-  }`;
+    }`;
   const tdClass = `px-2 py-2 border-b border-r last:border-r-0 ${isDarkMode
     ? 'text-gray-200 border-gray-700'
     : 'text-gray-900 border-gray-200'
-  }`;
+    }`;
 
   return (
     <div className="w-full">
@@ -147,9 +147,8 @@ export default function SortableTableWithAdd({
         </h3>
       )}
       <div
-        className={`overflow-hidden rounded-xl border shadow-sm ${
-          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        }`}
+        className={`overflow-hidden rounded-xl border shadow-sm ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+          }`}
       >
         <table className="w-full border-collapse table-fixed">
           <colgroup>
@@ -176,8 +175,7 @@ export default function SortableTableWithAdd({
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`transition-all duration-200 ${
-                  draggedIndex === index
+                className={`transition-all duration-200 ${draggedIndex === index
                     ? isDarkMode
                       ? 'opacity-90 ring-2 ring-blue-400/70 bg-gray-700/90'
                       : 'opacity-90 ring-2 ring-blue-500/60 bg-blue-50/80'
@@ -188,7 +186,7 @@ export default function SortableTableWithAdd({
                       : index % 2 === 0
                         ? 'bg-white'
                         : 'bg-gray-50/50'
-                }`}
+                  }`}
               >
                 {!readOnly && (
                   <td className={`${tdClass} align-middle`} style={{ width: '2.5rem' }}>
@@ -217,7 +215,7 @@ export default function SortableTableWithAdd({
                         onChange={(v) => handleRowChange(index, 'department_id', v)}
                         options={departmentOptions}
                         placeholder="Select department"
-                        className={`max-w-full ${inputClassTable} ${getRowError?.(row, index) ? '!border-red-500' : ''}`}
+                        className={`max-w-full ${inputClassTableDropdown} ${getRowError?.(row, index) ? '!border-red-500' : ''}`}
                         isDarkMode={isDarkMode}
                       />
                       {getRowError?.(row, index) && (
@@ -247,41 +245,41 @@ export default function SortableTableWithAdd({
                       )}
                       {!readOnly && (
                         <>
-                      <button
-                        type="button"
-                        onClick={() => handleMoveUp(index)}
-                        disabled={index === 0}
-                        title="Move up"
-                        className={`p-2 rounded-lg transition-colors ${index === 0 ? 'opacity-40 cursor-not-allowed' : ''} ${isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-200 text-gray-700'}`}
-                        aria-label="Move up"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMoveDown(index)}
-                        disabled={index === rows.length - 1}
-                        title="Move down"
-                        className={`p-2 rounded-lg transition-colors ${index === rows.length - 1 ? 'opacity-40 cursor-not-allowed' : ''} ${isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-200 text-gray-700'}`}
-                        aria-label="Move down"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRow(index)}
-                        title="Remove row"
-                        className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-red-900/50 text-red-400' : 'hover:bg-red-50 text-red-600'}`}
-                        aria-label="Remove"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveUp(index)}
+                            disabled={index === 0}
+                            title="Move up"
+                            className={`p-2 rounded-lg transition-colors ${index === 0 ? 'opacity-40 cursor-not-allowed' : ''} ${isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-200 text-gray-700'}`}
+                            aria-label="Move up"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveDown(index)}
+                            disabled={index === rows.length - 1}
+                            title="Move down"
+                            className={`p-2 rounded-lg transition-colors ${index === rows.length - 1 ? 'opacity-40 cursor-not-allowed' : ''} ${isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-200 text-gray-700'}`}
+                            aria-label="Move down"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRow(index)}
+                            title="Remove row"
+                            className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-red-900/50 text-red-400' : 'hover:bg-red-50 text-red-600'}`}
+                            aria-label="Remove"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
                         </>
                       )}
                     </div>
@@ -296,9 +294,8 @@ export default function SortableTableWithAdd({
         <button
           type="button"
           onClick={handleAddRow}
-          className={`mt-4 px-5 py-2.5 text-sm font-semibold rounded-lg flex items-center gap-2 transition-colors ${
-            isDarkMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-          }`}
+          className={`mt-4 px-5 py-2.5 text-sm font-semibold rounded-lg flex items-center gap-2 transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

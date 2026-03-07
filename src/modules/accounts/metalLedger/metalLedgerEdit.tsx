@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntity, updateEntity } from '../../admin/admin.api';
+import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -59,9 +60,13 @@ export default function MetalLedgerEditPage() {
       const payload = toMetalLedgerPayload(formData);
       setSubmitLoading(true);
       try {
-        await updateEntity(ENTITY_NAME, id, payload);
+        const res = await updateEntity(ENTITY_NAME, id, payload);
         toast.success(`${entityConfig.displayName} updated successfully.`);
-        navigate(entityConfig.routes.list);
+        const newId = getRedirectIdAfterUpdate(res, formData as Record<string, unknown>, id ?? '', [
+          'id',
+          'voucher_number',
+        ]);
+        navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, newId));
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);

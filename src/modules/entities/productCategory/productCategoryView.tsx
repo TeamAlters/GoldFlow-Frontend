@@ -30,6 +30,7 @@ export default function ProductCategoryViewPage() {
     data: rawEntity,
     loading: dataLoading,
     error: loadError,
+    notFound,
   } = useEntityLoad(ENTITY_NAME, id ?? undefined, {
     errorMessage: 'Failed to load product category',
   });
@@ -46,8 +47,8 @@ export default function ProductCategoryViewPage() {
   );
 
   useEffect(() => {
-    if (loadError) showErrorToastUnlessAuth(loadError);
-  }, [loadError]);
+    if (loadError && !notFound) showErrorToastUnlessAuth(loadError);
+  }, [loadError, notFound]);
 
   const handleBack = useCallback(() => {
     navigate(entityConfig.routes.list);
@@ -76,6 +77,12 @@ export default function ProductCategoryViewPage() {
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

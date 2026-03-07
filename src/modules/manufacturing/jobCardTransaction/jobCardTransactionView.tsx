@@ -6,10 +6,10 @@ import { useUIStore } from '../../../stores/ui.store';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
 import BackButton from '../../../shared/components/BackButton';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'job_card_transaction';
 
@@ -21,6 +21,7 @@ export default function JobCardTransactionViewPage() {
   const entityConfig = getEntityConfig(ENTITY_NAME);
   const [loading, setLoading] = useState(true);
   const [entity, setEntity] = useState<Record<string, unknown> | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -36,6 +37,11 @@ export default function JobCardTransactionViewPage() {
             : null
         );
       } catch (err) {
+        if (!mounted) return;
+        if (isNotFoundError(err)) {
+          setNotFound(true);
+          return;
+        }
         const msg = err instanceof Error ? err.message : 'Failed to load job card transaction view';
         showErrorToastUnlessAuth(msg);
       } finally {
@@ -55,6 +61,12 @@ export default function JobCardTransactionViewPage() {
   if (!id) return (
     <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
   );
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
+    );
+  }
 
   const labelClass = `block text-sm font-semibold mb-1 ${
     isDarkMode ? 'text-gray-400' : 'text-gray-600'

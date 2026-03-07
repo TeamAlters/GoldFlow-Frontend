@@ -134,18 +134,18 @@ export default function DashboardIndex() {
                     {line.name}
                   </span>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    className={`px-2.5 py-1 text-xs font-semibold ${
                       line.color === 'green'
                         ? isDarkMode
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-green-100 text-green-700'
+                          ? 'text-green-400'
+                          : 'text-green-700'
                         : line.color === 'yellow'
                           ? isDarkMode
-                            ? 'bg-yellow-500/20 text-yellow-400'
-                            : 'bg-yellow-100 text-yellow-700'
+                            ? 'text-yellow-400'
+                            : 'text-yellow-700'
                           : isDarkMode
-                            ? 'bg-red-500/20 text-red-400'
-                            : 'bg-red-100 text-red-700'
+                            ? 'text-red-400'
+                            : 'text-red-700'
                     }`}
                   >
                     {line.status}

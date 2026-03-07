@@ -61,6 +61,32 @@ export function toFromToAccessoryPayload(
   };
 }
 
+/**
+ * Get the id to use for redirect to view after updating accessories purity range.
+ * Tries response.data.accessories_purity_range, response.data.id, or builds from form values.
+ */
+export function getAccessoriesPurityRangeIdAfterUpdate(
+  response: { data?: Record<string, unknown> } | undefined,
+  fromValue: string,
+  toValue: string,
+  accessoryPurity: string,
+  currentId: string
+): string {
+  const data = response?.data;
+  if (data && typeof data === 'object') {
+    const d = data as Record<string, unknown>;
+    const inner = d.data && typeof d.data === 'object' && !Array.isArray(d.data) ? (d.data as Record<string, unknown>) : d;
+    const v = inner.accessories_purity_range ?? inner.id ?? d.accessories_purity_range ?? d.id;
+    if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+  }
+  const from = parseNum(fromValue);
+  const to = parseNum(toValue);
+  if (from !== null && to !== null && accessoryPurity.trim()) {
+    return `${from}-${to}-${accessoryPurity.trim()}`;
+  }
+  return currentId;
+}
+
 export function toAccessoriesPurityRangePayload(
   data: StaticAccessoriesPurityRangeFormData
 ): Record<string, unknown> {

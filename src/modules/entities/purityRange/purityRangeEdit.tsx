@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntity, updateEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
@@ -12,7 +12,7 @@ import StaticPurityRangeForm, {
   type PurityOption,
 } from './purityRangeForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toInitialPurityRangeData, toPurityRangePayload } from './purityRangeCreate';
+import { toInitialPurityRangeData, toPurityRangePayload, getPurityRangeIdAfterUpdate } from './purityRangeCreate';
 import {
   getEditPageTitle,
   getEditBreadcrumbLabel,
@@ -63,9 +63,10 @@ export default function PurityRangeEditPage() {
       if (!id) return;
       setSubmitLoading(true);
       try {
-        await updateEntity(ENTITY_NAME, decodeURIComponent(id), toPurityRangePayload(formData));
+        const res = await updateEntity(ENTITY_NAME, decodeURIComponent(id), toPurityRangePayload(formData));
         toast.success(`${entityConfig.displayName} updated successfully.`);
-        navigate(entityConfig.routes.list);
+        const newId = getPurityRangeIdAfterUpdate(res, formData) || decodeURIComponent(id);
+        navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, newId));
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);

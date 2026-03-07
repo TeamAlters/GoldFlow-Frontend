@@ -42,6 +42,8 @@ export type UseEntityLoadResult = {
   loading: boolean;
   error: string | null;
   setError: (value: string | null) => void;
+  /** True when the entity load returned 404 (use to redirect to Page Not Found without showing toast). */
+  notFound: boolean;
 };
 
 /**
@@ -61,6 +63,7 @@ export function useEntityLoad(
   const [data, setData] = useState<Record<string, unknown> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const fallbackMsg = options?.errorMessage ?? 'Failed to load';
 
   useEffect(() => {
@@ -68,6 +71,7 @@ export function useEntityLoad(
       setLoading(false);
       setData(undefined);
       setError(null);
+      setNotFound(false);
       return;
     }
 
@@ -75,6 +79,7 @@ export function useEntityLoad(
     const controller = new AbortController();
     setLoading(true);
     setError(null);
+    setNotFound(false);
 
     getEntity(entityName, id, { signal: controller.signal })
       .then((res) => {
@@ -91,7 +96,9 @@ export function useEntityLoad(
       .catch((err) => {
         if (!mounted) return;
         if (controller.signal.aborted || isAbortError(err)) return;
+        const statusCode = (err as Error & { statusCode?: number })?.statusCode;
         const msg = err instanceof Error ? err.message : fallbackMsg;
+        setNotFound(statusCode === 404);
         setError(msg || fallbackMsg);
       })
       .finally(() => {
@@ -104,5 +111,5 @@ export function useEntityLoad(
     };
   }, [entityName, id]);
 
-  return { data, loading, error, setError };
+  return { data, loading, error, setError, notFound };
 }

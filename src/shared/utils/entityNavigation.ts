@@ -22,3 +22,33 @@ export function getCreatedEntityId(
   }
   return undefined;
 }
+
+/**
+ * Get the id to use for redirect to view page after updating an entity.
+ * Tries response.data[idField], then formData[idField], then currentId.
+ * Use so that when the entity's key can change on edit (e.g. name, composite id), we redirect to the new id.
+ * idFields: e.g. ['product_name', 'id'] or ['name', 'id'] – first match wins.
+ */
+export function getRedirectIdAfterUpdate(
+  response: { data?: Record<string, unknown> } | undefined,
+  formData: Record<string, unknown> | undefined,
+  currentId: string,
+  idFields: string[]
+): string {
+  const data = response?.data;
+  if (data && typeof data === 'object') {
+    const d = data as Record<string, unknown>;
+    const inner = d.data && typeof d.data === 'object' && !Array.isArray(d.data) ? (d.data as Record<string, unknown>) : d;
+    for (const key of idFields) {
+      const v = inner[key] ?? d[key];
+      if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+    }
+  }
+  if (formData && typeof formData === 'object') {
+    for (const key of idFields) {
+      const v = (formData as Record<string, unknown>)[key];
+      if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+    }
+  }
+  return currentId;
+}
