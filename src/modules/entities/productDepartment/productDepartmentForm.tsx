@@ -28,6 +28,7 @@ export type ProductDepartmentFormData = {
   allow_weight_splits: boolean;
   loss_requires_reason: boolean;
   loss_approval_required: boolean;
+  grouped_by_parent_melting_lot: boolean;
 };
 
 export interface ProductDepartmentFormRef {
@@ -71,6 +72,7 @@ const emptyForm: ProductDepartmentFormData = {
   allow_weight_splits: false,
   loss_requires_reason: false,
   loss_approval_required: false,
+  grouped_by_parent_melting_lot: false,
 };
 
 const BOOLEAN_FIELDS: (keyof ProductDepartmentFormData)[] = [
@@ -87,7 +89,12 @@ const BOOLEAN_FIELDS: (keyof ProductDepartmentFormData)[] = [
   'allow_weight_splits',
   'loss_requires_reason',
   'loss_approval_required',
+  'grouped_by_parent_melting_lot',
 ];
+
+const BOOLEAN_FIELD_LABELS: Partial<Record<keyof ProductDepartmentFormData, string>> = {
+  grouped_by_parent_melting_lot: 'Grouped by parent melting lot',
+};
 
 const ProductDepartmentFormInner = forwardRef<
   ProductDepartmentFormRef,
@@ -303,7 +310,7 @@ const ProductDepartmentFormInner = forwardRef<
                 className={`rounded ${isDarkMode ? 'accent-blue-500' : 'accent-blue-600'}`}
               />
               <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                {key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                {BOOLEAN_FIELD_LABELS[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
               </span>
             </label>
           ))}

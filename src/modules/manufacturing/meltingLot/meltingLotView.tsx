@@ -3,7 +3,7 @@ import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
@@ -23,7 +23,7 @@ import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import { invalidateEntityListCache } from '../../admin/admin.api';
 import { useEntityMutationStore } from '../../../stores/entityMutation.store';
 import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'melting_lot';
 
@@ -35,6 +35,7 @@ export default function MeltingLotViewPage() {
   const [initialData, setInitialData] = useState<Partial<MeltingLotFormData> | undefined>(undefined);
   const [weightDetails, setWeightDetails] = useState<WeightDetail[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   // Additional fields from API response
   const [meltingLotName, setMeltingLotName] = useState<string>('');
@@ -87,6 +88,10 @@ export default function MeltingLotViewPage() {
         }
       })
       .catch((err) => {
+        if (isNotFoundError(err)) {
+          setNotFound(true);
+          return;
+        }
         const msg = err instanceof Error ? err.message : 'Failed to load melting lot';
         showErrorToastUnlessAuth(msg);
       })
@@ -175,6 +180,12 @@ export default function MeltingLotViewPage() {
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

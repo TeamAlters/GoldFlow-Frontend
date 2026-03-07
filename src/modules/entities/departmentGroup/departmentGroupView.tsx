@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, getEntityReferenceOptions } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticDepartmentGroupForm, { type StaticDepartmentGroupFormData } from './departmentGroupForm';
@@ -98,6 +98,7 @@ export default function DepartmentGroupViewPage() {
   const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
   const [dataLoading, setDataLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [productOptions, setProductOptions] = useState<FormSelectOption[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<FormSelectOption[]>([]);
 
@@ -131,6 +132,7 @@ export default function DepartmentGroupViewPage() {
     if (!id) return;
     setDataLoading(true);
     setLoadError(null);
+    setNotFound(false);
 
     const fetchDepartmentGroup = async () => {
       try {
@@ -145,6 +147,10 @@ export default function DepartmentGroupViewPage() {
           setLoadError((res as { message?: string }).message || 'Failed to load department group');
         }
       } catch (err: unknown) {
+        if (isNotFoundError(err)) {
+          setNotFound(true);
+          return;
+        }
         const errorMessage = err instanceof Error ? err.message : 'Failed to load department group';
         setLoadError(errorMessage);
         showErrorToastUnlessAuth(errorMessage);
@@ -176,6 +182,12 @@ export default function DepartmentGroupViewPage() {
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import {
   getEntity,
   updateEntity,
@@ -259,7 +260,13 @@ export default function JobCardEditPage() {
           invalidateEntityListCache(ENTITY_NAME);
           bumpVersion(ENTITY_NAME);
           toast.success(response.message || 'Job card updated successfully');
-          navigate(entityConfig.routes.detail.replace(':id', id));
+          const newId = getRedirectIdAfterUpdate(
+            response,
+            payload as Record<string, unknown>,
+            id ?? '',
+            ['name', 'job_card', 'id']
+          );
+          navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, newId));
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to update job card';
@@ -417,7 +424,7 @@ export default function JobCardEditPage() {
       setIssueDetailIndex(null);
       setIssueEditDraft(null);
       if (id) {
-        navigate(entityConfig.routes.detail.replace(':id', id));
+        navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, id));
       }
     } catch (err) {
       const msg =

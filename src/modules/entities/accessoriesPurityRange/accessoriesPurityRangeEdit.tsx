@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntity, updateEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
@@ -9,7 +9,7 @@ import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_NUMERIC_63_LENGTH, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toFromToAccessoryInitialData, toFromToAccessoryPayload } from './accessoriesPurityRangeCreate';
+import { toFromToAccessoryInitialData, toFromToAccessoryPayload, getAccessoriesPurityRangeIdAfterUpdate } from './accessoriesPurityRangeCreate';
 import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'accessories_purity_range';
@@ -86,13 +86,20 @@ export default function AccessoriesPurityRangeEditPage() {
       if (!id || !validate()) return;
       setSubmitLoading(true);
       try {
-        await updateEntity(
+        const res = await updateEntity(
           ENTITY_NAME,
           decodeURIComponent(id),
           toFromToAccessoryPayload(fromValue, toValue, accessoryPurity)
         );
         toast.success(`${entityConfig.displayName} updated successfully.`);
-        navigate(entityConfig.routes.list);
+        const newId = getAccessoriesPurityRangeIdAfterUpdate(
+          res,
+          fromValue,
+          toValue,
+          accessoryPurity,
+          id
+        );
+        navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, newId));
       } catch (err) {
         showErrorToastUnlessAuth(err instanceof Error ? err.message : 'Request failed');
       } finally {

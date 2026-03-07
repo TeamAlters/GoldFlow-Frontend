@@ -28,7 +28,7 @@ export default function CustomerViewPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const { data: rawEntity, loading: dataLoading, error: loadError } = useEntityLoad(
+  const { data: rawEntity, loading: dataLoading, error: loadError, notFound } = useEntityLoad(
     ENTITY_NAME,
     id ?? undefined,
     { errorMessage: 'Failed to load customer details' }
@@ -44,8 +44,8 @@ export default function CustomerViewPage() {
   );
 
   useEffect(() => {
-    if (loadError) showErrorToastUnlessAuth(loadError);
-  }, [loadError]);
+    if (loadError && !notFound) showErrorToastUnlessAuth(loadError);
+  }, [loadError, notFound]);
 
   const handleBack = useCallback(() => {
     navigate(entityConfig.routes.list);
@@ -68,6 +68,12 @@ export default function CustomerViewPage() {
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

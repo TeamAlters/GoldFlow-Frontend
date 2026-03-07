@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntityReferences, updateEntity } from '../../admin/admin.api';
+import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
@@ -68,9 +69,13 @@ export default function ProductCategoryEditPage() {
       if (!decodedId) return;
       setSubmitLoading(true);
       try {
-        await updateEntity(ENTITY_NAME, decodedId, toProductCategoryPayload(formData));
+        const res = await updateEntity(ENTITY_NAME, decodedId, toProductCategoryPayload(formData));
         toast.success(`${entityConfig.displayName} updated successfully.`);
-        navigate(entityConfig.routes.list);
+        const newId = getRedirectIdAfterUpdate(res, formData as Record<string, unknown>, decodedId, [
+          'product_category',
+          'id',
+        ]);
+        navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, newId));
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);

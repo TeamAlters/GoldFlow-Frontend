@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, updateEntityStatus } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
@@ -11,7 +11,7 @@ import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialMetalLedgerData } from './metalLedgerCreate';
 import BackButton from '../../../shared/components/BackButton';
 import { closeMetalLedger } from './metalLedger.api';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'metal_ledger';
 
@@ -26,6 +26,7 @@ export default function MetalLedgerViewPage() {
   const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
   const [dataLoading, setDataLoading] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   // Check if status is Draft
   const isDraft = initialData?.status === 'Draft';
@@ -47,6 +48,10 @@ export default function MetalLedgerViewPage() {
         }
       })
       .catch((err) => {
+        if (isNotFoundError(err)) {
+          setNotFound(true);
+          return;
+        }
         const msg = err instanceof Error ? err.message : 'Failed to load metal ledger';
         showErrorToastUnlessAuth(msg);
       })
@@ -110,6 +115,12 @@ export default function MetalLedgerViewPage() {
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

@@ -13,9 +13,11 @@ export interface AuditTrailsCardProps {
   entity?: Record<string, unknown> | null;
   /** When true, render as a section inside another card (no outer card wrapper). */
   asSection?: boolean;
+  /** 'grid' = 2-column grid (default). 'rows' = one label-value row per field. */
+  layout?: 'grid' | 'rows';
 }
 
-export default function AuditTrailsCard({ entity, asSection = false }: AuditTrailsCardProps) {
+export default function AuditTrailsCard({ entity, asSection = false, layout = 'grid' }: AuditTrailsCardProps) {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
 
   const createdBy = entity ? valueOrEmpty(entity.created_by) : EMPTY;
@@ -25,14 +27,38 @@ export default function AuditTrailsCard({ entity, asSection = false }: AuditTrai
 
   const labelCls = `block text-sm font-normal mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`;
   const valueBoxCls = `w-full px-4 py-2.5 text-sm rounded-lg border leading-relaxed ${isDarkMode
-      ? 'bg-gray-700/50 border-gray-600 text-white'
-      : 'bg-white border-gray-300 text-gray-900'
+    ? 'bg-gray-700/50 border-gray-600 text-white'
+    : 'bg-white border-gray-300 text-gray-900'
     }`;
   const sectionClass = `border rounded-lg p-4 mb-4 ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'
     }`;
 
+  const rows = [
+    { label: 'Created By', value: createdBy },
+    { label: 'Created At', value: createdAt },
+    { label: 'Modified By', value: modifiedBy },
+    { label: 'Modified At', value: modifiedAt },
+  ];
+
   const content = (
     <>
+      {layout === 'rows' ? (
+        <>
+          <h2
+            className={`text-lg font-semibold mb-4 pb-2 border-b ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'}`}
+          >
+            Audit Trails
+          </h2>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-6 lg:grid-cols-4">
+            {rows.map(({ label, value }) => (
+              <div key={label}>
+                <p className={labelCls}>{label}</p>
+                <div className={valueBoxCls}>{value}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
       <div className={sectionClass}>
         <h2
           className={`text-lg font-semibold mb-4 pb-2 border-b  ${isDarkMode ? 'text-white border-gray-600' : 'text-gray-900 border-gray-300'}`}
@@ -58,6 +84,7 @@ export default function AuditTrailsCard({ entity, asSection = false }: AuditTrai
           </div>
         </div>
       </div>
+      )}
     </>
   );
 

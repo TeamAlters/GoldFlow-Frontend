@@ -17,6 +17,8 @@ import {
   getAvailableJobCardBalances,
   type JobCardAvailableBalanceRow,
 } from '../../manufacturing/jobCard/jobCardAvailableBalances.api';
+import { formatDateTime } from '../../../shared/utils/dateUtils';
+import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 
 export type MetalLedgerFormData = {
   // Ledger Info
@@ -1531,58 +1533,61 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
     );
 
     // Section 8: Audit Trails
-    const auditSection = (
-      <div className={sectionClass}>
-        <h3 className={sectionTitleClass}>Audit Trails</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className={labelClass}>Created At</label>
-            <input
-              type="datetime-local"
-              value={formData.created_at ? formData.created_at.slice(0, 16) : ''}
-              className={readOnlyClass}
-              disabled
-              readOnly
-            />
-          </div>
+    // const auditSection = (
+    //   <div className={sectionClass}>
+    //     <h3 className={sectionTitleClass}>Audit Trails</h3>
+    //     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    //       <div>
+    //         <label className={labelClass}>Created At</label>
+    //         <input
+    //           type="datetime-local"
+    //           value={formData.created_at ? formData.created_at.slice(0, 16) : ''}
+    //           className={readOnlyClass}
+    //           disabled
+    //           readOnly
+    //         />
+    //       </div>
 
-          <div>
-            <label className={labelClass}>Modified At</label>
-            <input
-              type="datetime-local"
-              value={formData.modified_at ? formData.modified_at.slice(0, 16) : ''}
-              className={readOnlyClass}
-              disabled
-              readOnly
-            />
-          </div>
+    //       <div>
+    //         <label className={labelClass}>Modified At</label>
+    //         <input
+    //           type="datetime-local"
+    //           value={formData.modified_at ? formatDateTime(formData.modified_at as string | number | null | undefined ) : ''}
+    //           className={readOnlyClass}
+    //           disabled
+    //           readOnly
+    //         />
+    //       </div>
 
-          <div>
-            <label className={labelClass}>Created By</label>
-            <input
-              type="text"
-              value={formData.created_by}
-              placeholder="–"
-              className={readOnlyClass}
-              disabled
-              readOnly
-            />
-          </div>
+    //       <div>
+    //         <label className={labelClass}>Created By</label>
+    //         <input
+    //           type="text"
+    //           value={formData.created_by}
+    //           placeholder="–"
+    //           className={readOnlyClass}
+    //           disabled
+    //           readOnly
+    //         />
+    //       </div>
 
-          <div>
-            <label className={labelClass}>Modified By</label>
-            <input
-              type="text"
-              value={formData.modified_by}
-              placeholder="–"
-              className={readOnlyClass}
-              disabled
-              readOnly
-            />
-          </div>
-        </div>
-      </div>
-    );
+    //       <div>
+    //         <label className={labelClass}>Modified By</label>
+    //         <input
+    //           type="text"
+    //           value={formData.modified_by}
+    //           placeholder="–"
+    //           className={readOnlyClass}
+    //           disabled
+    //           readOnly
+    //         />
+    //       </div>
+    //     </div>
+    //   </div>
+    // );
+
+    const auditSection = <AuditTrailsCard entity={initialData as Record<string, unknown> | null} layout="rows" />;  
+
 
     const fields = (
       <>

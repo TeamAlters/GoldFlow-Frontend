@@ -43,6 +43,25 @@ export function toPurityRangePayload(
   };
 }
 
+/** Id for redirect after update when the composite id may have changed (e.g. from_value/to_value edited). */
+export function getPurityRangeIdAfterUpdate(
+  response: { data?: Record<string, unknown> } | undefined,
+  formData: StaticPurityRangeFormData
+): string {
+  const data = response?.data;
+  if (data && typeof data === 'object') {
+    const d = data as Record<string, unknown>;
+    const inner = d.data && typeof d.data === 'object' && !Array.isArray(d.data) ? (d.data as Record<string, unknown>) : d;
+    const pr = inner.purity_range ?? inner.id ?? d.purity_range ?? d.id;
+    if (pr !== undefined && pr !== null && String(pr).trim() !== '') return String(pr).trim();
+  }
+  const p = formData.purity.trim();
+  const f = formData.from_value.trim();
+  const t = formData.to_value.trim();
+  if (p && f && t) return `${p}-${f}-${t}`;
+  return '';
+}
+
 export default function PurityRangeCreatePage() {
   const navigate = useNavigate();
   const entityConfig = getEntityConfig(ENTITY_NAME);

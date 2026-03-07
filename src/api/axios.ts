@@ -235,3 +235,11 @@ export function messageFromAxiosError(error: unknown, fallback: string): string 
   if (error instanceof Error) return error.message;
   return fallback;
 }
+
+/** Response status code from an axios or API error (e.g. 404 for not found). */
+export function getResponseStatus(error: unknown): number | undefined {
+  if (axios.isAxiosError(error) && error.response?.status != null) {
+    return error.response.status;
+  }
+  return (error as { statusCode?: number })?.statusCode;
+}

@@ -4,7 +4,7 @@
  * Authenticated requests use Bearer token from auth store (via apiClient interceptor).
  */
 
-import { apiClient, messageFromAxiosError } from '../../api/axios';
+import { apiClient, messageFromAxiosError, getResponseStatus } from '../../api/axios';
 import { useAuthStore } from '../../auth/auth.store';
 import { buildEntityUrl, ENTITY_REFERENCES_PATH, getEntityConfig } from '../../config/entity.config';
 import { useEntityMutationStore } from '../../stores/entityMutation.store';
@@ -567,9 +567,12 @@ export async function getEntity(
     console.log('[GoldFlow] [admin.api] getEntity: success', { entityName, id });
     return res.data ?? {};
   } catch (err) {
+    const statusCode = getResponseStatus(err);
     const errMsg = messageFromAxiosError(err, `Failed to get ${entityName}`);
-    console.log('[GoldFlow] [admin.api] getEntity: failed', { entityName, id, errMsg });
-    throw new Error(errMsg);
+    console.log('[GoldFlow] [admin.api] getEntity: failed', { entityName, id, errMsg, statusCode });
+    const e = new Error(errMsg) as Error & { statusCode?: number };
+    e.statusCode = statusCode;
+    throw e;
   }
 }
 

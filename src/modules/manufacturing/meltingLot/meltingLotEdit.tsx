@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
+import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import { updateMeltingLot } from './meltingLot.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
@@ -53,9 +54,15 @@ export default function MeltingLotEditPage() {
       setSubmitLoading(true);
       try {
         // Use lot_name (id from URL) for the update API
-        await updateMeltingLot(id, payload as Parameters<typeof updateMeltingLot>[1]);
+        const res = await updateMeltingLot(id, payload as Parameters<typeof updateMeltingLot>[1]);
         toast.success(`${entityConfig.displayName} updated successfully.`);
-        navigate(entityConfig.routes.list);
+        const newId = getRedirectIdAfterUpdate(
+          res as { data?: Record<string, unknown> },
+          formData as Record<string, unknown>,
+          id,
+          ['lot_name', 'id']
+        );
+        navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, newId));
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);

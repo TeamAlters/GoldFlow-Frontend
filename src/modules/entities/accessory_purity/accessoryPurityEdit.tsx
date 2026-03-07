@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntity, updateEntity, getEntityList } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
@@ -71,9 +71,15 @@ export default function AccessoryPurityEditPage() {
       if (!id) return;
       setSubmitLoading(true);
       try {
-        await updateEntity(ENTITY_NAME, decodeURIComponent(id), toAccessoryPurityPayload(formData));
+        const res = await updateEntity(ENTITY_NAME, decodeURIComponent(id), toAccessoryPurityPayload(formData));
         toast.success(`${entityConfig.displayName} updated successfully.`);
-        navigate(entityConfig.routes.list);
+        const newId =
+          (res?.data && typeof res.data === 'object' && (res.data as Record<string, unknown>).accessory_purity != null)
+            ? String((res.data as Record<string, unknown>).accessory_purity)
+            : (res?.data && typeof res.data === 'object' && (res.data as Record<string, unknown>).id != null)
+              ? String((res.data as Record<string, unknown>).id)
+              : formData.accessory_purity?.trim() || decodeURIComponent(id);
+        navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, newId));
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);

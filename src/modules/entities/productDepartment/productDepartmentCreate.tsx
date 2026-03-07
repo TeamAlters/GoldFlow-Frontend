@@ -44,6 +44,7 @@ export function toInitialProductDepartmentData(
     allow_weight_splits: Boolean(entity.allow_weight_splits),
     loss_requires_reason: Boolean(entity.loss_requires_reason),
     loss_approval_required: Boolean(entity.loss_approval_required),
+    grouped_by_parent_melting_lot: Boolean(entity.grouped_by_parent_melting_lot),
   };
 }
 
@@ -68,6 +69,7 @@ export function toProductDepartmentPayload(
     allow_weight_splits: data.allow_weight_splits,
     loss_requires_reason: data.loss_requires_reason,
     loss_approval_required: data.loss_approval_required,
+    grouped_by_parent_melting_lot: data.grouped_by_parent_melting_lot,
   };
   if (data.loss_percentage.trim() !== '') {
     payload.loss_percentage = parseFloat(data.loss_percentage);

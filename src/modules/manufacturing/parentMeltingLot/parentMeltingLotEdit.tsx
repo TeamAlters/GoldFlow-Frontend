@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
+import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntity, getEntityReferences, mapReferenceItemsToOptions, updateEntity } from '../../admin/admin.api';
+import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { toast } from '../../../stores/toast.store';
 import { useUIStore } from '../../../stores/ui.store';
@@ -86,7 +87,13 @@ export default function ParentMeltingLotEdit() {
 
         if (response.success) {
           toast.success(response.message || 'Parent melting lot updated successfully');
-          navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(id)));
+          const newId = getRedirectIdAfterUpdate(
+            response,
+            data as Record<string, unknown>,
+            id,
+            ['name', 'id']
+          );
+          navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, newId));
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to update parent melting lot';
