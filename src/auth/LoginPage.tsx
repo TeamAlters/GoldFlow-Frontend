@@ -208,7 +208,11 @@ export default function LoginPage() {
               </span>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center">
+              <div
+                className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  isDarkMode ? 'bg-green-500/20' : 'bg-green-100'
+                }`}
+              >
                 <svg
                   className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}
                   fill="none"
