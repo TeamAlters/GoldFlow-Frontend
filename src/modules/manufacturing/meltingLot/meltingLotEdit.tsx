@@ -5,7 +5,7 @@ import { getEntity } from '../../admin/admin.api';
 import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import { updateMeltingLot } from './meltingLot.api';
 import { toast } from '../../../stores/toast.store';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import MeltingLotForm, {
   type MeltingLotFormData,
@@ -13,7 +13,7 @@ import MeltingLotForm, {
 } from './meltiingLotForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialMeltingLotData, toMeltingLotPayload } from './meltingLotCreate';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'melting_lot';
 
@@ -27,6 +27,7 @@ export default function MeltingLotEditPage() {
   );
   const [dataLoading, setDataLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   const meltingLotFormRef = useRef<MeltingLotFormRef>(null);
 
@@ -35,12 +36,20 @@ export default function MeltingLotEditPage() {
     setDataLoading(true);
     getEntity(ENTITY_NAME, id)
       .then((res) => {
+        if (isNotFoundResponse(res as Record<string, unknown>)) {
+          setNotFound(true);
+          return;
+        }
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
           setInitialData(toInitialMeltingLotData(entity));
         }
       })
       .catch((err) => {
+        if (isNotFoundErrorOrMessage(err)) {
+          setNotFound(true);
+          return;
+        }
         const msg = err instanceof Error ? err.message : 'Failed to load melting lot';
         showErrorToastUnlessAuth(msg);
       })
@@ -93,6 +102,12 @@ export default function MeltingLotEditPage() {
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

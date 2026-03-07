@@ -4,7 +4,7 @@ import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/
 import { getEntity, updateEntity } from '../../admin/admin.api';
 import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import MetalLedgerForm, {
   type MetalLedgerFormData,
@@ -15,7 +15,7 @@ import {
   toInitialMetalLedgerData,
   toMetalLedgerPayload,
 } from './metalLedgerCreate';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'metal_ledger';
 
@@ -29,6 +29,7 @@ export default function MetalLedgerEditPage() {
   );
   const [dataLoading, setDataLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   const metalLedgerFormRef = useRef<MetalLedgerFormRef>(null);
 
@@ -48,6 +49,10 @@ export default function MetalLedgerEditPage() {
         }
       })
       .catch((err) => {
+        if (isNotFoundErrorOrMessage(err)) {
+          setNotFound(true);
+          return;
+        }
         const msg = err instanceof Error ? err.message : 'Failed to load metal ledger';
         showErrorToastUnlessAuth(msg);
       })
@@ -68,6 +73,10 @@ export default function MetalLedgerEditPage() {
         ]);
         navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, newId));
       } catch (err) {
+        if (isNotFoundErrorOrMessage(err)) {
+          setNotFound(true);
+          return;
+        }
         const msg = err instanceof Error ? err.message : 'Request failed';
         showErrorToastUnlessAuth(msg);
       } finally {
@@ -97,6 +106,12 @@ export default function MetalLedgerEditPage() {
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

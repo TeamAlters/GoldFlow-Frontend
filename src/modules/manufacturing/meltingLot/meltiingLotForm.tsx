@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUIStore } from '../../../stores/ui.store';
 import {
   MAX_TEXT_FIELD_LENGTH,
@@ -17,6 +17,7 @@ import {
 } from '../../admin/admin.api';
 import { fetchMetalPoolBalance, type MetalPoolBalance } from './meltingLot.api';
 import EditableWeightTable from '../../../shared/components/EditableWeightTable';
+import { FormSelect } from '../../../shared/components/FormSelect';
 import { toast } from '../../../stores/toast.store';
 
 export type MeltingLotFormData = {
@@ -102,8 +103,6 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const [formData, setFormData] = useState<MeltingLotFormData>({ ...emptyForm });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [openSelectKey, setOpenSelectKey] = useState<string | null>(null);
-  const selectRef = useRef<HTMLDivElement>(null);
 
   // Reference data states
   const [parentMeltingLotOptions, setParentMeltingLotOptions] = useState<ReferenceOption[]>([]);
@@ -309,17 +308,6 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
       }));
     }
   }, [initialData]);
-
-  useEffect(() => {
-    if (!openSelectKey) return;
-    const handleClick = (e: MouseEvent) => {
-      if (selectRef.current && !selectRef.current.contains(e.target as Node)) {
-        setOpenSelectKey(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [openSelectKey]);
 
   // Handle change for text fields
   const handleTextChange = (key: keyof MeltingLotFormData, value: string, maxLength: number) => {
@@ -695,74 +683,6 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
 
   const errorClass = `text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`;
 
-  // Custom dropdown render function
-  const renderSelect = (
-    key: keyof MeltingLotFormData,
-    label: string,
-    options: Array<{ label: string; value: string }>,
-    value: string,
-    required = false
-  ) => {
-    const currentLabel = options.find((o) => o.value === value)?.label ?? `Select ${label}`;
-    if (readOnly) {
-      return <div className={readOnlyClass}>{currentLabel === `Select ${label}` ? '–' : currentLabel}</div>;
-    }
-    const isOpen = openSelectKey === key;
-    return (
-      <div ref={key === openSelectKey ? selectRef : undefined} className="relative">
-        <button
-          type="button"
-          onClick={() => setOpenSelectKey(isOpen ? null : key)}
-          className={`${inputClass(key)} flex items-center justify-between text-left min-h-[42px] ${
-            isOpen ? 'ring-2 ring-blue-500/30' : ''
-          }`}
-        >
-          <span className={!value ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}>
-            {currentLabel}
-          </span>
-          <svg className={`w-4 h-4 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        {isOpen && (
-          <div
-            className={`absolute left-0 right-0 top-full z-50 mt-1 py-1 rounded-lg border shadow-lg ${
-              isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                handleChange(key, '');
-                setOpenSelectKey(null);
-              }}
-              className={`w-full px-4 py-2.5 text-left text-sm ${
-                isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
-              } ${!value ? (isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50') : ''}`}
-            >
-              Select {label}
-            </button>
-            {options.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  handleChange(key, opt.value);
-                  setOpenSelectKey(null);
-                }}
-                className={`w-full px-4 py-2.5 text-left text-sm ${
-                  isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'
-                } ${value === opt.value ? (isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50') : ''}`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   // Weight Details columns - Fine Weight and Alloy Weight are calculated, others editable
   const weightDetailColumns = [
     { key: 'selected_weight', header: 'Weight', width: 'w-28', isReadOnly: true },
@@ -780,30 +700,72 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <label className={labelClass}>Parent Melting Lot</label>
-          {renderSelect(
-            'parent_melting_lot',
-            'Parent Melting Lot',
-            parentMeltingLotOptions,
-            formData.parent_melting_lot
-          )}
-          {errors.parent_melting_lot && (
-            <p className={`mt-1 ${errorClass}`}>{errors.parent_melting_lot}</p>
+          {readOnly ? (
+            <div className={readOnlyClass}>
+              {formData.parent_melting_lot
+                ? parentMeltingLotOptions.find((o) => o.value === formData.parent_melting_lot)?.label ?? formData.parent_melting_lot
+                : '–'}
+            </div>
+          ) : (
+            <>
+              <FormSelect
+                value={formData.parent_melting_lot}
+                onChange={(v) => handleChange('parent_melting_lot', v)}
+                options={parentMeltingLotOptions}
+                placeholder="Select Parent Melting Lot"
+                isDarkMode={isDarkMode}
+                className={errors.parent_melting_lot ? 'border-red-500' : ''}
+              />
+              {errors.parent_melting_lot && (
+                <p className={`mt-1 ${errorClass}`}>{errors.parent_melting_lot}</p>
+              )}
+            </>
           )}
         </div>
         <div>
           <label className={labelClass}>
             Product <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
           </label>
-          {renderSelect('product', 'Product', productOptions, formData.product, true)}
-          {errors.product && <p className={`mt-1 ${errorClass}`}>{errors.product}</p>}
+          {readOnly ? (
+            <div className={readOnlyClass}>
+              {formData.product ? productOptions.find((o) => o.value === formData.product)?.label ?? formData.product : '–'}
+            </div>
+          ) : (
+            <>
+              <FormSelect
+                value={formData.product}
+                onChange={(v) => handleChange('product', v)}
+                options={productOptions}
+                placeholder="Select Product"
+                isDarkMode={isDarkMode}
+                className={errors.product ? 'border-red-500' : ''}
+              />
+              {errors.product && <p className={`mt-1 ${errorClass}`}>{errors.product}</p>}
+            </>
+          )}
         </div>
 
         <div>
           <label className={labelClass}>
             Purity <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
           </label>
-          {renderSelect('purity', 'Purity', purityOptions, formData.purity, true)}
-          {errors.purity && <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>}
+          {readOnly ? (
+            <div className={readOnlyClass}>
+              {formData.purity ? purityOptions.find((o) => o.value === formData.purity)?.label ?? formData.purity : '–'}
+            </div>
+          ) : (
+            <>
+              <FormSelect
+                value={formData.purity}
+                onChange={(v) => handleChange('purity', v)}
+                options={purityOptions}
+                placeholder="Select Purity"
+                isDarkMode={isDarkMode}
+                className={errors.purity ? 'border-red-500' : ''}
+              />
+              {errors.purity && <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>}
+            </>
+          )}
         </div>
 
         <div>
@@ -815,22 +777,72 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
 
         <div>
           <label className={labelClass}>Accessory Purity</label>
-          {renderSelect('accessory_purity', 'Accessory Purity', accessoryPurityOptions, formData.accessory_purity)}
+          {readOnly ? (
+            <div className={readOnlyClass}>
+              {formData.accessory_purity
+                ? accessoryPurityOptions.find((o) => o.value === formData.accessory_purity)?.label ?? formData.accessory_purity
+                : '–'}
+            </div>
+          ) : (
+            <FormSelect
+              value={formData.accessory_purity}
+              onChange={(v) => handleChange('accessory_purity', v)}
+              options={accessoryPurityOptions}
+              placeholder="Select Accessory Purity"
+              isDarkMode={isDarkMode}
+            />
+          )}
         </div>
 
         <div>
           <label className={labelClass}>Wire Size</label>
-          {renderSelect('wire_size', 'Wire Size', wireSizeOptions, formData.wire_size)}
+          {readOnly ? (
+            <div className={readOnlyClass}>
+              {formData.wire_size ? wireSizeOptions.find((o) => o.value === formData.wire_size)?.label ?? formData.wire_size : '–'}
+            </div>
+          ) : (
+            <FormSelect
+              value={formData.wire_size}
+              onChange={(v) => handleChange('wire_size', v)}
+              options={wireSizeOptions}
+              placeholder="Select Wire Size"
+              isDarkMode={isDarkMode}
+            />
+          )}
         </div>
 
         <div>
           <label className={labelClass}>Thickness</label>
-          {renderSelect('thickness', 'Thickness', thicknessOptions, formData.thickness)}
+          {readOnly ? (
+            <div className={readOnlyClass}>
+              {formData.thickness ? thicknessOptions.find((o) => o.value === formData.thickness)?.label ?? formData.thickness : '–'}
+            </div>
+          ) : (
+            <FormSelect
+              value={formData.thickness}
+              onChange={(v) => handleChange('thickness', v)}
+              options={thicknessOptions}
+              placeholder="Select Thickness"
+              isDarkMode={isDarkMode}
+            />
+          )}
         </div>
 
         <div>
           <label className={labelClass}>Design Name</label>
-          {renderSelect('design_name', 'Design', designOptions, formData.design_name)}
+          {readOnly ? (
+            <div className={readOnlyClass}>
+              {formData.design_name ? designOptions.find((o) => o.value === formData.design_name)?.label ?? formData.design_name : '–'}
+            </div>
+          ) : (
+            <FormSelect
+              value={formData.design_name}
+              onChange={(v) => handleChange('design_name', v)}
+              options={designOptions}
+              placeholder="Select Design"
+              isDarkMode={isDarkMode}
+            />
+          )}
         </div>
 
         <div className="md:col-span-2">

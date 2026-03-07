@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticPurityForm, { type StaticPurityFormData } from './purityForm';
@@ -42,6 +42,10 @@ export default function PurityViewPage() {
         setDataLoading(true);
         getEntity(ENTITY_NAME, id)
             .then((res) => {
+                if (isNotFoundResponse(res)) {
+                    setNotFound(true);
+                    return;
+                }
                 if (res.data && typeof res.data === 'object') {
                     const entity = res.data as Record<string, unknown>;
                     setInitialData(toInitialPurityData(entity));
@@ -49,7 +53,7 @@ export default function PurityViewPage() {
                 }
             })
             .catch((err) => {
-                if (isNotFoundError(err)) {
+                if (isNotFoundErrorOrMessage(err)) {
                     setNotFound(true);
                     return;
                 }

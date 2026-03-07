@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getEntity } from '../../modules/admin/admin.api';
+import { isNotFoundErrorOrMessage, isNotFoundResponse } from '../utils/errorHandling';
 
 function isAbortError(err: unknown): boolean {
   if (err instanceof Error) {
@@ -85,7 +86,14 @@ export function useEntityLoad(
       .then((res) => {
         if (!mounted) return;
         if (controller.signal.aborted) return;
-        const entity = getEntityFromResponse(res as Record<string, unknown>, entityName);
+        const resObj = res as Record<string, unknown>;
+        if (isNotFoundResponse(resObj)) {
+          setNotFound(true);
+          setData(undefined);
+          setError(null);
+          return;
+        }
+        const entity = getEntityFromResponse(resObj, entityName);
         if (entity) {
           setData(entity);
           setError(null);
@@ -96,9 +104,12 @@ export function useEntityLoad(
       .catch((err) => {
         if (!mounted) return;
         if (controller.signal.aborted || isAbortError(err)) return;
-        const statusCode = (err as Error & { statusCode?: number })?.statusCode;
+        if (isNotFoundErrorOrMessage(err)) {
+          setNotFound(true);
+          setError(null);
+          return;
+        }
         const msg = err instanceof Error ? err.message : fallbackMsg;
-        setNotFound(statusCode === 404);
         setError(msg || fallbackMsg);
       })
       .finally(() => {

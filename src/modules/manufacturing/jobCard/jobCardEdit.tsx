@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import {
   getEntity,
@@ -10,7 +10,7 @@ import {
   getEntityReferenceOptionsFiltered,
   getEntityReferences,
 } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { toast } from '../../../stores/toast.store';
 import { formatDateTime } from '../../../shared/utils/dateUtils';
 import { getSectionHeaderClass } from '../../../shared/utils/viewPageStyles';
@@ -85,6 +85,7 @@ export default function JobCardEditPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [initialData, setInitialData] = useState<Partial<JobCardFormData> | null>(null);
   const [entityName, setEntityName] = useState<string>('');
   const [productOptions, setProductOptions] = useState<Array<{ value: string; label: string }>>([]);
@@ -135,6 +136,11 @@ export default function JobCardEditPage() {
           getEntityReferenceOptions('item', 'item_name', 'item_name'),
         ]);
 
+        if (isNotFoundResponse(entityRes)) {
+          setNotFound(true);
+          return;
+        }
+
         const purities = purityRefs.map((row) => ({
           value: String(row.purity ?? row.name ?? ''),
           label: String(row.purity ?? row.name ?? ''),
@@ -169,6 +175,7 @@ export default function JobCardEditPage() {
             department_group: String(entity.department_group ?? ''),
             design: String(entity.design ?? ''),
             previous_job_card: String(entity.previous_job_card ?? ''),
+            metal_ledger_voucher_no: String(entity.metal_ledger_voucher_no ?? ''),
             qty: entity.qty != null ? String(entity.qty) : '',
             karigar: entity.karigar ? String(entity.karigar) : '',
             description: entity.description ? String(entity.description) : '',
@@ -220,6 +227,10 @@ export default function JobCardEditPage() {
         setKarigarOptions(karigars);
         setItemOptions(items);
       } catch (err) {
+        if (isNotFoundErrorOrMessage(err)) {
+          setNotFound(true);
+          return;
+        }
         const msg = err instanceof Error ? err.message : 'Failed to load data';
         showErrorToastUnlessAuth(msg);
       } finally {
@@ -249,6 +260,7 @@ export default function JobCardEditPage() {
           department_group: data.department_group,
           design: data.design,
           previous_job_card: data.previous_job_card || '',
+          metal_ledger_voucher_no: data.metal_ledger_voucher_no?.trim() || null,
           qty: data.qty.trim() ? parseInt(data.qty, 10) : 0,
           karigar: data.karigar || '',
           description: data.description || '',
@@ -603,6 +615,12 @@ export default function JobCardEditPage() {
     );
   }
 
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
+    );
+  }
+
   if (dataLoading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
@@ -662,6 +680,29 @@ export default function JobCardEditPage() {
               designOptions={designOptions}
               karigarOptions={karigarOptions}
             />
+            <div className={`flex items-center justify-end gap-3 pt-4 mt-4 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
+                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                  }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="job-card-form"
+                disabled={isLoading}
+                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  } disabled:opacity-60`}
+              >
+                {isLoading ? 'Saving...' : 'Update'}
+              </button>
+            </div>
           </div>
 
           {/* Receipt Weights */}
@@ -752,29 +793,6 @@ export default function JobCardEditPage() {
                 </button>
               )}
             />
-            <div className={`flex items-center justify-end gap-3 pt-4 mt-4 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${isDarkMode
-                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                  }`}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="job-card-form"
-                disabled={isLoading}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-                  } disabled:opacity-60`}
-              >
-                {isLoading ? 'Saving...' : 'Update'}
-              </button>
-            </div>
           </div>
         </div>
 

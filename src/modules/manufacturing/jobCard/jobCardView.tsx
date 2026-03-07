@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { useUIStore } from '../../../stores/ui.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
@@ -36,6 +36,7 @@ interface JobCardData {
   department_group?: string;
   design?: string;
   previous_job_card?: string;
+  metal_ledger_voucher_no?: string;
   qty?: string | number | null;
   description?: string;
   receipts?: IssueTransaction[];
@@ -71,6 +72,10 @@ export default function JobCardViewPage() {
     const decodedId = decodeURIComponent(id);
     getEntity(ENTITY_NAME, decodedId)
       .then((res) => {
+        if (isNotFoundResponse(res)) {
+          setNotFound(true);
+          return;
+        }
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
           setData({
@@ -90,6 +95,10 @@ export default function JobCardViewPage() {
             design: entity.design != null ? String(entity.design) : undefined,
             previous_job_card:
               entity.previous_job_card != null ? String(entity.previous_job_card) : undefined,
+            metal_ledger_voucher_no:
+              entity.metal_ledger_voucher_no != null
+                ? String(entity.metal_ledger_voucher_no)
+                : undefined,
             qty:
               entity.qty !== undefined && entity.qty !== null
                 ? String(entity.qty)
@@ -114,7 +123,7 @@ export default function JobCardViewPage() {
         }
       })
       .catch((err) => {
-        if (isNotFoundError(err)) {
+        if (isNotFoundErrorOrMessage(err)) {
           setNotFound(true);
           return;
         }
@@ -395,6 +404,14 @@ export default function JobCardViewPage() {
                   ) : (
                     '–'
                   )}
+                </div>
+              </div>
+              <div>
+                <label className={labelClass}>Metal Ledger Voucher No</label>
+                <div className={valueClass}>
+                  {data?.metal_ledger_voucher_no != null && data.metal_ledger_voucher_no !== ''
+                    ? data.metal_ledger_voucher_no
+                    : '–'}
                 </div>
               </div>
               <div>

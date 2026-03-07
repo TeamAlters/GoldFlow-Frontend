@@ -4,7 +4,7 @@ import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/
 import { getEntity, updateEntity } from '../../admin/admin.api';
 import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticProductForm, {
@@ -18,7 +18,7 @@ import {
   getEditBreadcrumbLabel,
   getEditPageDescription,
 } from '../../../shared/utils/entityPageLabels';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'product';
 
@@ -32,6 +32,7 @@ export default function ProductEditPage() {
     );
     const [loadError, setLoadError] = useState<string | null>(null);
     const [dataLoading, setDataLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
     const [submitLoading, setSubmitLoading] = useState(false);
     const formRef = useRef<StaticProductFormRef>(null);
 
@@ -44,6 +45,10 @@ export default function ProductEditPage() {
         getEntity(ENTITY_NAME, decodedId)
             .then((res) => {
                 if (!mounted) return;
+                if (isNotFoundResponse(res)) {
+                    setNotFound(true);
+                    return;
+                }
                 const entity = getProductEntityFromResponse(res as Record<string, unknown>);
                 if (entity) {
                     setInitialData(toInitialProductData(entity));
@@ -54,6 +59,10 @@ export default function ProductEditPage() {
             })
             .catch((err) => {
                 if (!mounted) return;
+                if (isNotFoundErrorOrMessage(err)) {
+                    setNotFound(true);
+                    return;
+                }
                 const msg = err instanceof Error ? err.message : 'Failed to load product';
                 setLoadError(msg);
                 showErrorToastUnlessAuth(msg);
@@ -106,6 +115,12 @@ export default function ProductEditPage() {
     if (!id) {
         return (
             <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+        );
+    }
+
+    if (notFound) {
+        return (
+            <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
         );
     }
 

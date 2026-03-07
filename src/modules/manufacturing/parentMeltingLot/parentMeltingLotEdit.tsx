@@ -3,14 +3,14 @@ import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntity, getEntityReferences, mapReferenceItemsToOptions, updateEntity } from '../../admin/admin.api';
 import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { toast } from '../../../stores/toast.store';
 import { useUIStore } from '../../../stores/ui.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import ParentMeltingLotForm, {
   type ParentMeltingLotFormData,
 } from './parentMeltingLotForm';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'parent_melting_lot';
 
@@ -22,6 +22,7 @@ export default function ParentMeltingLotEdit() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [initialData, setInitialData] = useState<ParentMeltingLotFormData | null>(null);
   const [productOptions, setProductOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [purityOptions, setPurityOptions] = useState<Array<{ value: string; label: string }>>([]);
@@ -43,6 +44,11 @@ export default function ParentMeltingLotEdit() {
           getEntityReferences('purity'),
         ]);
 
+        if (isNotFoundResponse(entityRes)) {
+          setNotFound(true);
+          return;
+        }
+
         // Set initial data
         if (entityRes.data && typeof entityRes.data === 'object') {
           const entity = entityRes.data as Record<string, unknown>;
@@ -60,6 +66,10 @@ export default function ParentMeltingLotEdit() {
         // Set purity options
         setPurityOptions(mapReferenceItemsToOptions(puritiesRes, 'purity'));
       } catch (err) {
+        if (isNotFoundErrorOrMessage(err)) {
+          setNotFound(true);
+          return;
+        }
         const msg = err instanceof Error ? err.message : 'Failed to load data';
         showErrorToastUnlessAuth(msg);
       } finally {
@@ -112,6 +122,12 @@ export default function ParentMeltingLotEdit() {
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

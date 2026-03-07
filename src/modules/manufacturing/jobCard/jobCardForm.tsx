@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useUIStore } from '../../../stores/ui.store';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
-import { MAX_TEXT_FIELD_LENGTH } from '../../../shared/utils/formValidation';
+import { MAX_TEXT_FIELD_LENGTH, MAX_VOUCHER_NO_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export interface JobCardFormData {
@@ -17,6 +17,7 @@ export interface JobCardFormData {
   department_group: string;
   design: string;
   previous_job_card: string;
+  metal_ledger_voucher_no: string;
   qty: string;
   karigar: string;
   description: string;
@@ -71,6 +72,7 @@ export default function JobCardForm({
     department_group: initialData?.department_group ?? '',
     design: initialData?.design ?? '',
     previous_job_card: initialData?.previous_job_card ?? '',
+    metal_ledger_voucher_no: initialData?.metal_ledger_voucher_no ?? '',
     qty: initialData?.qty ?? '',
     karigar: initialData?.karigar ?? '',
     description: initialData?.description ?? '',
@@ -93,6 +95,11 @@ export default function JobCardForm({
     const qtyError = validateInteger(formData.qty, 'Qty');
     if (qtyError) {
       newErrors.qty = qtyError;
+    }
+
+    const trimmedVoucherNo = formData.metal_ledger_voucher_no.trim();
+    if (trimmedVoucherNo && trimmedVoucherNo.length > MAX_VOUCHER_NO_LENGTH) {
+      newErrors.metal_ledger_voucher_no = maxLengthError('Metal Ledger Voucher No', MAX_VOUCHER_NO_LENGTH);
     }
 
     setErrors(newErrors);
@@ -280,6 +287,15 @@ export default function JobCardForm({
         <div>
           <label className={labelClass}>Previous Job Card</label>
           <EditModeRef fieldKey="previous_job_card" value={formData.previous_job_card} />
+        </div>
+
+        <div>
+          <label htmlFor="metal_ledger_voucher_no" className={labelClass}>
+            Metal Ledger Voucher No
+          </label>
+          <div className={valueInInputClass}>
+            {formData.metal_ledger_voucher_no || '–'}
+          </div>
         </div>
 
         <div>

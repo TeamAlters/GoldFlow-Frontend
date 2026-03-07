@@ -25,7 +25,7 @@ import {
   getEditBreadcrumbLabel,
   getEditPageDescription,
 } from '../../../shared/utils/entityPageLabels';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'customer';
 
@@ -33,7 +33,7 @@ export default function CustomerEditPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const { data: rawEntity, loading: dataLoading, error: loadError } = useEntityLoad(
+  const { data: rawEntity, loading: dataLoading, error: loadError, notFound } = useEntityLoad(
     ENTITY_NAME,
     id ?? undefined,
     { errorMessage: 'Failed to load customer' }
@@ -156,6 +156,12 @@ export default function CustomerEditPage() {
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 
