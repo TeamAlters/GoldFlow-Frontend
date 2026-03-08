@@ -31,7 +31,6 @@ export default function StockManagementReportPage() {
   const [issueExpanded, setIssueExpanded] = useState<Set<string>>(new Set());
 
   const applyFilters = useCallback((filterValues: Record<string, FilterValue>) => {
-  const applyFilters = useCallback((filterValues: Record<string, FilterValue>) => {
     setLoading(true);
     setError(null);
     const params = commonReportFiltersToParams(filterValues);
