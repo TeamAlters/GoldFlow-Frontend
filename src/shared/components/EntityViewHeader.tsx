@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../config/entity.config';
 import { useUIStore } from '../../stores/ui.store';
 import { useEntityDelete } from '../hooks/useEntityDelete';
-import BackButton from './BackButton';
+import ViewPageActionBar from './ViewPageActionBar';
 import ConfirmationDialog from './ConfirmationDialog';
 
 export interface EntityViewHeaderProps {
@@ -32,6 +32,11 @@ export default function EntityViewHeader({ entityName, id, heading }: EntityView
 
   const isDeleting = deletingId === id;
 
+  const viewActions = [
+    ...(entityConfig.routes.edit ? [{ label: 'Edit' as const, href: editUrl }] : []),
+    { label: 'Delete' as const, onClick: () => setShowDeleteDialog(true), variant: 'danger' as const, disabled: isDeleting },
+  ];
+
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
@@ -46,37 +51,14 @@ export default function EntityViewHeader({ entityName, id, heading }: EntityView
           {entityConfig.displayName} details
         </p>
       </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <BackButton onClick={handleBack} />
-        {entityConfig.routes.edit && (
-          <button
-            type="button"
-            onClick={() => navigate(editUrl)}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
-          >
-            Edit
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowDeleteDialog(true)}
-          disabled={isDeleting}
-          className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-            isDarkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
-          } disabled:opacity-60`}
-        >
-          {isDeleting ? 'Deleting...' : 'Delete'}
-        </button>
-      </div>
+      <ViewPageActionBar onBack={handleBack} actions={viewActions} isDarkMode={isDarkMode} />
       <ConfirmationDialog
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={handleDeleteConfirm}
         title={`Delete ${entityConfig.displayName}`}
         message={`Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}? This action cannot be undone.`}
-        confirmLabel="Delete"
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
         cancelLabel="Cancel"
         variant="danger"
       />

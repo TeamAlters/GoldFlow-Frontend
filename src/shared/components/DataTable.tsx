@@ -21,6 +21,8 @@ export type TableAction<T> = {
   className?: string;
   /** Optional function to determine if this action should be shown for a specific row */
   shouldShow?: (row: T) => boolean;
+  /** Optional: disable the action (boolean or function per row) */
+  disabled?: boolean | ((row: T) => boolean);
 };
 
 export interface DataTableProps<T> {
@@ -317,9 +319,18 @@ export default function DataTable<T extends Record<string, any>>({
                     {actions.length > 0 && (
                       <td className="px-4 py-3 !text-left">
                         <div className="flex items-center justify-start gap-1">
-                          {actions
-                            .filter((action) => action.shouldShow === undefined || action.shouldShow(row))
-                            .map((action, actionIndex) => (
+                          {(() => {
+                            const visibleActions = actions.filter(
+                              (action) => action.shouldShow === undefined || action.shouldShow(row)
+                            );
+                            if (visibleActions.length === 0) {
+                              return (
+                                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                                  NA
+                                </span>
+                              );
+                            }
+                            return visibleActions.map((action, actionIndex) => (
                               <button
                                 key={actionIndex}
                                 type="button"
@@ -329,6 +340,7 @@ export default function DataTable<T extends Record<string, any>>({
                                   e.stopPropagation();
                                   action.onClick(row);
                                 }}
+                                disabled={typeof action.disabled === 'function' ? action.disabled(row) : action.disabled}
                                 className={`p-1.5 rounded-md transition-all duration-200 active:scale-95 ${action.variant === 'danger'
                                   ? isDarkMode
                                     ? 'text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/30 hover:border-red-500/50'
@@ -340,11 +352,12 @@ export default function DataTable<T extends Record<string, any>>({
                                     : isDarkMode
                                       ? 'text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/30 hover:border-blue-500/50'
                                       : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700 border border-blue-200 hover:border-blue-300'
-                                  } ${action.className || ''}`}
+                                  } ${action.className || ''} disabled:opacity-50 disabled:cursor-not-allowed`}
                               >
                                 {action.icon}
                               </button>
-                            ))}
+                            ));
+                          })()}
                         </div>
                       </td>
                     )}

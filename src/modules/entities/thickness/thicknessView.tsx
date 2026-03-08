@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, deleteEntity } from '../../admin/admin.api';
+import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
-import { toast } from '../../../stores/toast.store';
 import StaticThicknessForm, { type StaticThicknessFormData } from './thicknessForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialThicknessData } from './thicknessCreate';
@@ -15,8 +14,9 @@ import {
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
-import BackButton from '../../../shared/components/BackButton';
+import ViewPageActionBar from '../../../shared/components/ViewPageActionBar';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'thickness';
@@ -34,7 +34,8 @@ export default function ThicknessViewPage() {
   
   // Delete dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
+  const isDeleting = id != null && deletingId === id;
 
   useEffect(() => {
     if (!id) return;
@@ -69,24 +70,13 @@ export default function ThicknessViewPage() {
   // Handle delete
   const handleDelete = useCallback(async () => {
     if (!id) return;
-    setIsDeleting(true);
-    try {
-      await deleteEntity(ENTITY_NAME, id);
-      toast.success(`${entityConfig.displayName} deleted successfully.`);
-      navigate(entityConfig.routes.list);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : `Failed to delete ${entityConfig.displayName}`;
-      showErrorToastUnlessAuth(msg);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  }, [id, entityConfig, navigate]);
+    await deleteById(id, entityConfig.displayName);
+    setShowDeleteDialog(false);
+    navigate(entityConfig.routes.list);
+  }, [id, deleteById, entityConfig.displayName, entityConfig.routes.list, navigate]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
-
-  const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
 
   if (!id) {
     return (
@@ -115,6 +105,11 @@ export default function ThicknessViewPage() {
 
   const viewPageHeading = getViewPageHeading(entityConfig, initialData?.thickness);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.thickness);
+  const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
+  const viewActions = [
+    ...(editUrl ? [{ label: 'Edit' as const, href: editUrl }] : []),
+    { label: 'Delete' as const, onClick: () => setShowDeleteDialog(true), variant: 'danger' as const, disabled: isDeleting },
+  ];
 
   return (
     <div className="w-full">
@@ -137,28 +132,7 @@ export default function ThicknessViewPage() {
             {getViewPageDescription(entityConfig)}
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <BackButton onClick={handleBack} />
-          <Link
-            to={editUrl}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-          >
-            Edit
-          </Link>
-          <button
-            onClick={() => setShowDeleteDialog(true)}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-              isDarkMode
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
-          >
-            Delete
-          </button>
-        </div>
+        <ViewPageActionBar onBack={handleBack} actions={viewActions} isDarkMode={isDarkMode} />
       </div>
       <div
         className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}

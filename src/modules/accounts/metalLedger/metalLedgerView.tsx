@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, updateEntityStatus } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage } from '../../../shared/utils/errorHandling';
@@ -9,7 +9,10 @@ import { toast } from '../../../stores/toast.store';
 import MetalLedgerForm, { type MetalLedgerFormData } from './metalLedgerForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toInitialMetalLedgerData } from './metalLedgerCreate';
-import BackButton from '../../../shared/components/BackButton';
+import ViewPageActionBar from '../../../shared/components/ViewPageActionBar';
+import type { ViewPageAction } from '../../../shared/components/ViewPageActions';
+import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 import { closeMetalLedger } from './metalLedger.api';
 import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
@@ -27,9 +30,14 @@ export default function MetalLedgerViewPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
+  const isDeleting = id != null && deletingId === id;
 
   // Check if status is Draft
   const isDraft = initialData?.status === 'Draft';
+  const isClosed = initialData?.status === 'Closed';
 
   const loadData = useCallback(() => {
     if (!id) return;
@@ -107,6 +115,13 @@ export default function MetalLedgerViewPage() {
     }
   }, [id, loadData]);
 
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!id) return;
+    await deleteById(id, entityConfig.displayName);
+    setShowDeleteDialog(false);
+    navigate(entityConfig.routes.list);
+  }, [id, deleteById, entityConfig.displayName, entityConfig.routes.list, navigate]);
+
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
 
@@ -144,6 +159,33 @@ export default function MetalLedgerViewPage() {
     );
   }
 
+  const viewActions: ViewPageAction[] = [];
+  if (!isClosed) {
+    if (isDraft) {
+      viewActions.push({ label: 'Edit', href: editUrl });
+      if (entryType === 'RECEIPT') {
+        viewActions.push({
+          label: 'Send to Manufacturing',
+          onClick: handleSendToManufacturing,
+          disabled: statusUpdating,
+        });
+      }
+      if (entryType === 'ISSUE') {
+        viewActions.push({
+          label: 'Close',
+          onClick: handleCloseLedger,
+          disabled: statusUpdating,
+        });
+      }
+    }
+    viewActions.push({
+      label: 'Delete',
+      onClick: () => setShowDeleteDialog(true),
+      variant: 'danger',
+      disabled: isDeleting,
+    });
+  }
+
   return (
     <div className="w-full">
       <Breadcrumbs
@@ -167,51 +209,7 @@ export default function MetalLedgerViewPage() {
             View the metal ledger details below.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <BackButton onClick={handleBack} />
-          {isDraft && (
-            <>
-              <Link
-                to={editUrl}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                  isDarkMode
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              >
-                Edit
-              </Link>
-              {entryType === 'RECEIPT' && (
-                <button
-                  type="button"
-                  onClick={handleSendToManufacturing}
-                  disabled={statusUpdating}
-                  className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                    isDarkMode
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-green-500 hover:bg-green-600 text-white'
-                  } disabled:opacity-60`}
-                >
-                  {statusUpdating ? 'Sending...' : 'Send to Manufacturing'}
-                </button>
-              )}
-              {entryType === 'ISSUE' && (
-                <button
-                  type="button"
-                  onClick={handleCloseLedger}
-                  disabled={statusUpdating}
-                  className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                    isDarkMode
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-green-500 hover:bg-green-600 text-white'
-                  } disabled:opacity-60`}
-                >
-                  {statusUpdating ? 'Closing...' : 'Close'}
-                </button>
-              )}
-            </>
-          )}
-        </div>
+        <ViewPageActionBar onBack={handleBack} actions={viewActions} isDarkMode={isDarkMode} />
       </div>
       <div
         className={`p-6 rounded-xl border ${
@@ -235,6 +233,16 @@ export default function MetalLedgerViewPage() {
           />
         </div>
       </div>
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteConfirm}
+        title={`Delete ${entityConfig.displayName}`}
+        message={`Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}? This action cannot be undone.`}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+        cancelLabel="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -9,7 +9,8 @@ import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { toast } from '../../../stores/toast.store';
 import { useUIStore } from '../../../stores/ui.store';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import BackButton from '../../../shared/components/BackButton';
+import ViewPageActionBar from '../../../shared/components/ViewPageActionBar';
+import type { ViewPageAction } from '../../../shared/components/ViewPageActions';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
@@ -110,8 +111,11 @@ export default function ParentMeltingLotViewPage() {
     setShowCloseConfirm(false);
   }, []);
 
-  // Check if status allows editing
-  const canEdit = data?.status !== 'Closed';
+  // When Closed: show no actions (no Edit, Delete, Close). Draft: show Delete + Close; otherwise show Edit.
+  const statusLower = data?.status?.trim().toLowerCase() ?? '';
+  const isClosed = statusLower === 'closed';
+  const isDraft = statusLower === 'draft';
+  const canEdit = !isClosed;
   const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
   const isDeleting = deletingId === (id ?? '');
 
@@ -131,6 +135,24 @@ export default function ParentMeltingLotViewPage() {
   const viewPageHeading = getViewPageHeading(entityConfig, displayValue);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, displayValue);
 
+  const viewActions: ViewPageAction[] = [];
+  if (isDraft) {
+    viewActions.push({
+      label: 'Delete',
+      onClick: () => setShowDeleteConfirm(true),
+      variant: 'danger',
+      disabled: isDeleting,
+    });
+    viewActions.push({
+      label: 'Close',
+      onClick: handleCloseClick,
+      variant: 'danger',
+      disabled: isClosing,
+    });
+  }
+  if (canEdit) {
+    viewActions.push({ label: 'Edit', href: editUrl });
+  }
 
   const labelClass = `block text-sm font-semibold mb-1 ${
     isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -173,45 +195,7 @@ export default function ParentMeltingLotViewPage() {
             {viewPageHeading}
           </h1>
           <div className="flex items-center gap-3">
-            <BackButton onClick={handleBack} />
-            {data?.status === 'Draft' && (
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={isDeleting}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-                  isDarkMode
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-red-500 hover:bg-red-600 text-white'
-                } disabled:opacity-60 disabled:cursor-not-allowed`}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            )}
-            {data?.status === 'Draft' && (
-              <button
-                type="button"
-                onClick={handleCloseClick}
-                disabled={isClosing}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm ${
-                  isDarkMode
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-red-500 hover:bg-red-600 text-white'
-                } disabled:opacity-60 disabled:cursor-not-allowed`}
-              >
-                {isClosing ? 'Closing...' : 'Close'}
-              </button>
-            )}
-            {canEdit && (
-              <Link
-                to={editUrl}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                  isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              >
-                Edit
-              </Link>
-            )}
+            <ViewPageActionBar onBack={handleBack} actions={viewActions} isDarkMode={isDarkMode} />
           </div>
         </div>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>

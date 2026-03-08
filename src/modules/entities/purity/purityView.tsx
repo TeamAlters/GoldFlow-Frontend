@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
@@ -14,7 +14,7 @@ import {
   getViewPageDescription,
 } from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
-import BackButton from '../../../shared/components/BackButton';
+import ViewPageActionBar from '../../../shared/components/ViewPageActionBar';
 import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
 import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
@@ -110,6 +110,11 @@ export default function PurityViewPage() {
     const viewPageHeading = getViewPageHeading(entityConfig, initialData?.purity);
     const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, initialData?.purity);
 
+    const viewActions = [
+      ...(editUrl ? [{ label: 'Edit' as const, href: editUrl }] : []),
+      { label: 'Delete' as const, onClick: () => setShowDeleteDialog(true), variant: 'danger' as const, disabled: isDeleting },
+    ];
+
     return (
         <div className="w-full">
             <Breadcrumbs
@@ -131,30 +136,7 @@ export default function PurityViewPage() {
                         {getViewPageDescription(entityConfig)}
                     </p>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                    <BackButton onClick={handleBack} />
-                    <Link
-                        to={editUrl}
-                        className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode
-                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                : 'bg-blue-500 hover:bg-blue-600 text-white'
-                            }`}
-                    >
-                        Edit
-                    </Link>
-                    <button
-                        type="button"
-                        onClick={() => setShowDeleteDialog(true)}
-                        disabled={isDeleting}
-                        className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                            isDarkMode
-                                ? 'bg-red-600 hover:bg-red-700 text-white'
-                                : 'bg-red-500 hover:bg-red-600 text-white'
-                        } disabled:opacity-60 disabled:cursor-not-allowed`}
-                    >
-                        {isDeleting ? 'Deleting...' : 'Delete'}
-                    </button>
-                </div>
+                <ViewPageActionBar onBack={handleBack} actions={viewActions} isDarkMode={isDarkMode} />
             </div>
             <div
                 className={`p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}

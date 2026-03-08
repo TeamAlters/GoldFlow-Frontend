@@ -286,11 +286,12 @@ export default function SignUp() {
   // Only render the full signup page when registration is allowed
   return (
     <div
-      className={`min-h-screen h-screen max-h-screen flex overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
+      className={`min-h-screen h-screen max-h-screen flex justify-center overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
     >
+      <div className="w-full max-w-7xl flex flex-1 min-w-0">
       {/* Left Side - Brand Panel (Hidden on mobile) */}
       <div
-        className={`hidden lg:flex lg:w-1/2 lg:min-h-0 items-center justify-center p-8 lg:p-10 overflow-y-auto ${
+        className={`hidden lg:flex lg:w-1/2 lg:min-h-0 lg:flex-1 items-center justify-center p-8 lg:p-10 overflow-y-auto min-w-0 ${
           isDarkMode
             ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
             : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
@@ -411,7 +412,7 @@ export default function SignUp() {
 
       {/* Right Side - Sign Up Form (z-10 so logo stays visible when left panel is shown) */}
       <div
-        className={`relative z-10 w-full lg:w-1/2 min-h-0 py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto ${
+        className={`relative z-10 w-full lg:w-1/2 lg:flex-1 min-h-0 flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto min-w-0 ${
           isDarkMode ? 'bg-slate-900' : 'bg-white'
         }`}
       >
@@ -867,6 +868,7 @@ export default function SignUp() {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -11,7 +11,8 @@ import { type MeltingLotFormData, type WeightDetail } from './meltiingLotForm';
 import { toInitialMeltingLotData } from './meltingLotCreate';
 import { submitMeltingLot, startDepartment, hasJobCardsForMeltingLot } from './meltingLot.api';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import BackButton from '../../../shared/components/BackButton';
+import ViewPageActionBar from '../../../shared/components/ViewPageActionBar';
+import type { ViewPageAction } from '../../../shared/components/ViewPageActions';
 import {
   getViewPageHeading,
   getViewBreadcrumbLabel,
@@ -72,6 +73,9 @@ export default function MeltingLotViewPage() {
           setTotalAlloyVadotar(entity.total_alloy_vadotar != null ? String(entity.total_alloy_vadotar) : '');
           setStatus(entity.status != null ? String(entity.status) : '');
           setPurityPercentage(entity.purity_percentage != null ? String(entity.purity_percentage) : '');
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/9e661e4b-dcf6-42e4-a9d4-87b9c1be1cf9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'949619'},body:JSON.stringify({sessionId:'949619',location:'meltingLotView.tsx:entity-loaded',message:'Entity loaded from API',data:{rawStatus:entity.status,statusType:typeof entity.status,meltingLotName:entity.name},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
           
           // Parse weight details - API returns different field names
           const wd = entity.weight_details;
@@ -104,7 +108,8 @@ export default function MeltingLotViewPage() {
 
   // When status is Submitted, check if job cards already exist for this lot so we can hide Start Department
   useEffect(() => {
-    if (status !== 'Submitted' || !meltingLotName.trim()) {
+    const isSubmittedStatus = status.trim().toLowerCase() === 'submitted';
+    if (!isSubmittedStatus || !meltingLotName.trim()) {
       setHasJobCardsForLot(false);
       return;
     }
@@ -113,6 +118,9 @@ export default function MeltingLotViewPage() {
     hasJobCardsForMeltingLot(meltingLotName)
       .then((has) => {
         if (!cancelled) setHasJobCardsForLot(has);
+        // #region agent log
+        if (!cancelled) fetch('http://127.0.0.1:7242/ingest/9e661e4b-dcf6-42e4-a9d4-87b9c1be1cf9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'949619'},body:JSON.stringify({sessionId:'949619',location:'meltingLotView.tsx:hasJobCards-result',message:'hasJobCardsForMeltingLot result',data:{meltingLotName,has},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
       })
       .catch(() => {
         if (!cancelled) setHasJobCardsForLot(false);
@@ -172,8 +180,9 @@ export default function MeltingLotViewPage() {
     }
   }, [meltingLotName]);
 
-  // Check if status allows editing
-  const canEdit = status !== 'Submitted';
+  // Check if status allows editing (Draft = can edit & show Submit; Submitted = show Start Department when no job cards)
+  const isSubmitted = status.trim().toLowerCase() === 'submitted';
+  const canEdit = !isSubmitted;
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
@@ -196,6 +205,34 @@ export default function MeltingLotViewPage() {
   const displayValue = meltingLotName || initialData?.product || 'Melting Lot';
   const viewPageHeading = getViewPageHeading(entityConfig, displayValue);
   const breadcrumbLabel = getViewBreadcrumbLabel(entityConfig, displayValue);
+
+  const viewActions: ViewPageAction[] = [];
+  if (canEdit) {
+    viewActions.push({ label: 'Edit', href: editUrl });
+    viewActions.push({
+      label: 'Submit',
+      onClick: () => setShowSubmitDialog(true),
+      disabled: false,
+    });
+    viewActions.push({
+      label: 'Delete',
+      onClick: () => setShowDeleteDialog(true),
+      variant: 'danger',
+      disabled: isDeleting,
+    });
+  }
+  // When Submitted: always show Start Department; backend errors if job cards already exist
+  if (isSubmitted) {
+    viewActions.push({
+      label: 'Start Department',
+      onClick: handleStartDepartment,
+      disabled: isStartingDepartment,
+    });
+  }
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/9e661e4b-dcf6-42e4-a9d4-87b9c1be1cf9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'949619'},body:JSON.stringify({sessionId:'949619',location:'meltingLotView.tsx:viewActions-built',message:'viewActions built',data:{status,isSubmitted,hasJobCardsForLot,canEdit,actionsCount:viewActions.length,hasStartDept:viewActions.some(a=>a.label==='Start Department')},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
 
   // Weight Details columns
   const weightDetailColumns = [
@@ -249,53 +286,7 @@ export default function MeltingLotViewPage() {
             {viewPageHeading}
           </h1>
           <div className="flex items-center gap-3">
-            <BackButton onClick={handleBack} />
-            {canEdit && (
-              <Link
-                to={editUrl}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                  isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              >
-                Edit
-              </Link>
-            )}
-            {canEdit && (
-              <button
-                onClick={() => setShowSubmitDialog(true)}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                  isDarkMode ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
-                }`}
-              >
-                Submit
-              </button>
-            )}
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isDeleting}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                  isDarkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
-                } disabled:opacity-60 disabled:cursor-not-allowed`}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            )}
-            {status === 'Submitted' && !hasJobCardsForLot && (
-              <button
-                type="button"
-                onClick={handleStartDepartment}
-                disabled={isStartingDepartment}
-                className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
-                  isDarkMode
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                } disabled:opacity-60 disabled:cursor-not-allowed`}
-              >
-                {isStartingDepartment ? 'Starting...' : 'Start Department'}
-              </button>
-            )}
+            <ViewPageActionBar onBack={handleBack} actions={viewActions} isDarkMode={isDarkMode} />
           </div>
         </div>
         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -323,7 +314,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {initialData?.parent_melting_lot
                   ? (() => { const r = getEntityDetailRoute('parent_melting_lot', initialData.parent_melting_lot); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.parent_melting_lot}</Link> : initialData.parent_melting_lot; })()
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
@@ -331,7 +322,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {initialData?.product
                   ? (() => { const r = getEntityDetailRoute('product', initialData.product); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.product}</Link> : initialData.product; })()
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
@@ -339,19 +330,19 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {initialData?.purity
                   ? (() => { const r = getEntityDetailRoute('purity', initialData.purity); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.purity}</Link> : initialData.purity; })()
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
               <label className={labelClass}>Purity %</label>
-              <div className={valueClass}>{purityPercentage ? `${purityPercentage}` : '–'}</div>
+              <div className={valueClass}>{purityPercentage ? `${purityPercentage}` : 'NA'}</div>
             </div>
             <div>
               <label className={labelClass}>Accessory Purity</label>
               <div className={valueClass}>
                 {initialData?.accessory_purity
                   ? (() => { const r = getEntityDetailRoute('accessory_purity', initialData.accessory_purity); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.accessory_purity}</Link> : initialData.accessory_purity; })()
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
@@ -359,7 +350,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {initialData?.wire_size
                   ? (() => { const r = getEntityDetailRoute('wire_size', initialData.wire_size); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.wire_size}</Link> : initialData.wire_size; })()
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
@@ -367,7 +358,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {initialData?.thickness
                   ? (() => { const r = getEntityDetailRoute('thickness', initialData.thickness); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.thickness}</Link> : initialData.thickness; })()
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
@@ -375,16 +366,16 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {initialData?.design_name
                   ? (() => { const r = getEntityDetailRoute('design_name', initialData.design_name); return r ? <Link to={r} className={isDarkMode ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-700'}>{initialData.design_name}</Link> : initialData.design_name; })()
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
               <label className={labelClass}>Status</label>
-              <div className={valueClass}>{status || '–'}</div>
+              <div className={valueClass}>{status || 'NA'}</div>
             </div>
             <div className="md:col-span-2">
               <label className={labelClass}>Description</label>
-              <div className={valueClass}>{initialData?.description || '–'}</div>
+              <div className={valueClass}>{initialData?.description || 'NA'}</div>
             </div>
           </div>
         </div>
@@ -428,7 +419,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {weightDetails.length > 0
                   ? weightDetails.reduce((sum, d) => sum + (parseFloat(d.selected_weight) || 0), 0).toFixed(4)
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
@@ -436,7 +427,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {weightDetails.length > 0
                   ? weightDetails.reduce((sum, d) => sum + (parseFloat(d.fine_weight) || 0), 0).toFixed(4)
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
@@ -444,7 +435,7 @@ export default function MeltingLotViewPage() {
               <div className={valueClass}>
                 {weightDetails.length > 0
                   ? weightDetails.reduce((sum, d) => sum + (parseFloat(d.alloy_weight) || 0), 0).toFixed(4)
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
@@ -456,12 +447,12 @@ export default function MeltingLotViewPage() {
                       weightDetails.reduce((sum, d) => sum + (parseFloat(d.alloy_weight) || 0), 0) +
                       parseFloat(totalAlloyVadotar || '0')
                     ).toFixed(4)
-                  : '–'}
+                  : 'NA'}
               </div>
             </div>
             <div>
               <label className={labelClass}>Total Alloy Vadotar</label>
-              <div className={valueClass}>{totalAlloyVadotar || '–'}</div>
+              <div className={valueClass}>{totalAlloyVadotar || 'NA'}</div>
             </div>
           </div>
         </div>

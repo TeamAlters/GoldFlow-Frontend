@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import DataTable from '../../../shared/components/DataTable';
 import type { TableColumn, TableAction } from '../../../shared/components/DataTable';
 import FilterComponent from '../../../shared/components/FilterComponent';
@@ -57,9 +57,7 @@ export default function ParentMeltingLotPage() {
     });
   }, [entityMetadata, isDarkMode, navigate, entityConfig.routes.detail, items, idField]);
 
-  const handleAddEntity = () => {
-    navigate(entityConfig.routes.add ?? entityConfig.routes.list);
-  };
+  const addHref = entityConfig.routes.add ?? entityConfig.routes.list;
 
   const handleDeleteClick = useCallback((row: EntityRow) => {
     setDeleteConfirmRow(row);
@@ -74,13 +72,16 @@ export default function ParentMeltingLotPage() {
     refreshList();
   }, [deleteConfirmRow, idField, entityConfig.displayName, deleteById, refreshList]);
 
+  // Show Edit/Delete only when status is not Closed (case-insensitive)
+  const isRowClosed = (row: EntityRow) =>
+    String(row.status ?? '').trim().toLowerCase() === 'closed';
+
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [
       {
         label: 'Edit',
         onClick: (row: EntityRow) => {
-          const rowStatus = row.status;
-          if (rowStatus === 'Closed') return;
+          if (isRowClosed(row)) return;
           const rowId = row[idField];
           if (rowId !== undefined && rowId !== null && entityConfig.routes.edit) {
             navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
@@ -92,7 +93,7 @@ export default function ParentMeltingLotPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
         ),
-        shouldShow: (row: EntityRow) => row.status !== 'Closed',
+        shouldShow: (row: EntityRow) => !isRowClosed(row),
       },
       {
         label: 'Delete',
@@ -104,9 +105,10 @@ export default function ParentMeltingLotPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         ),
+        shouldShow: (row: EntityRow) => !isRowClosed(row),
       },
     ],
-    [idField, navigate, entityConfig.routes.edit, handleDeleteClick, deletingId]
+    [idField, navigate, entityConfig.routes.edit, handleDeleteClick, deletingId, isRowClosed]
   );
 
   const handleRowClick = useCallback(
@@ -162,17 +164,17 @@ export default function ParentMeltingLotPage() {
           </h2>
         }
         toolbarRight={
-          <button
-            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
+          <Link
+            to={addHref}
+            className={`w-full sm:w-auto px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 no-underline ${
               isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
             }`}
-            onClick={handleAddEntity}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             <span>Add {entityConfig.displayName}</span>
-          </button>
+          </Link>
         }
         filters={
           hasFilters ? (
