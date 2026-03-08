@@ -17,7 +17,9 @@ import {
 } from '../../../shared/utils/entityPageLabels';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import BackButton from '../../../shared/components/BackButton';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import ConfirmationDialog from '../../../shared/components/ConfirmationDialog';
+import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'purity_range';
 
@@ -32,6 +34,9 @@ export default function PurityRangeViewPage() {
   const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
   const [dataLoading, setDataLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
@@ -66,8 +71,17 @@ export default function PurityRangeViewPage() {
     navigate(entityConfig.routes.list);
   }, [navigate, entityConfig.routes.list]);
 
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!id) return;
+    await deleteById(id, entityConfig.displayName);
+    setShowDeleteDialog(false);
+    navigate(entityConfig.routes.list);
+  }, [id, deleteById, entityConfig.displayName, entityConfig.routes.list, navigate]);
+
+  const isDeleting = deletingId === id;
+
   const editUrl = id
-    ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id))
+    ? (entityConfig.routes.edit?.replace(':id', encodeURIComponent(id)) ?? '')
     : '';
 
   if (!id) {
@@ -131,6 +145,18 @@ export default function PurityRangeViewPage() {
           >
             Edit
           </Link>
+          <button
+            type="button"
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={isDeleting}
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${
+              isDarkMode
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-red-500 hover:bg-red-600 text-white'
+            } disabled:opacity-60 disabled:cursor-not-allowed`}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
       </div>
       <div
@@ -155,6 +181,16 @@ export default function PurityRangeViewPage() {
         </div>
         <AuditTrailsCard entity={rawEntity} asSection />
       </div>
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteConfirm}
+        title={`Delete ${entityConfig.displayName}`}
+        message={`Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}? This action cannot be undone.`}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+        cancelLabel="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }
