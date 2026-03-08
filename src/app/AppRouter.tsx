@@ -103,6 +103,7 @@ import ParentMeltingLotEditPage from '../modules/manufacturing/parentMeltingLot/
 import ParentMeltingLotViewPage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotView';
 import PageNotFound from './PageNotFound';
 import CustomerMetalLedgerBalanceReportPage from '../modules/reports/CustomerMetalLedgerBalanceReportPage';
+import StockManagementReportPage from '../modules/reports/StockManagementReportPage';
 
 /** Redirects / to /dashboard when logged in, otherwise to /login */
 function RootRedirect() {
@@ -146,6 +147,7 @@ export default function AppRouter() {
           <Route path="receipts/*" element={<DashboardIndex />} />
           <Route path="issues/*" element={<DashboardIndex />} />
           <Route path="reports/customer-metal-ledger-balance" element={<CustomerMetalLedgerBalanceReportPage />} />
+          <Route path="reports/stock-management" element={<StockManagementReportPage />} />
           <Route path="reports/*" element={<DashboardIndex />} />
           <Route path="accounts/customer-metal-ledger" element={<MetalLedgerPage />} />
           <Route path="accounts/customer-metal-ledger-table" element={<CustomerMetalLedgerTablePage />} />

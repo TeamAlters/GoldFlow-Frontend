@@ -99,8 +99,6 @@ export const sidebarNavConfig: NavCategory[] = [
     category: 'Reports',
     icon: 'file-text',
     items: [
-      { name: 'Vatav Report', path: '/reports/vatav-report', icon: 'file' },
-      { name: 'Receipt Report', path: '/reports/receipt-report', icon: 'file' },
       { name: 'Stock Management', path: '/reports/stock-management', icon: 'archive' },
       { name: 'Customer Metal Ledger Balance Report', path: '/reports/customer-metal-ledger-balance', icon: 'file' },
     ],
