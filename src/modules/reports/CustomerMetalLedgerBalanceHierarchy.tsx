@@ -4,18 +4,7 @@ import type {
   ReceiptsOrIssuesBlock,
   CustomerMetalLedgerEntry,
 } from './customerMetalLedgerBalanceReport.api';
-
-export function formatReportNum(s: string | null | undefined): string {
-  if (s == null || s === '') return '—';
-  const n = Number(String(s).trim());
-  return Number.isFinite(n) ? n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : String(s);
-}
-
-function formatDate(s: string | null | undefined): string {
-  if (s == null || s === '') return '—';
-  const d = new Date(s);
-  return Number.isFinite(d.getTime()) ? d.toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : String(s);
-}
+import { formatReportNum, formatReportDate } from '../../shared/utils/reportFormatters';
 
 function expandKeyCustomer(customer: string): string {
   return `customer-${customer}`;
@@ -75,14 +64,14 @@ function EntryTable({
             <tr key={`${e.voucher_no}-${i}`}>
               <td className={tdClass}>{e.voucher_no}</td>
               <td className={`${tdClass} border-r`}>{e.transaction_type}</td>
-              <td className={`${tdClass} border-r`}>{formatDate(e.transaction_date)}</td>
+              <td className={`${tdClass} border-r`}>{formatReportDate(e.transaction_date)}</td>
               <td className={`${tdClass} border-r`}>{e.wastage ?? '—'}</td>
               <td className={`${tdClass} text-right border-r`}>{formatReportNum(e.gross_weight)}</td>
               <td className={`${tdClass} text-right border-r`}>{formatReportNum(e.fine_weight)}</td>
               <td className={`${tdClass} text-right border-r`}>{formatReportNum(e.fine_weight_with_wastage)}</td>
               <td className={`${tdClass} text-right border-r`}>{formatReportNum(e.amount)}</td>
               <td className={`${tdClass} text-right border-r`}>{formatReportNum(e.final_amount)}</td>
-              <td className={tdClass}>{formatDate(e.created_at)}</td>
+              <td className={tdClass}>{formatReportDate(e.created_at)}</td>
             </tr>
           ))}
         </tbody>
@@ -173,8 +162,8 @@ export default function CustomerMetalLedgerBalanceHierarchy({
               className={`w-full flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 text-left ${rowHover}`}
             >
               {chevron(cOpen)}
-              <span className={`font-semibold text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{c.customer}</span>
               <span className={`inline-flex flex-wrap items-center gap-x-6 gap-y-1 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <span><span className="font-medium">Customer:</span> <span className="font-bold">{c.customer}</span></span>
                 <span><span className="font-medium">Balance Weight:</span> <span className="font-bold">{formatReportNum(c.balance_weight)}</span></span>
                 <span><span className="font-medium">Fine Weight:</span> <span className="font-bold">{formatReportNum(c.balance_fine_weight)}</span></span>
               </span>
@@ -194,10 +183,8 @@ export default function CustomerMetalLedgerBalanceHierarchy({
                       className={`w-full flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3 text-left ${rowHover}`}
                     >
                       {chevron(pOpen)}
-                      <span className={`font-medium text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                        {p.purity} ({p.purity_percentage}%)
-                      </span>
                       <span className={`inline-flex flex-wrap items-center gap-x-6 gap-y-1 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <span><span className="font-medium">Purity:</span> <span className="font-bold">{p.purity} ({p.purity_percentage}%)</span></span>
                         <span><span className="font-medium">Balance Weight:</span> <span className="font-bold">{formatReportNum(p.balance_gross_weight)}</span></span>
                         <span><span className="font-medium">Fine Weight:</span> <span className="font-bold">{formatReportNum(p.balance_fine_weight)}</span></span>
                       </span>
