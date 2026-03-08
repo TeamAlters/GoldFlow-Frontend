@@ -1,4 +1,4 @@
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUIStore } from '../stores/ui.store';
 import { NOT_FOUND_PATH } from '../config/navigation.config';
 import Breadcrumbs from '../layout/Breadcrumbs';

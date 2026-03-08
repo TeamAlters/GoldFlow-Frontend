@@ -23,7 +23,7 @@ export default function MetalLedgerViewPage() {
   const [initialData, setInitialData] = useState<Partial<MetalLedgerFormData> | undefined>(
     undefined
   );
-  const [rawEntity, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
+  const [, setRawEntity] = useState<Record<string, unknown> | undefined>(undefined);
   const [dataLoading, setDataLoading] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [notFound, setNotFound] = useState(false);

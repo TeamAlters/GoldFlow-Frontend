@@ -18,6 +18,10 @@ export interface RoleRow {
 
 export interface RoleDetail extends RoleRow {
   permissions?: Record<string, unknown>;
+  created_at?: string;
+  created_by?: string;
+  modified_at?: string;
+  role_description?: string;
 }
 
 export interface RoleCreatePayload {

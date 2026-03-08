@@ -1,5 +1,5 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { useUIStore } from '../../../stores/ui.store';
+import { useUIStore } from '../../stores/ui.store';
 
 type LedgerRow = {
   id: string;
@@ -38,7 +38,7 @@ function makeLedgerRow(partial?: Partial<LedgerRow>): LedgerRow {
 }
 
 export default function CustomerMetalLedgerTablePage() {
-  const isDarkMode = useUIStore((s) => s.isDarkMode);
+  const isDarkMode = useUIStore((s: { isDarkMode: boolean }) => s.isDarkMode);
 
   const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>(() => [
     makeLedgerRow({ purity: '100' }),

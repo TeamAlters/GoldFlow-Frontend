@@ -1,14 +1,14 @@
   import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity, updateEntityStatus } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
-import { useUIStore } from '../../../stores/ui.store';
-import { toast } from '../../../stores/toast.store';
-import MetalLedgerForm, { type MetalLedgerFormData } from './metalLedgerForm';
-import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toInitialMetalLedgerData } from './metalLedgerCreate';
-import BackButton from '../../../shared/components/BackButton';
+import { getEntityConfig } from '../../config/entity.config';
+import { getEntity, updateEntityStatus } from '../admin/admin.api';
+import { showErrorToastUnlessAuth } from '../../shared/utils/errorHandling';
+import { useUIStore } from '../../stores/ui.store';
+import { toast } from '../../stores/toast.store';
+import MetalLedgerForm, { type MetalLedgerFormData } from '../accounts/metalLedger/metalLedgerForm';
+import Breadcrumbs from '../../layout/Breadcrumbs';
+import { toInitialMetalLedgerData } from '../accounts/metalLedger/metalLedgerCreate';
+import BackButton from '../../shared/components/BackButton';
 
 const ENTITY_NAME = 'metal_ledger';
 
@@ -30,13 +30,13 @@ export default function MetalLedgerViewPage() {
     if (!id) return;
     setDataLoading(true);
     getEntity(ENTITY_NAME, id)
-      .then((res) => {
+      .then((res: { data?: unknown }) => {
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
           setInitialData(toInitialMetalLedgerData(entity));
         }
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : 'Failed to load metal ledger';
         showErrorToastUnlessAuth(msg);
       })
@@ -74,15 +74,14 @@ export default function MetalLedgerViewPage() {
     }
   }, [id, loadData]);
 
-  const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+  const isDarkMode = useUIStore((state: { isDarkMode: boolean }) => state.isDarkMode);
+  const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;
   }
 
   const displayValue = initialData?.voucher_no ?? id;
-  const viewPageHeading = `View ${entityConfig.displayName}`;
   const breadcrumbLabel = displayValue;
 
   if (dataLoading) {

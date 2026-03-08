@@ -18,7 +18,7 @@ import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { MAX_TEXT_FIELD_LENGTH, maxLengthError } from '../../../shared/utils/formValidation';
 import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
-function permissionsFromRole(role: RoleDetail | null, entityNames: string[]): PermissionsMatrix {
+export function permissionsFromRole(role: RoleDetail | null, entityNames: string[]): PermissionsMatrix {
     const base = buildInitialMatrix(entityNames);
     if (!role?.permissions || typeof role.permissions !== 'object' || Array.isArray(role.permissions)) {
         return base;

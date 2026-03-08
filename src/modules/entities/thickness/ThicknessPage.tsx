@@ -120,7 +120,15 @@ export default function ThicknessPage() {
     [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
   );
 
-  const handleRowClick = () => { };
+  const handleRowClick = useCallback(
+    (row: EntityRow) => {
+      const rowId = row[idField];
+      if (rowId === undefined || rowId === null) return;
+      const detailRoute = entityConfig.routes.detail;
+      if (detailRoute) navigate(detailRoute.replace(':id', encodeURIComponent(String(rowId))));
+    },
+    [idField, navigate, entityConfig.routes.detail]
+  );
 
   const deleteDisplayName =
     deleteConfirmRow != null

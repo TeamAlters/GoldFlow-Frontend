@@ -247,8 +247,8 @@ export default function RoleAndPermissionPage() {
   }, [entityMetadata, isDarkMode, navigate, entityConfig, items]);
 
   const handleAddRole = useCallback(() => {
-    navigate(entityConfig.routes.add);
-  }, [navigate, entityConfig.routes.add]);
+    navigate(entityConfig.routes.add ?? entityConfig.routes.list);
+  }, [navigate, entityConfig.routes.add, entityConfig.routes.list]);
 
   const idField = entityMetadata?.id_field ?? 'id';
 
@@ -283,7 +283,8 @@ export default function RoleAndPermissionPage() {
         onClick: (row) => {
           const rowId = getRowId(row);
           if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit.replace(':id', encodeURIComponent(String(rowId))));
+            const editRoute = entityConfig.routes.edit?.replace(':id', encodeURIComponent(String(rowId)));
+            if (editRoute) navigate(editRoute);
           }
         },
         variant: 'primary' as const,

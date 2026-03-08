@@ -295,7 +295,7 @@ export default function MetalLedgerPage() {
 
   // Handle add entity
   const handleAddEntity = () => {
-    navigate(entityConfig.routes.add);
+    navigate(entityConfig.routes.add ?? entityConfig.routes.list);
   };
 
   const idField = entityMetadata?.id_field ?? 'voucher_no';
@@ -326,7 +326,8 @@ export default function MetalLedgerPage() {
         onClick: (row) => {
           const rowId = row[idField];
           if (rowId !== undefined && rowId !== null) {
-            navigate(entityConfig.routes.edit.replace(':id', String(rowId)));
+            const editRoute = entityConfig.routes.edit?.replace(':id', String(rowId));
+            if (editRoute) navigate(editRoute);
           }
         },
         variant: 'primary' as const,

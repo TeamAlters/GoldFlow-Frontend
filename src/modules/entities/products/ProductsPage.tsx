@@ -355,7 +355,15 @@ export default function ProductsPage() {
     return { default: defaultConfig, addable: addableConfig };
   }, [entityMetadata]);
 
-  const handleRowClick = () => { };
+  const handleRowClick = useCallback(
+    (row: EntityRow) => {
+      const rowId = getRowId(row);
+      if (rowId === undefined || rowId === null) return;
+      const detailRoute = entityConfig.routes.detail;
+      if (detailRoute) navigate(detailRoute.replace(':id', String(rowId)));
+    },
+    [getRowId, navigate, entityConfig.routes.detail]
+  );
 
   const hasFilters =
     Object.keys(filterConfig.default).length > 0 ||

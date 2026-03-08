@@ -44,15 +44,8 @@ export function toMeltingLotPayload(data: MeltingLotFormData): Record<string, un
       ? data.weight_details
           .filter((d) => d.selected_weight && d.selected_purity)
           .map((d) => {
-            const weight = toNum(d.selected_weight);
             const purityPct = toNum(d.purity_percentage);
-            
-            // Fine Weight = weight × purity_percentage / 100
-            const fineWeight = weight > 0 && purityPct > 0 ? (weight * purityPct) / 100 : 0;
-            
-            // Alloy Weight = (Fine Weight / melting_lot_purity) * 100 - weight
-            const alloyWeight = fineWeight > 0 && purityPercentage > 0 ? (fineWeight / purityPercentage) * 100 - weight : 0;
-            
+
             return {
               // Include id only if it exists (for update), omit for new entries
               ...(d.id ? { id: d.id } : {}),

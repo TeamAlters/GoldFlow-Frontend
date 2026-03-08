@@ -77,7 +77,7 @@ export default function DepartmentViewPage() {
   const sectionClass = getSectionClass(isDarkMode);
   const isDeleting = deletingId === (id ?? '');
 
-  const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+  const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
   if (!id) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />

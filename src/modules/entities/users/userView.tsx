@@ -82,7 +82,7 @@ export default function UserViewPage() {
     const isDarkMode = useUIStore((state) => state.isDarkMode);
     const sectionClass = getSectionClass(isDarkMode);
 
-    const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+    const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
     const checkboxClass =
         'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-500 dark:bg-gray-700 dark:checked:bg-blue-600 pointer-events-none';
 

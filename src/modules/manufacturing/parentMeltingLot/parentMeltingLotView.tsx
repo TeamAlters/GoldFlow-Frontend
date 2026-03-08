@@ -140,22 +140,6 @@ export default function ParentMeltingLotViewPage() {
     isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-700'
   }`;
 
-  const formatDateTime = (dateStr: string | null | undefined) => {
-    if (!dateStr) return '–';
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
   if (dataLoading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">

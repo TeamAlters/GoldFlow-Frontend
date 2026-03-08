@@ -26,7 +26,7 @@ export interface ParentMeltingLotFormProps {
 export default function ParentMeltingLotForm({
   initialData,
   onSubmit,
-  isLoading = false,
+  isLoading: _isLoading = false,
   productOptions,
   purityOptions,
 }: ParentMeltingLotFormProps) {

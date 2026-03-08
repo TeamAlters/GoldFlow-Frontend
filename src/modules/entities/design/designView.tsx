@@ -104,7 +104,7 @@ export default function DesignViewPage() {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
 
-  const editUrl = entityConfig.routes.edit.replace(':id', id != null ? encodeURIComponent(id) : '');
+  const editUrl = entityConfig.routes.edit?.replace(':id', id != null ? encodeURIComponent(id) : '') ?? '';
 
   if (!id) {
     return (
