@@ -318,7 +318,9 @@ export default function MetalLedgerPage() {
     }
   }, [deleteConfirmRow, ENTITY_NAME, entityConfig.displayName, idField, fetchList]);
 
-  // Define table actions
+  // Define table actions (hide Edit and Delete when status is Closed)
+  const isRowClosed = useCallback((row: EntityRow) => String(row?.status ?? '').toLowerCase() === 'closed', []);
+
   const actions: TableAction<EntityRow>[] = useMemo(
     () => [
       {
@@ -331,6 +333,7 @@ export default function MetalLedgerPage() {
           }
         },
         variant: 'primary' as const,
+        shouldShow: (row) => !isRowClosed(row),
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -346,6 +349,7 @@ export default function MetalLedgerPage() {
         label: 'Delete',
         onClick: handleDeleteClick,
         variant: 'danger' as const,
+        shouldShow: (row) => !isRowClosed(row),
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -358,7 +362,7 @@ export default function MetalLedgerPage() {
         ),
       },
     ],
-    [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
+    [idField, navigate, entityConfig.routes.edit, handleDeleteClick, isRowClosed]
   );
 
   // Filter configuration

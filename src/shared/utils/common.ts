@@ -26,7 +26,7 @@ export function getRowDisplayValue(
         const mappedKey = aliases[fieldKey];
         return mappedKey ? row[mappedKey] : undefined;
       })();
-  if (resolved === undefined || resolved === null) return '–';
+  if (resolved === undefined || resolved === null) return 'NA';
   if (fieldType === 'DateTime' || isDateTimeValue(resolved))
     return formatDateTime(resolved as string);
   const typeLower = (fieldType || '').toLowerCase();
@@ -37,7 +37,8 @@ export function getRowDisplayValue(
     const isTrue = resolved === true || resolved === 'true';
     return React.createElement(BooleanCellIcon, { value: isTrue });
   }
-  return String(resolved);
+  const str = String(resolved);
+  return str.trim() === '' ? 'NA' : str;
 }
 
 /** Returns a sortValue function for boolean columns (for use with DataTable sortValue when accessor returns JSX). */

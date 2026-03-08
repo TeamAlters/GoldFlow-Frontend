@@ -58,7 +58,8 @@ export default function ParentMeltingLotForm({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
+    // Name required only when editing (form has initial name); create uses product+purity only
+    if (initialData?.name !== undefined && initialData.name !== '' && !formData.name.trim()) {
       newErrors.name = 'Name is required';
     } else if (formData.name.length > MAX_TEXT_FIELD_LENGTH) {
       newErrors.name = `Name must be at most ${MAX_TEXT_FIELD_LENGTH} characters`;

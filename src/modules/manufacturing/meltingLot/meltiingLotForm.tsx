@@ -128,16 +128,19 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   // Weight details visibility
   const [_showWeightDetails, setShowWeightDetails] = useState(false);
 
-  // Load parent melting lot references
+  // Load parent melting lot references (only Draft status for dropdown)
   useEffect(() => {
     getEntityReferences('parent_melting_lot')
       .then((items) => {
-        const opts = mapReferenceItemsToOptions(items, 'name', 'name');
-        setParentMeltingLotOptions(opts.length > 0 ? opts : items.map((row: Record<string, unknown>) => ({
+        const draftOnly = items.filter((row: Record<string, unknown>) =>
+          String(row.status ?? '').trim().toLowerCase() === 'draft'
+        );
+        const opts = mapReferenceItemsToOptions(draftOnly, 'name', 'name');
+        setParentMeltingLotOptions(opts.length > 0 ? opts : draftOnly.map((row: Record<string, unknown>) => ({
           value: String(row.name ?? ''),
           label: String(row.name ?? ''),
         })));
-        setParentMeltingLotRawData(items);
+        setParentMeltingLotRawData(draftOnly);
       })
       .catch(() => {
         setParentMeltingLotOptions([]);
