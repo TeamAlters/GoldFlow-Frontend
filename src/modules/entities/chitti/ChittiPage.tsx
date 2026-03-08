@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../shared/components/DataTable';
 import type { TableColumn, TableAction } from '../../../shared/components/DataTable';
@@ -11,17 +11,24 @@ import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { buildEntityListColumns } from '../../../shared/utils/entityListColumns';
 import { useEntityDelete } from '../../../shared/hooks/useEntityDelete';
 import { useEntityListPage } from '../../../shared/hooks/useEntityListPage';
+import { submitChitti } from './chitti.api';
+import { toast } from '../../../stores/toast.store';
+import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+
 type EntityRow = Record<string, unknown>;
 
-export default function PurityRangePage() {
+const ENTITY_NAME = 'chitti';
+
+export default function ChittiPage() {
   const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
+  const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
   const {
-    entityName,
     entityConfig,
     entityMetadata,
     metadataLoading,
-    metadataError,
+    metadataError: _metadataError,
     items,
     listLoading,
     page,
@@ -33,15 +40,16 @@ export default function PurityRangePage() {
     setFilters,
     filterConfig,
     hasFilters,
-  } = useEntityListPage('purity_range');
-  const { deleteById, deletingId } = useEntityDelete(entityName);
-  const [deleteConfirmRow, setDeleteConfirmRow] = useState<EntityRow | null>(null);
+    refreshList,
+  } = useEntityListPage(ENTITY_NAME);
+  const { deleteById, deletingId } = useEntityDelete(ENTITY_NAME);
+
+  const idField = entityMetadata?.id_field ?? 'chitti_name';
 
   const columns: TableColumn<EntityRow>[] = useMemo(() => {
     const visibleFields = entityMetadata?.fields?.filter((f) => f.visible_in_list) ?? [];
     if (!visibleFields.length) return [];
     const detailLinkField = entityMetadata?.detail_link_field ?? visibleFields[0]?.name;
-    const idField = entityMetadata?.id_field ?? 'purity_range';
     return buildEntityListColumns({
       visibleFields,
       detailLinkField,
@@ -59,8 +67,6 @@ export default function PurityRangePage() {
     navigate(addRoute);
   };
 
-  const idField = entityMetadata?.id_field ?? 'purity_range';
-
   const handleDeleteClick = useCallback((row: EntityRow) => {
     setDeleteConfirmRow(row);
   }, []);
@@ -71,30 +77,57 @@ export default function PurityRangePage() {
     if (rowId === undefined || rowId === null) return;
     setDeleteConfirmRow(null);
     await deleteById(String(rowId), entityConfig.displayName);
-  }, [deleteConfirmRow, entityConfig.displayName, idField, deleteById]);
+  }, [deleteConfirmRow, idField, entityConfig.displayName, deleteById]);
 
-  const actions: TableAction<EntityRow>[] = useMemo(
-    () => [
+  const handleSubmitClick = useCallback(
+    async (row: EntityRow) => {
+      const chittiName = row[idField] ?? row.chitti_name;
+      if (chittiName === undefined || chittiName === null) return;
+      const idStr = String(chittiName);
+      setSubmittingId(idStr);
+      try {
+        await submitChitti(idStr);
+        toast.success('Chitti submitted successfully.');
+        refreshList();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to submit chitti';
+        showErrorToastUnlessAuth(msg);
+      } finally {
+        setSubmittingId(null);
+      }
+    },
+    [idField, refreshList]
+  );
+
+  const actions: TableAction<EntityRow>[] = useMemo(() => {
+    const list: TableAction<EntityRow>[] = [
       {
         label: 'Edit',
         onClick: (row) => {
           const rowId = row[idField];
-          if (rowId !== undefined && rowId !== null) {
-            const editRoute = entityConfig.routes.edit;
-            if (editRoute) {
-              navigate(editRoute.replace(':id', String(rowId)));
-            }
+          if (rowId !== undefined && rowId !== null && entityConfig.routes.edit) {
+            navigate(entityConfig.routes.edit.replace(':id', encodeURIComponent(String(rowId))));
           }
         },
         variant: 'primary' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        ),
+      },
+      {
+        label: 'Submit',
+        onClick: handleSubmitClick,
+        disabled: (row: EntityRow) => {
+          if (row.status !== 'Draft') return true;
+          const rid = row[idField];
+          return rid != null && submittingId === String(rid);
+        },
+        variant: 'secondary' as const,
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         ),
       },
@@ -105,31 +138,26 @@ export default function PurityRangePage() {
         variant: 'danger' as const,
         icon: (
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         ),
       },
-    ],
-    [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
-  );
+    ];
+    return list;
+  }, [idField, navigate, entityConfig.routes.edit, handleDeleteClick, handleSubmitClick, submittingId, deletingId]);
 
   const handleRowClick = useCallback(
     (row: EntityRow) => {
       const rowId = row[idField];
       if (rowId === undefined || rowId === null) return;
-      navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
+      navigate(entityConfig.routes.detail.replace(':id', encodeURIComponent(String(rowId))));
     },
     [idField, navigate, entityConfig.routes.detail]
-  );  
+  );
 
   const deleteDisplayName =
     deleteConfirmRow != null
-      ? String(deleteConfirmRow[idField] ?? deleteConfirmRow.name ?? 'this purity range')
+      ? String(deleteConfirmRow.chitti_name ?? deleteConfirmRow[idField] ?? 'this item')
       : '';
 
   return (
@@ -142,7 +170,7 @@ export default function PurityRangePage() {
         message={
           deleteDisplayName
             ? `Are you sure you want to delete "${deleteDisplayName}"? This action cannot be undone.`
-            : `Are you sure you want to delete this ${entityConfig.displayName.toLowerCase()}?`
+            : 'Are you sure you want to delete this item?'
         }
         confirmLabel="Delete"
         cancelLabel="Cancel"
@@ -159,7 +187,7 @@ export default function PurityRangePage() {
         title={
           metadataLoading
             ? '...'
-            : (entityMetadata?.display_name ?? `${entityConfig.displayNamePlural} Management`)
+            : (entityMetadata?.display_name ?? `${entityConfig.displayName} Management`)
         }
         description={`Manage all ${entityConfig.displayNamePlural.toLowerCase()}`}
         toolbarLeft={
@@ -196,7 +224,7 @@ export default function PurityRangePage() {
           ) : undefined
         }
       >
-        {!metadataLoading && !metadataError && columns.length === 0 && (
+        {!metadataLoading && !_metadataError && columns.length === 0 && (
           <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             Loading table columns and filters…
           </p>
