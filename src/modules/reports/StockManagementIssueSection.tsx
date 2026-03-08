@@ -23,7 +23,6 @@ export function StockManagementIssueSection({
   const borderBottom = hasBorderBottom ? (isDarkMode ? 'border-b border-gray-700' : 'border-b border-gray-200') : '';
   const labelClass = isDarkMode ? 'text-gray-400' : 'text-gray-600';
   const blockCard = isDarkMode ? 'bg-gray-800/60 border-gray-600' : 'bg-gray-50 border-gray-200';
-  const titleClass = isDarkMode ? 'text-gray-100' : 'text-gray-800';
   const hasFilters =
     Boolean(filtersApplied?.customer) ||
     Boolean(filtersApplied?.date_from) ||
