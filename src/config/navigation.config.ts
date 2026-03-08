@@ -83,6 +83,7 @@ export const sidebarNavConfig: NavCategory[] = [
     icon: 'package',
     items: [
       { name: 'Metal Ledger', path: '/metal-ledger', icon: 'box' },
+      { name: 'Chitti', path: '/chitti', icon: 'box', entityName: 'chitti' },
     ],
   },
     {

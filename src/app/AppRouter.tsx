@@ -101,6 +101,10 @@ import ParentMeltingLotPage from '../modules/manufacturing/parentMeltingLot/pare
 import ParentMeltingLotCreatePage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotCreate';
 import ParentMeltingLotEditPage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotEdit';
 import ParentMeltingLotViewPage from '../modules/manufacturing/parentMeltingLot/parentMeltingLotView';
+import ChittiPage from '../modules/entities/chitti/ChittiPage';
+import ChittiCreatePage from '../modules/entities/chitti/chittiCreate';
+import ChittiEditPage from '../modules/entities/chitti/chittiEdit';
+import ChittiViewPage from '../modules/entities/chitti/chittiView';
 import PageNotFound from './PageNotFound';
 import CustomerMetalLedgerBalanceReportPage from '../modules/reports/CustomerMetalLedgerBalanceReportPage';
 import StockManagementReportPage from '../modules/reports/StockManagementReportPage';
@@ -151,6 +155,10 @@ export default function AppRouter() {
           <Route path="reports/*" element={<DashboardIndex />} />
           <Route path="accounts/customer-metal-ledger" element={<MetalLedgerPage />} />
           <Route path="accounts/customer-metal-ledger-table" element={<CustomerMetalLedgerTablePage />} />
+          <Route path="chitti" element={<ChittiPage />} />
+          <Route path="chitti/add" element={<ChittiCreatePage />} />
+          <Route path="chitti/edit/:id" element={<ChittiEditPage />} />
+          <Route path="chitti/:id" element={<ChittiViewPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="users/add" element={<UserCreatePage />} />
           <Route path="users/edit/:id" element={<UserEditPage />} />
