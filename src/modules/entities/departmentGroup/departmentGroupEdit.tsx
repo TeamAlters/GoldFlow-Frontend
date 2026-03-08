@@ -4,7 +4,7 @@ import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/
 import { getEntity, updateEntity, getEntityReferenceOptions, getProductReferenceOptions } from '../../admin/admin.api';
 import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticDepartmentGroupForm, {
@@ -20,7 +20,7 @@ import {
 } from '../../../shared/utils/entityPageLabels';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
 import type { SortableTableRow } from '../../../shared/components/SortableTableWithAdd';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'product_department_group';
 
@@ -79,6 +79,7 @@ export default function DepartmentGroupEditPage() {
   );
   const [departmentsConfig, setDepartmentsConfig] = useState<Record<string, unknown>[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [productOptions, setProductOptions] = useState<FormSelectOption[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<FormSelectOption[]>([]);
@@ -113,6 +114,10 @@ export default function DepartmentGroupEditPage() {
     getEntity(ENTITY_NAME, decodedId)
       .then((res) => {
         if (ignore) return;
+        if (isNotFoundResponse(res)) {
+          setNotFound(true);
+          return;
+        }
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
           setInitialData(toInitialDepartmentGroupData(entity));
@@ -122,6 +127,10 @@ export default function DepartmentGroupEditPage() {
       })
       .catch((err) => {
         if (!ignore) {
+          if (isNotFoundErrorOrMessage(err)) {
+            setNotFound(true);
+            return;
+          }
           showErrorToastUnlessAuth(err instanceof Error ? err.message : 'Failed to load department group');
         }
       })
@@ -189,6 +198,12 @@ export default function DepartmentGroupEditPage() {
   if (!decodedId) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

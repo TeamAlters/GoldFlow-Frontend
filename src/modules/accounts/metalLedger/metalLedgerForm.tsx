@@ -17,8 +17,8 @@ import {
   getAvailableJobCardBalances,
   type JobCardAvailableBalanceRow,
 } from '../../manufacturing/jobCard/jobCardAvailableBalances.api';
-import { formatDateTime } from '../../../shared/utils/dateUtils';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
+import { FormSelect } from '../../../shared/components/FormSelect';
 
 export type MetalLedgerFormData = {
   // Ledger Info
@@ -291,12 +291,11 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
     const isDarkMode = useUIStore((state) => state.isDarkMode);
     const [formData, setFormData] = useState<MetalLedgerFormData>({ ...emptyForm });
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [openSelectKey, setOpenSelectKey] = useState<string | null>(null);
-    const selectRef = useRef<HTMLDivElement>(null);
     const entryTypeChangedByUserRef = useRef(false);
 
     // Reference data states
     const [customerOptions, setCustomerOptions] = useState<ReferenceOption[]>([]);
+    const [customerReferenceRows, setCustomerReferenceRows] = useState<Record<string, unknown>[]>([]);
     const [itemOptions, setItemOptions] = useState<ReferenceOption[]>([]);
     const [purityOptions, setPurityOptions] = useState<ReferenceOption[]>([]);
     const [purityPercentageMap, setPurityPercentageMap] = useState<Record<string, number>>({});
@@ -313,16 +312,20 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
 
     // Load reference data
     useEffect(() => {
-      // Load customers
+      // Load customers (keep raw rows for wastage lookup)
       getEntityReferences('customer')
         .then((items) => {
+          setCustomerReferenceRows(items);
           const opts = mapReferenceItemsToOptions(items, 'customer_name', 'customer_name');
           setCustomerOptions(opts.length > 0 ? opts : items.map((row: Record<string, unknown>) => ({
             value: String(row.customer_name ?? ''),
             label: String(row.customer_name ?? ''),
           })));
         })
-        .catch(() => setCustomerOptions([]));
+        .catch(() => {
+          setCustomerOptions([]);
+          setCustomerReferenceRows([]);
+        });
 
       // Load items
       getEntityReferences('item')
@@ -372,6 +375,39 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
         }));
       }
     }, [formData.purity, purityPercentageMap]);
+
+    // Auto-fill wastage from customer reference when Entry Type is Issue (match by customer; narrow by purity/product when set).
+    // Use formData and initialData so edit page works when formData is not yet merged from initialData.
+    useEffect(() => {
+      const entryType = (formData.entry_type || initialData?.entry_type || '').toUpperCase();
+      if (readOnly || entryType !== 'ISSUE') return;
+      const customerName = (formData.customer ?? initialData?.customer ?? '').toString().trim();
+      if (!customerName) return;
+      const purity = (formData.purity ?? initialData?.purity ?? '').toString().trim();
+      const productOrItem = (formData.item_name ?? initialData?.item_name ?? '').toString().trim();
+
+      // Filter by customer first, then optionally by purity and product_name (API has product_name; form has item_name)
+      let rows = customerReferenceRows.filter((row) => {
+        const rCustomer = String(row.customer_name ?? '').trim();
+        return rCustomer === customerName;
+      });
+      if (purity) {
+        rows = rows.filter((row) => String(row.purity ?? '').trim() === purity);
+      }
+      if (productOrItem) {
+        const byProduct = rows.filter((row) => String(row.product_name ?? '').trim() === productOrItem);
+        if (byProduct.length > 0) rows = byProduct;
+      }
+      const match = rows.find((row) => row.wastage != null && row.wastage !== '');
+
+      if (match) {
+        const wastageVal = match.wastage;
+        const wastageStr = typeof wastageVal === 'number' ? String(wastageVal) : String(wastageVal).trim();
+        if (wastageStr) {
+          setFormData((prev) => (prev.wastage === wastageStr ? prev : { ...prev, wastage: wastageStr }));
+        }
+      }
+    }, [formData.entry_type, formData.customer, formData.purity, formData.item_name, initialData, customerReferenceRows, readOnly]);
 
     useImperativeHandle(ref, () => ({
       getData: () => {
@@ -452,17 +488,6 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
         }
       }
     }, [isIssueEntry, readOnly, formData.job_card_issues_to_settle.length, formData.entry_type, errors.job_card_issues_to_settle]);
-
-    useEffect(() => {
-      if (!openSelectKey) return;
-      const handleClick = (e: MouseEvent) => {
-        if (selectRef.current && !selectRef.current.contains(e.target as Node)) {
-          setOpenSelectKey(null);
-        }
-      };
-      document.addEventListener('mousedown', handleClick);
-      return () => document.removeEventListener('mousedown', handleClick);
-    }, [openSelectKey]);
 
     // Handle change for text fields with max length
     const handleTextChange = (key: keyof MetalLedgerFormData, value: string, maxLength: number) => {
@@ -829,78 +854,6 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
 
     const errorClass = `text-xs ${isDarkMode ? 'text-red-400' : 'text-red-600'}`;
 
-    // Custom dropdown render function
-    const renderSelect = (
-      key: keyof MetalLedgerFormData,
-      label: string,
-      options: Array<{ label: string; value: string }>,
-      value: string,
-      required = false
-    ) => {
-      const currentLabel = options.find((o) => o.value === value)?.label ?? `Select ${label}`;
-      if (readOnly) {
-        return (
-          <div className={readOnlyClass}>{currentLabel === `Select ${label}` ? '–' : currentLabel}</div>
-        );
-      }
-      const isOpen = openSelectKey === key;
-      return (
-        <div ref={key === openSelectKey ? selectRef : undefined} className="relative">
-          <button
-            type="button"
-            onClick={() => setOpenSelectKey(isOpen ? null : key)}
-            className={`${inputClass(key)} flex items-center justify-between text-left min-h-[42px] ${isOpen ? 'ring-2 ring-blue-500/30' : ''
-              }`}
-          >
-            <span className={!value ? (isDarkMode ? 'text-gray-500' : 'text-gray-400') : ''}>
-              {currentLabel}
-            </span>
-            <svg
-              className={`w-4 h-4 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {isOpen && (
-            <div
-              className={`absolute left-0 right-0 top-full z-50 mt-1 py-1 rounded-lg border shadow-lg ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
-                }`}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  handleChange(key, '');
-                  setOpenSelectKey(null);
-                }}
-                className={`w-full px-4 py-2.5 text-left text-sm ${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
-                  } ${!value ? (isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50') : ''}`}
-              >
-                Select {label}
-              </button>
-              {options.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    handleChange(key, opt.value);
-                    setOpenSelectKey(null);
-                  }}
-                  className={`w-full px-4 py-2.5 text-left text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'
-                    } ${value === opt.value ? (isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50') : ''}`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
-          {errors[key] && <p className={`mt-1 ${errorClass}`}>{errors[key]}</p>}
-        </div>
-      );
-    };
-
     // Section 1: Ledger Info
     const ledgerInfoSection = (
       <div className={sectionClass}>
@@ -923,26 +876,68 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
             <label className={labelClass}>
               Entry Type <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
             </label>
-            {renderSelect('entry_type', 'Entry Type', ENTRY_TYPE_OPTIONS, formData.entry_type, true)}
+            {readOnly ? (
+              <div className={readOnlyClass}>
+                {formData.entry_type ? ENTRY_TYPE_OPTIONS.find((o) => o.value === formData.entry_type)?.label ?? formData.entry_type : '–'}
+              </div>
+            ) : (
+              <>
+                <FormSelect
+                  value={formData.entry_type}
+                  onChange={(v) => handleChange('entry_type', v)}
+                  options={ENTRY_TYPE_OPTIONS}
+                  placeholder="Select Entry Type"
+                  isDarkMode={isDarkMode}
+                  className={errors.entry_type ? 'border-red-500' : ''}
+                />
+                {errors.entry_type && <p className={`mt-1 ${errorClass}`}>{errors.entry_type}</p>}
+              </>
+            )}
           </div>
 
           <div>
             <label className={labelClass}>
               Metal Type <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
             </label>
-            {renderSelect('metal_type', 'Metal Type', METAL_TYPE_OPTIONS, formData.metal_type, true)}
+            {readOnly ? (
+              <div className={readOnlyClass}>
+                {formData.metal_type ? METAL_TYPE_OPTIONS.find((o) => o.value === formData.metal_type)?.label ?? formData.metal_type : '–'}
+              </div>
+            ) : (
+              <>
+                <FormSelect
+                  value={formData.metal_type}
+                  onChange={(v) => handleChange('metal_type', v)}
+                  options={METAL_TYPE_OPTIONS}
+                  placeholder="Select Metal Type"
+                  isDarkMode={isDarkMode}
+                  className={errors.metal_type ? 'border-red-500' : ''}
+                />
+                {errors.metal_type && <p className={`mt-1 ${errorClass}`}>{errors.metal_type}</p>}
+              </>
+            )}
           </div>
 
           <div>
             <label className={labelClass}>
               Transaction Type <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
             </label>
-            {renderSelect(
-              'transaction_type',
-              'Transaction Type',
-              TRANSACTION_TYPE_OPTIONS,
-              formData.transaction_type,
-              true
+            {readOnly ? (
+              <div className={readOnlyClass}>
+                {formData.transaction_type ? TRANSACTION_TYPE_OPTIONS.find((o) => o.value === formData.transaction_type)?.label ?? formData.transaction_type : '–'}
+              </div>
+            ) : (
+              <>
+                <FormSelect
+                  value={formData.transaction_type}
+                  onChange={(v) => handleChange('transaction_type', v)}
+                  options={TRANSACTION_TYPE_OPTIONS}
+                  placeholder="Select Transaction Type"
+                  isDarkMode={isDarkMode}
+                  className={errors.transaction_type ? 'border-red-500' : ''}
+                />
+                {errors.transaction_type && <p className={`mt-1 ${errorClass}`}>{errors.transaction_type}</p>}
+              </>
             )}
           </div>
 
@@ -963,7 +958,23 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
             <label className={labelClass}>
               Customer <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
             </label>
-            {renderSelect('customer', 'Customer', customerOptions, formData.customer, true)}
+            {readOnly ? (
+              <div className={readOnlyClass}>
+                {formData.customer ? customerOptions.find((o) => o.value === formData.customer)?.label ?? formData.customer : '–'}
+              </div>
+            ) : (
+              <>
+                <FormSelect
+                  value={formData.customer}
+                  onChange={(v) => handleChange('customer', v)}
+                  options={customerOptions}
+                  placeholder="Select Customer"
+                  isDarkMode={isDarkMode}
+                  className={errors.customer ? 'border-red-500' : ''}
+                />
+                {errors.customer && <p className={`mt-1 ${errorClass}`}>{errors.customer}</p>}
+              </>
+            )}
           </div>
 
           <div className="md:col-span-2 lg:col-span-2">
@@ -992,8 +1003,23 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
             <label className={labelClass}>
               Item Name <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
             </label>
-            {renderSelect('item_name', 'Item', itemOptions, formData.item_name, true)}
-            {errors.item_name && <p className={`mt-1 ${errorClass}`}>{errors.item_name}</p>}
+            {readOnly ? (
+              <div className={readOnlyClass}>
+                {formData.item_name ? itemOptions.find((o) => o.value === formData.item_name)?.label ?? formData.item_name : '–'}
+              </div>
+            ) : (
+              <>
+                <FormSelect
+                  value={formData.item_name}
+                  onChange={(v) => handleChange('item_name', v)}
+                  options={itemOptions}
+                  placeholder="Select Item"
+                  isDarkMode={isDarkMode}
+                  className={errors.item_name ? 'border-red-500' : ''}
+                />
+                {errors.item_name && <p className={`mt-1 ${errorClass}`}>{errors.item_name}</p>}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -1008,8 +1034,23 @@ const MetalLedgerFormInner = forwardRef<MetalLedgerFormRef, MetalLedgerFormProps
             <label className={labelClass}>
               Purity <span className={isDarkMode ? 'text-red-400' : 'text-red-600'}>*</span>
             </label>
-            {renderSelect('purity', 'Purity', purityOptions, formData.purity, true)}
-            {errors.purity && <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>}
+            {readOnly ? (
+              <div className={readOnlyClass}>
+                {formData.purity ? purityOptions.find((o) => o.value === formData.purity)?.label ?? formData.purity : '–'}
+              </div>
+            ) : (
+              <>
+                <FormSelect
+                  value={formData.purity}
+                  onChange={(v) => handleChange('purity', v)}
+                  options={purityOptions}
+                  placeholder="Select Purity"
+                  isDarkMode={isDarkMode}
+                  className={errors.purity ? 'border-red-500' : ''}
+                />
+                {errors.purity && <p className={`mt-1 ${errorClass}`}>{errors.purity}</p>}
+              </>
+            )}
           </div>
 
           <div>

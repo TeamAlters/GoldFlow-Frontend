@@ -4,7 +4,7 @@ import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/
 import { getEntity, updateEntity } from '../../admin/admin.api';
 import { getRedirectIdAfterUpdate } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import StaticDepartmentForm, {
@@ -18,7 +18,7 @@ import {
   getEditBreadcrumbLabel,
   getEditPageDescription,
 } from '../../../shared/utils/entityPageLabels';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'department';
 
@@ -42,6 +42,7 @@ export default function DepartmentEditPage() {
     undefined
   );
   const [dataLoading, setDataLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const formRef = useRef<StaticDepartmentFormRef>(null);
 
@@ -50,12 +51,20 @@ export default function DepartmentEditPage() {
     setDataLoading(true);
     getEntity(ENTITY_NAME, decodedId)
       .then((res) => {
+        if (isNotFoundResponse(res)) {
+          setNotFound(true);
+          return;
+        }
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
           setInitialData(toInitialDepartmentData(entity));
         }
       })
       .catch((err) => {
+        if (isNotFoundErrorOrMessage(err)) {
+          setNotFound(true);
+          return;
+        }
         showErrorToastUnlessAuth(err instanceof Error ? err.message : 'Failed to load department');
       })
       .finally(() => setDataLoading(false));
@@ -100,6 +109,12 @@ export default function DepartmentEditPage() {
   if (!decodedId) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

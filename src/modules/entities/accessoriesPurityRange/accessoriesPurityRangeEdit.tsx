@@ -3,14 +3,14 @@ import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { getEntityConfig, getRedirectToViewAfterEditUrl } from '../../../config/entity.config';
 import { getEntity, updateEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
 import { toast } from '../../../stores/toast.store';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import { MAX_NUMERIC_63_LENGTH, sanitizeNumeric63Input, validateNumeric63 } from '../../../shared/utils/formValidation';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
 import { toFromToAccessoryInitialData, toFromToAccessoryPayload, getAccessoriesPurityRangeIdAfterUpdate } from './accessoriesPurityRangeCreate';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'accessories_purity_range';
 
@@ -31,6 +31,7 @@ export default function AccessoriesPurityRangeEditPage() {
   const [accessoryPurityOptions, setAccessoryPurityOptions] = useState<{ value: string; label: string }[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dataLoading, setDataLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
@@ -44,6 +45,10 @@ export default function AccessoriesPurityRangeEditPage() {
     setDataLoading(true);
     getEntity(ENTITY_NAME, decodeURIComponent(id))
       .then((res) => {
+        if (isNotFoundResponse(res)) {
+          setNotFound(true);
+          return;
+        }
         if (res.data && typeof res.data === 'object') {
           const initial = toFromToAccessoryInitialData(res.data as Record<string, unknown>);
           setFromValue(initial.from_value);
@@ -51,7 +56,11 @@ export default function AccessoriesPurityRangeEditPage() {
           setAccessoryPurity(initial.accessory_purity);
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        if (isNotFoundErrorOrMessage(err)) {
+          setNotFound(true);
+          return;
+        }
         showErrorToastUnlessAuth('Failed to load accessories purity range');
       })
       .finally(() => setDataLoading(false));
@@ -128,6 +137,10 @@ export default function AccessoriesPurityRangeEditPage() {
 
   if (!id) return (
     <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+  );
+
+  if (notFound) return (
+    <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
   );
 
   if (dataLoading) {

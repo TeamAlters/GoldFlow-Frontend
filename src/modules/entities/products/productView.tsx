@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, deleteEntity } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
@@ -48,6 +48,10 @@ export default function ProductViewPage() {
         getEntity(ENTITY_NAME, decodedId)
             .then((res) => {
                 if (!mounted) return;
+                if (isNotFoundResponse(res)) {
+                    setNotFound(true);
+                    return;
+                }
                 const entity = getProductEntityFromResponse(res as Record<string, unknown>);
                 if (entity) {
                     setInitialData(toInitialProductData(entity));
@@ -61,7 +65,7 @@ export default function ProductViewPage() {
                 if (!mounted) return;
                 const msg = err instanceof Error ? err.message : '';
                 if (msg === 'canceled' || msg === 'aborted' || msg.toLowerCase().includes('cancel')) return;
-                if (isNotFoundError(err)) {
+                if (isNotFoundErrorOrMessage(err)) {
                     setNotFound(true);
                     return;
                 }

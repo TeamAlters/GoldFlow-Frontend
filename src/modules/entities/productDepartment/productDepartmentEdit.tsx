@@ -23,7 +23,7 @@ import {
   getEditPageDescription,
 } from '../../../shared/utils/entityPageLabels';
 import type { FormSelectOption } from '../../../shared/components/FormSelect';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'product_department';
 
@@ -38,7 +38,7 @@ export default function ProductDepartmentEditPage() {
       ? decodeURIComponent(String(id).trim())
       : undefined;
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const { data: rawEntity, loading: dataLoading, error: loadError } = useEntityLoad(
+  const { data: rawEntity, loading: dataLoading, error: loadError, notFound } = useEntityLoad(
     ENTITY_NAME,
     decodedId,
     { errorMessage: 'Failed to load product department' }
@@ -131,6 +131,12 @@ export default function ProductDepartmentEditPage() {
   if (!decodedId) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 

@@ -43,3 +43,20 @@ export function isNotFoundError(error: unknown): boolean {
     ?? (error as { response?: { status?: number } })?.response?.status;
   return code === 404;
 }
+
+/** True when the error is 404 or the message indicates the resource was not found. Use to redirect to Page Not Found. */
+export function isNotFoundErrorOrMessage(error: unknown): boolean {
+  if (isNotFoundError(error)) return true;
+  const msg = error instanceof Error ? error.message : (error as { message?: string })?.message;
+  if (typeof msg !== 'string') return false;
+  return msg.toLowerCase().includes('not found');
+}
+
+/** True when the API returned 200 but body indicates not found (e.g. success: false, message contains "not found"). */
+export function isNotFoundResponse(response: Record<string, unknown> | null | undefined): boolean {
+  if (response == null || typeof response !== 'object') return false;
+  const success = response.success;
+  if (success === true) return false;
+  const msg = String(response.message ?? '').toLowerCase();
+  return msg.includes('not found');
+}

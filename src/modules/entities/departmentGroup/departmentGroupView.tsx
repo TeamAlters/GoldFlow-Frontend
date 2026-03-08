@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity, getEntityReferenceOptions } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import StaticDepartmentGroupForm, { type StaticDepartmentGroupFormData } from './departmentGroupForm';
@@ -138,6 +138,10 @@ export default function DepartmentGroupViewPage() {
       try {
         const res = await getEntity(ENTITY_NAME, id);
 
+        if (isNotFoundResponse(res)) {
+          setNotFound(true);
+          return;
+        }
         if (res.data && typeof res.data === 'object') {
           const group = res.data as DepartmentGroupResponse['data'];
           setInitialData(parseDepartmentGroupResponse(group));
@@ -147,7 +151,7 @@ export default function DepartmentGroupViewPage() {
           setLoadError((res as { message?: string }).message || 'Failed to load department group');
         }
       } catch (err: unknown) {
-        if (isNotFoundError(err)) {
+        if (isNotFoundErrorOrMessage(err)) {
           setNotFound(true);
           return;
         }

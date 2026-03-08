@@ -4,7 +4,7 @@ import { getEntityConfig } from '../../../config/entity.config';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { getEntity } from '../../admin/admin.api';
 import { closeParentMeltingLot } from './parentMeltingLot.api';
-import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { toast } from '../../../stores/toast.store';
 import { useUIStore } from '../../../stores/ui.store';
@@ -54,13 +54,17 @@ export default function ParentMeltingLotViewPage() {
     setDataLoading(true);
     getEntity(ENTITY_NAME, id)
       .then((res) => {
+        if (isNotFoundResponse(res)) {
+          setNotFound(true);
+          return;
+        }
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as unknown as ParentMeltingLotData;
           setData(entity);
         }
       })
       .catch((err) => {
-        if (isNotFoundError(err)) {
+        if (isNotFoundErrorOrMessage(err)) {
           setNotFound(true);
           return;
         }

@@ -3,7 +3,7 @@ import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { useUIStore } from '../../../stores/ui.store';
 import { toast } from '../../../stores/toast.store';
@@ -57,6 +57,10 @@ export default function MeltingLotViewPage() {
     setDataLoading(true);
     getEntity(ENTITY_NAME, id)
       .then((res) => {
+        if (isNotFoundResponse(res as Record<string, unknown>)) {
+          setNotFound(true);
+          return;
+        }
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
           
@@ -88,7 +92,7 @@ export default function MeltingLotViewPage() {
         }
       })
       .catch((err) => {
-        if (isNotFoundError(err)) {
+        if (isNotFoundErrorOrMessage(err)) {
           setNotFound(true);
           return;
         }

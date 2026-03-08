@@ -6,7 +6,7 @@ import { useUIStore } from '../../../stores/ui.store';
 import { getSectionClass } from '../../../shared/utils/viewPageStyles';
 import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth, isNotFoundError } from '../../../shared/utils/errorHandling';
+import { showErrorToastUnlessAuth, isNotFoundErrorOrMessage, isNotFoundResponse } from '../../../shared/utils/errorHandling';
 import BackButton from '../../../shared/components/BackButton';
 import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
 import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
@@ -31,6 +31,10 @@ export default function JobCardTransactionViewPage() {
       try {
         const entityRes = await getEntity(ENTITY_NAME, decodeURIComponent(id));
         if (!mounted) return;
+        if (isNotFoundResponse(entityRes)) {
+          setNotFound(true);
+          return;
+        }
         setEntity(
           entityRes.data && typeof entityRes.data === 'object'
             ? (entityRes.data as Record<string, unknown>)
@@ -38,7 +42,7 @@ export default function JobCardTransactionViewPage() {
         );
       } catch (err) {
         if (!mounted) return;
-        if (isNotFoundError(err)) {
+        if (isNotFoundErrorOrMessage(err)) {
           setNotFound(true);
           return;
         }

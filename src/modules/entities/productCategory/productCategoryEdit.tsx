@@ -20,7 +20,7 @@ import {
   getEditBreadcrumbLabel,
   getEditPageDescription,
 } from '../../../shared/utils/entityPageLabels';
-import { NOT_FOUND_PATH, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
+import { NOT_FOUND_PATH, NOT_FOUND_REASON_DEFAULT, NOT_FOUND_REASON_INVALID_URL } from '../../../config/navigation.config';
 
 const ENTITY_NAME = 'product_category';
 
@@ -32,7 +32,7 @@ export default function ProductCategoryEditPage() {
       ? decodeURIComponent(String(id).trim())
       : undefined;
   const entityConfig = getEntityConfig(ENTITY_NAME);
-  const { data: rawEntity, loading: dataLoading, error: loadError } = useEntityLoad(
+  const { data: rawEntity, loading: dataLoading, error: loadError, notFound } = useEntityLoad(
     ENTITY_NAME,
     decodedId,
     { errorMessage: 'Failed to load product category' }
@@ -106,6 +106,12 @@ export default function ProductCategoryEditPage() {
   if (!decodedId) {
     return (
       <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_INVALID_URL }} replace />
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Navigate to={NOT_FOUND_PATH} state={{ reason: NOT_FOUND_REASON_DEFAULT }} replace />
     );
   }
 
