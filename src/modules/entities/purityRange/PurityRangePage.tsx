@@ -118,7 +118,14 @@ export default function PurityRangePage() {
     [idField, navigate, entityConfig.routes.edit, handleDeleteClick]
   );
 
-  const handleRowClick = () => {};
+  const handleRowClick = useCallback(
+    (row: EntityRow) => {
+      const rowId = row[idField];
+      if (rowId === undefined || rowId === null) return;
+      navigate(entityConfig.routes.detail.replace(':id', String(rowId)));
+    },
+    [idField, navigate, entityConfig.routes.detail]
+  );  
 
   const deleteDisplayName =
     deleteConfirmRow != null
