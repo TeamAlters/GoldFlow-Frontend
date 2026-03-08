@@ -2,15 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUIStore } from '../../stores/ui.store';
 import Breadcrumbs from '../../layout/Breadcrumbs';
 import ListPageLayout from '../../shared/components/ListPageLayout';
-import FilterComponent from '../../shared/components/FilterComponent';
 import type { FilterValue } from '../../shared/components/FilterComponent';
-import {
-  commonReportFiltersToParams,
-  buildCommonReportFilterConfig,
-  getCommonReportFilterColumns,
-} from '../../shared/utils/reportFilters';
+import { commonReportFiltersToParams } from '../../shared/utils/reportFilters';
 import type { CommonReportFilterParams } from '../../shared/utils/reportFilters';
-import { useReportFilterOptions } from '../../shared/hooks/useReportFilterOptions';
 import { getStockManagementReport } from './stockManagementReport.api';
 import type { StockManagementReportData } from './stockManagementReport.api';
 import { StockManagementReceiptSection } from './StockManagementReceiptSection';
@@ -21,8 +15,7 @@ import { showErrorToastUnlessAuth } from '../../shared/utils/errorHandling';
 
 export default function StockManagementReportPage() {
   const isDarkMode = useUIStore((s) => s.isDarkMode);
-  const { customerOptions, purityOptions } = useReportFilterOptions();
-  const [filters, setFilters] = useState<Record<string, FilterValue>>({});
+  const [filters, _setFilters] = useState<Record<string, FilterValue>>({});
   const [data, setData] = useState<StockManagementReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,29 +40,9 @@ export default function StockManagementReportPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleFilterChange = useCallback(
-    (newFilters: Record<string, FilterValue>) => {
-      setFilters(newFilters);
-      applyFilters(newFilters);
-    },
-    [applyFilters]
-  );
-
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    getStockManagementReport({})
-      .then((reportData) => {
-        setData(reportData);
-      })
-      .catch((err) => {
-        const msg = err instanceof Error ? err.message : 'Failed to load report';
-        showErrorToastUnlessAuth(msg);
-        setError(msg);
-        setData(null);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    applyFilters({});
+  }, [applyFilters]);
 
   const onToggleReceiptExpand = useCallback((key: string) => {
     setReceiptExpanded((prev) => {
@@ -97,12 +70,6 @@ export default function StockManagementReportPage() {
       return next;
     });
   }, []);
-
-  const columns = useMemo(() => getCommonReportFilterColumns(), []);
-  const filterConfig = useMemo(
-    () => buildCommonReportFilterConfig(customerOptions, purityOptions),
-    [customerOptions, purityOptions]
-  );
 
   const card = isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
   const filterParams: CommonReportFilterParams = useMemo(

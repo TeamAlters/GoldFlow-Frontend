@@ -193,7 +193,6 @@ function ReceiptDetailsTable({
   const container = tableContainerClass(isDarkMode);
   const th = thClass(isDarkMode);
   const td = tdClass(isDarkMode);
-  const borderR = isDarkMode ? 'border-r border-gray-600' : 'border-r border-gray-200';
   const totalWeight = details.length ? sumWeight(details) : '0.0000';
   const totalFineWeight = details.length ? sumFineWeight(details) : '0.0000';
 
@@ -248,7 +247,6 @@ function IssueDetailsTable({
   const container = tableContainerClass(isDarkMode);
   const th = thClass(isDarkMode);
   const td = tdClass(isDarkMode);
-  const borderR = isDarkMode ? 'border-r border-gray-600' : 'border-r border-gray-200';
   const totalGross = details.length ? issueSumGross(details) : '0.0000';
   const totalFine = details.length ? issueSumFine(details) : '0.0000';
 
