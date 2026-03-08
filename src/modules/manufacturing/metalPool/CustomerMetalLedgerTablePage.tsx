@@ -3,7 +3,6 @@ import { useUIStore } from '../../../stores/ui.store';
 import { getMetalPoolBalance, type MetalPoolBalanceRow } from './metalPoolBalance.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import BackButton from '../../../shared/components/BackButton';
 
 export default function CustomerMetalLedgerTablePage() {
   const isDarkMode = useUIStore((s) => s.isDarkMode);
@@ -31,9 +30,6 @@ export default function CustomerMetalLedgerTablePage() {
       mounted = false;
     };
   }, []);
-
-  const sectionClass = `border rounded-lg p-4 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-    }`;
 
   return (
     <div className="w-full">

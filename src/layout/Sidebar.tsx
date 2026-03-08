@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useUIStore } from '../stores/ui.store';
-import { useAuthStore } from '../auth/auth.store';
-import { logout as logoutApi } from '../auth/auth.api';
-import { showErrorToastUnlessAuth } from '../shared/utils/errorHandling';
 import { sidebarNavConfig, type NavCategory, type NavItem } from '../config/navigation.config';
 
 type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
@@ -229,29 +226,13 @@ function MenuCategory({
 // ─── Main Sidebar ─────────────────────────────────────────────────────────────
 export default function Sidebar({ mode, onCollapseToggle, onMobileClose: _onMobileClose }: SidebarProps) {
   const location = useLocation();
-  const navigate = useNavigate();
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const token = useAuthStore((state) => state.token);
-  const logout = useAuthStore((state) => state.logout);
   const [search, setSearch] = useState('');
 
   if (location.pathname === '/login' || location.pathname === '/signUp') return null;
 
   const isExpanded = mode === 'expanded';
   const isVisible = mode !== 'hidden';
-
-  const handleLogout = async () => {
-    if (token) {
-      try {
-        await logoutApi(token);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : '';
-        showErrorToastUnlessAuth(msg);
-      }
-    }
-    logout();
-    navigate('/login', { replace: true });
-  };
 
   const filteredNav = search.trim()
     ? sidebarNavConfig

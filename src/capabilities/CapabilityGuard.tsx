@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
-import { useUIStore } from '../../stores/ui.store';
-import Breadcrumbs from '../../layout/Breadcrumbs';
-import { RolesPermissionsTable, type PermissionsMatrix } from './rolesAndPermissionForm';
-import { roleConfig } from '../../config/entity.config';
-import { getRole, permissionsFromApi } from './role.api';
-import { showErrorToastUnlessAuth } from '../../shared/utils/errorHandling';
-import { formatDateTime } from '../../shared/utils/dateUtils';
+import { useUIStore } from '../stores/ui.store';
+import Breadcrumbs from '../layout/Breadcrumbs';
+import { RolesPermissionsTable, type PermissionsMatrix } from '../auth/rolesAndPermission/rolesAndPermissionForm';
+import { roleConfig } from '../config/entity.config';
+import { getRole } from '../modules/entities/role/role.api';
+import { permissionsFromRole } from '../modules/entities/role/roleEdit';
+import { showErrorToastUnlessAuth } from '../shared/utils/errorHandling';
+import { formatDateTime } from '../shared/utils/dateUtils';
 
 export default function RolesAndPermissionViewPage() {
     const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function RolesAndPermissionViewPage() {
         const perms = role?.permissions;
         if (perms && typeof perms === 'object' && !Array.isArray(perms)) {
             const keys = Object.keys(perms).sort();
-            return { entityNames: keys, permissionsMatrix: permissionsFromApi(perms) };
+            return { entityNames: keys, permissionsMatrix: permissionsFromRole(role ?? null, keys) };
         }
         return { entityNames: [] as string[], permissionsMatrix: {} as PermissionsMatrix };
     }, [role]);
@@ -41,7 +42,7 @@ export default function RolesAndPermissionViewPage() {
         navigate(roleConfig.routes.list);
     }, [navigate]);
 
-    const editUrl = id ? roleConfig.routes.edit.replace(':id', id) : roleConfig.routes.list;
+    const editUrl = id ? (roleConfig.routes.edit?.replace(':id', id) ?? roleConfig.routes.list) : roleConfig.routes.list;
 
     if (!id) {
         return <Navigate to={roleConfig.routes.list} replace />;
@@ -97,7 +98,7 @@ export default function RolesAndPermissionViewPage() {
                 items={[
                     { label: 'Dashboard', href: '/dashboard' },
                     { label: 'Roles & Permissions', href: roleConfig.routes.list },
-                    { label: role.name ?? 'Role' },
+                    { label: role.role_name ?? 'Role' as string },
                 ]}
                 className="mb-4"
             />
@@ -105,7 +106,7 @@ export default function RolesAndPermissionViewPage() {
                 <h1
                     className={`text-2xl sm:text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
                 >
-                    {role.name ?? 'Role'}
+                    {role.role_name ?? 'Role' as string}
                 </h1>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     View role details and entity permissions.
@@ -120,7 +121,7 @@ export default function RolesAndPermissionViewPage() {
                         <div
                             className={`min-h-[42px] px-4 py-2.5 flex items-center rounded-lg border text-sm ${isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
                         >
-                            {role.name ?? '–'}
+                            {role.role_name ?? '–'}
                         </div>
                     </div>
                     <div>
@@ -145,7 +146,7 @@ export default function RolesAndPermissionViewPage() {
                             </div>
                         </div>
                     )}
-                    {role.updated_at != null && (
+                    {role.modified_at != null && (
                         <div>
                             <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                 Updated At
@@ -153,11 +154,11 @@ export default function RolesAndPermissionViewPage() {
                             <div
                                 className={`min-h-[42px] px-4 py-2.5 flex items-center rounded-lg border text-sm ${isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
                             >
-                                {formatDateTime(role.updated_at)}
+                                {formatDateTime(role.modified_at)}
                             </div>
                         </div>
                     )}
-                    {(role.description != null && role.description !== '') && (
+                    {(role.role_description != null && role.role_description !== '') && (
                         <div className="md:col-span-2">
                             <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                 Description
@@ -165,7 +166,7 @@ export default function RolesAndPermissionViewPage() {
                             <div
                                 className={`min-h-[42px] px-4 py-2.5 flex items-center rounded-lg border text-sm ${isDarkMode ? 'bg-gray-700/50 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
                             >
-                                {role.description}
+                                {role.role_description}
                             </div>
                         </div>
                     )}

@@ -1,19 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Navigate, Link } from 'react-router-dom';
-import { getEntityConfig } from '../../../config/entity.config';
-import { getEntity } from '../../admin/admin.api';
-import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
-import { useUIStore } from '../../../stores/ui.store';
-import StaticWireSizeForm, { type StaticWireSizeFormData } from './wireSizeForm';
-import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toInitialWireSizeData } from './wireSizeCreate';
+import { getEntityConfig } from '../../config/entity.config';
+import { getEntity } from '../admin/admin.api';
+import { showErrorToastUnlessAuth } from '../../shared/utils/errorHandling';
+import { useUIStore } from '../../stores/ui.store';
+import StaticWireSizeForm, { type StaticWireSizeFormData } from '../entities/wireSize/wireSizeForm';
+import Breadcrumbs from '../../layout/Breadcrumbs';
+import { toInitialWireSizeData } from '../entities/wireSize/wireSizeCreate';
 import {
   getViewPageHeading,
   getViewBreadcrumbLabel,
   getViewPageDescription,
-} from '../../../shared/utils/entityPageLabels';
-import AuditTrailsCard from '../../../shared/components/AuditTrailsCard';
-import BackButton from '../../../shared/components/BackButton';
+} from '../../shared/utils/entityPageLabels';
+import AuditTrailsCard from '../../shared/components/AuditTrailsCard';
+import BackButton from '../../shared/components/BackButton';
 
 const ENTITY_NAME = 'wire_size';
 
@@ -32,14 +32,14 @@ export default function WireSizeViewPage() {
     if (!id) return;
     setDataLoading(true);
     getEntity(ENTITY_NAME, decodeURIComponent(id))
-      .then((res) => {
+      .then((res: { data?: unknown }) => {
         if (res.data && typeof res.data === 'object') {
           const entity = res.data as Record<string, unknown>;
           setInitialData(toInitialWireSizeData(entity));
           setRawEntity(entity);
         }
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : 'Failed to load wire size';
         showErrorToastUnlessAuth(msg);
       })
@@ -50,8 +50,8 @@ export default function WireSizeViewPage() {
     navigate(entityConfig.routes.list);
   }, [navigate, entityConfig.routes.list]);
 
-  const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const editUrl = id ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id)) : '';
+  const isDarkMode = useUIStore((state: { isDarkMode: boolean }) => state.isDarkMode);
+  const editUrl = id ? (entityConfig.routes.edit?.replace(':id', encodeURIComponent(id)) ?? '') : '';
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;

@@ -90,7 +90,7 @@ export default function AccessoryPurityViewPage() {
   }, [id, entityConfig, navigate]);
 
   const editUrl = id
-    ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id))
+    ? (entityConfig.routes.edit?.replace(':id', encodeURIComponent(id)) ?? '')
     : '';
 
   if (!id) {

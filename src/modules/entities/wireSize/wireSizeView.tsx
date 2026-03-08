@@ -87,7 +87,7 @@ export default function WireSizeViewPage() {
   const isDarkMode = useUIStore((state) => state.isDarkMode);
   const sectionClass = getSectionClass(isDarkMode);
 
-  const editUrl = id ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id)) : '';
+  const editUrl = id ? (entityConfig.routes.edit?.replace(':id', encodeURIComponent(id)) ?? '') : '';
 
   if (!id) {
     return (

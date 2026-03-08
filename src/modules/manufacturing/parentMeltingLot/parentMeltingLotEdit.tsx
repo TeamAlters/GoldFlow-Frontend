@@ -99,7 +99,7 @@ export default function ParentMeltingLotEdit() {
           toast.success(response.message || 'Parent melting lot updated successfully');
           const newId = getRedirectIdAfterUpdate(
             response,
-            data as Record<string, unknown>,
+            data as unknown as Record<string, unknown>,
             id,
             ['name', 'id']
           );

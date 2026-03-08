@@ -4,9 +4,9 @@ import { getEntityConfig } from '../../../config/entity.config';
 import { getEntity } from '../../admin/admin.api';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';
 import { useUIStore } from '../../../stores/ui.store';
-import StaticWireSizeForm, { type StaticWireSizeFormData } from './wireSizeForm';
+import StaticWireSizeForm, { type StaticWireSizeFormData } from '../../entities/wireSize/wireSizeForm';
 import Breadcrumbs from '../../../layout/Breadcrumbs';
-import { toInitialWireSizeData } from './wireSizeCreate';
+import { toInitialWireSizeData } from '../../entities/wireSize/wireSizeCreate';
 import {
   getViewPageHeading,
   getViewBreadcrumbLabel,
@@ -51,7 +51,7 @@ export default function WireSizeViewPage() {
   }, [navigate, entityConfig.routes.list]);
 
   const isDarkMode = useUIStore((state) => state.isDarkMode);
-  const editUrl = id ? entityConfig.routes.edit.replace(':id', encodeURIComponent(id)) : '';
+  const editUrl = id ? (entityConfig.routes.edit?.replace(':id', encodeURIComponent(id)) ?? '') : '';
 
   if (!id) {
     return <Navigate to={entityConfig.routes.list} replace />;

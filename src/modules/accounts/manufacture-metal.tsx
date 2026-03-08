@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useUIStore } from '../stores/ui.store';
-import { useAuthStore } from '../auth/auth.store';
-import { logout as logoutApi } from '../auth/auth.api';
-import { showErrorToastUnlessAuth } from '../shared/utils/errorHandling';
+import { useUIStore } from '../../stores/ui.store';
+import { useAuthStore } from '../../auth/auth.store';
+import { logout as logoutApi } from '../../auth/auth.api';
+import { showErrorToastUnlessAuth } from '../../shared/utils/errorHandling';
 import {
   sidebarNavConfig,
   type NavCategory,
-} from '../config/navigation.config';
+} from '../../config/navigation.config';
 
 interface SidebarProps {
   isOpen: boolean;

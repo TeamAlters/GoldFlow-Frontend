@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEntityConfig } from '../../../config/entity.config';
-import { createEntity, getEntityReferences, mapReferenceItemsToOptions } from '../../admin/admin.api';
+import { createEntity, getEntityReferences } from '../../admin/admin.api';
 import { getCreatedEntityId } from '../../../shared/utils/entityNavigation';
 import { toast } from '../../../stores/toast.store';
 import { showErrorToastUnlessAuth } from '../../../shared/utils/errorHandling';

@@ -72,7 +72,7 @@ export default function ProductCategoryViewPage() {
     }
   }, [id, entityConfig, navigate]);
 
-  const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+  const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
 
   if (!id) {
     return (

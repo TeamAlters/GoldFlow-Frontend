@@ -123,27 +123,6 @@ export async function getEntityMetadata(entityName: string): Promise<EntityMetad
   const rawFields = Array.isArray(raw.fields) ? raw.fields : [];
   const fields: EntityField[] = rawFields.map((f: Record<string, unknown>) => {
     const label = (f.label as string) ?? '';
-    // #region agent log
-    if (!label && (f.visible_in_list as boolean) !== false) {
-      fetch('http://127.0.0.1:7242/ingest/9e661e4b-dcf6-42e4-a9d4-87b9c1be1cf9', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'admin.api.ts:normalizeFields',
-          message: 'Field has empty label but visible_in_list',
-          data: {
-            entityName,
-            fieldName: (f.name as string) ?? (f.field as string),
-            hasDisplayName: 'display_name' in f && !!f.display_name,
-            rawLabel: f.label,
-            rawDisplayName: f.display_name,
-            hypothesisId: 'H1',
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
     const name = (f.name as string) ?? (f.field as string) ?? '';
     return {
       name,

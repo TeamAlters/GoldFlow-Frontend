@@ -23,7 +23,7 @@ export default function DepartmentGroupPage() {
     entityConfig,
     entityMetadata,
     metadataLoading,
-    metadataError,
+    metadataError: _metadataError,
     items,
     listLoading,
     page,

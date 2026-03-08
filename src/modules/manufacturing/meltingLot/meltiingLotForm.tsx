@@ -126,7 +126,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   const [metalPoolWeightErrors, setMetalPoolWeightErrors] = useState<Record<string, string>>({});
 
   // Weight details visibility
-  const [showWeightDetails, setShowWeightDetails] = useState(false);
+  const [_showWeightDetails, setShowWeightDetails] = useState(false);
 
   // Load parent melting lot references
   useEffect(() => {
@@ -290,7 +290,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   const currentPurityPercentage = formData.purity ? (purityPercentageMap[formData.purity] || meltingLotPurityPercentage || 0) : (meltingLotPurityPercentage || 0);
 
   // Update weight details when purity changes
-  const updateWeightDetailsPurity = (details: WeightDetail[]) => {
+  const _updateWeightDetailsPurity = (details: WeightDetail[]) => {
     return details.map((detail) => calculateWeightDetail(detail, currentPurityPercentage));
   };
 
@@ -392,7 +392,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   };
 
   // Handle weight detail cell change
-  const handleWeightDetailChange = (index: number, key: string, value: string) => {
+  const _handleWeightDetailChange = (index: number, key: string, value: string) => {
     const newDetails = [...formData.weight_details];
     let updated = { ...newDetails[index], [key]: value };
     
@@ -409,7 +409,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   };
 
   // Add weight detail row
-  const handleAddWeightDetail = () => {
+  const _handleAddWeightDetail = () => {
     setFormData((prev) => ({
       ...prev,
       weight_details: [...prev.weight_details, { ...emptyWeightDetail }],
@@ -426,7 +426,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   };
 
   // Clear weight detail row - empties values but keeps the row
-  const handleClearWeightDetail = (index: number) => {
+  const _handleClearWeightDetail = (index: number) => {
     const detail = formData.weight_details[index];
     
     // Clear the corresponding metal pool weight
@@ -863,7 +863,7 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
   );
 
   // Handler to fill weight details from metal pool balance
-  const handleFillWeightDetails = () => {
+  const _handleFillWeightDetails = () => {
     if (metalPoolBalance.length === 0) return;
     
     // Create weight detail entries from metal pool balance
@@ -880,6 +880,10 @@ const MeltingLotFormInner = forwardRef<MeltingLotFormRef, MeltingLotFormProps>(f
     }));
     setShowWeightDetails(true);
   };
+
+  useEffect(() => {
+    void [_updateWeightDetailsPurity, _handleWeightDetailChange, _handleAddWeightDetail, _handleClearWeightDetail, _handleFillWeightDetails];
+  }, [_updateWeightDetailsPurity, _handleWeightDetailChange, _handleAddWeightDetail, _handleClearWeightDetail, _handleFillWeightDetails]);
 
   // Section 2: Metal Pool Balance (table with Weight input)
   const metalPoolSection = (

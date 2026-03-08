@@ -6,12 +6,9 @@ import {
   MAX_NUMERIC_63_LENGTH,
   MAX_TEXT_FIELD_LENGTH,
   validateTextMaxLength,
-  getTextInputDescription,
-  getDecimalInputDescription,
   sanitizeNumeric63Input,
   validateNumeric63,
 } from '../../../shared/utils/formValidation';
-import { FormFieldHint } from '../../../shared/components/FormFieldHint';
 import { getEntityDetailRoute } from '../../../shared/utils/referenceLinks';
 
 export type StaticCustomerMasterFormData = {
@@ -62,13 +59,6 @@ const emptyForm: StaticCustomerMasterFormData = {
   design_name: '',
   wastage: '',
 };
-
-function parseNum(s: string): number | null {
-  const t = s.trim();
-  if (t === '') return null;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : null;
-}
 
 const StaticCustomerMasterFormInner = forwardRef<
   StaticCustomerMasterFormRef,

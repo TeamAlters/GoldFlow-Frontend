@@ -108,7 +108,7 @@ export default function JobCardEditPage() {
   const [cardFlow, setCardFlow] = useState<CardFlowStep[] | undefined>(undefined);
   const [nextDepartmentGroup, setNextDepartmentGroup] = useState<string | undefined>(undefined);
   const [nextDepartment, setNextDepartment] = useState<string | undefined>(undefined);
-  const [auditData, setAuditData] = useState<{
+  const [_auditData, setAuditData] = useState<{
     created_by?: string;
     created_at?: string;
     modified_at?: string;
@@ -1025,19 +1025,19 @@ export default function JobCardEditPage() {
               <div className={`flex justify-between items-baseline py-2 ${isDarkMode ? 'border-b border-gray-600' : 'border-b border-gray-200'}`}>
                 <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Created By</span>
                 <span className={`text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                  {auditData.created_by ?? '–'}
+                  {_auditData.created_by ?? '–'}
                 </span>
               </div>
               <div className={`flex justify-between items-baseline py-2 ${isDarkMode ? 'border-b border-gray-600' : 'border-b border-gray-200'}`}>
                 <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Created At</span>
                 <span className={`text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                  {auditData.created_at ? formatDateTime(auditData.created_at) : '–'}
+                  {_auditData.created_at ? formatDateTime(_auditData.created_at) : '–'}
                 </span>
               </div>
               <div className={`flex justify-between items-baseline py-2 ${isDarkMode ? 'border-b border-gray-600' : 'border-b border-gray-200'}`}>
                 <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Modified At</span>
                 <span className={`text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                  {auditData.modified_at ? formatDateTime(auditData.modified_at) : '–'}
+                  {_auditData.modified_at ? formatDateTime(_auditData.modified_at) : '–'}
                 </span>
               </div>
             </div>

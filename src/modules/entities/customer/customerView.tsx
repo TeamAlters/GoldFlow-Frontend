@@ -63,7 +63,7 @@ export default function CustomerViewPage() {
   const sectionClass = getSectionClass(isDarkMode);
   const isDeleting = deletingId === (id ?? '');
 
-  const editUrl = entityConfig.routes.edit.replace(':id', id ?? '');
+  const editUrl = entityConfig.routes.edit?.replace(':id', id ?? '') ?? '';
 
   if (!id) {
     return (
