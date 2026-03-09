@@ -22,6 +22,8 @@ export interface EditableWeightTableProps<T> {
   showAddButton?: boolean;
   showTotals?: boolean;
   showActions?: boolean;
+  /** Position of the actions column relative to the Sr.no column (default: 'right') */
+  actionsPosition?: 'left' | 'right';
   onAddRow?: () => void;
   onDeleteRow?: (index: number) => void;
   onClearRow?: (index: number) => void;
@@ -38,6 +40,7 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
   showAddButton = true,
   showTotals = true,
   showActions = true,
+  actionsPosition = 'right',
   onAddRow,
   onDeleteRow,
   onClearRow,
@@ -50,6 +53,7 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
   // Determine if actions should be shown (delete/clear) and/or custom renderActions
   const showActionButtons = showActions && (onDeleteRow || onClearRow);
   const showActionsColumn = showActionButtons || !!renderActions;
+  const isActionsLeft = showActionsColumn && actionsPosition === 'left';
 
   const inputClass = readOnly
     ? `w-full px-2 py-1.5 text-sm rounded border ${
@@ -99,34 +103,142 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
     >
       <div className="overflow-x-auto overflow-y-visible">
         <table className="min-w-full table-fixed w-full">
-        <colgroup>
-          <col style={{ width: '3rem' }} />
-          {columns.map((col) => (
-            <col key={col.key} style={col.widthStyle ? { width: col.widthStyle } : undefined} />
-          ))}
-          {showActionsColumn && <col style={{ width: '5rem' }} />}
-        </colgroup>
-        <thead>
-          <tr className={isDarkMode ? 'border-b border-gray-600' : 'border-b border-gray-200'}>
-            <th className={`${thClass} border-r w-12 shrink-0`}>Sr.no</th>
-            {columns.map((col, i) => (
-              <th key={col.key} className={`${thClass} ${i < columns.length - 1 ? 'border-r' : ''} ${col.width || ''} overflow-hidden`}>
-                <span className="block truncate" title={col.header}>{col.header}</span>
-              </th>
+          <colgroup>
+            {isActionsLeft && showActionsColumn && <col style={{ width: '5rem' }} />}
+            <col style={{ width: '3rem' }} />
+            {columns.map((col) => (
+              <col
+                key={col.key}
+                style={col.widthStyle ? { width: col.widthStyle } : undefined}
+              />
             ))}
-            {showActionsColumn && (
-              <th className={`${thClass} shrink-0 ${renderActions && showActionButtons ? 'w-32' : renderActions ? 'w-20' : 'w-24'}`}>
-                Actions
-              </th>
-            )}
-          </tr>
-        </thead>
+            {!isActionsLeft && showActionsColumn && <col style={{ width: '5rem' }} />}
+          </colgroup>
+          <thead>
+            <tr
+              className={
+                isDarkMode ? 'border-b border-gray-600' : 'border-b border-gray-200'
+              }
+            >
+              {showActionsColumn && isActionsLeft && (
+                <th
+                  className={`${thClass} shrink-0 ${
+                    renderActions && showActionButtons
+                      ? 'w-32'
+                      : renderActions
+                        ? 'w-20'
+                        : 'w-24'
+                  }`}
+                >
+                  Actions
+                </th>
+              )}
+              <th className={`${thClass} border-r w-12 shrink-0`}>Sr.no</th>
+              {columns.map((col, i) => (
+                <th
+                  key={col.key}
+                  className={`${thClass} ${
+                    i < columns.length - 1 ? 'border-r' : ''
+                  } ${col.width || ''} overflow-hidden`}
+                >
+                  <span className="block truncate" title={col.header}>
+                    {col.header}
+                  </span>
+                </th>
+              ))}
+              {showActionsColumn && !isActionsLeft && (
+                <th
+                  className={`${thClass} shrink-0 ${
+                    renderActions && showActionButtons
+                      ? 'w-32'
+                      : renderActions
+                        ? 'w-20'
+                        : 'w-24'
+                  }`}
+                >
+                  Actions
+                </th>
+              )}
+            </tr>
+          </thead>
+          {/*
+            Helper to render the actions cell. Positioned either before or after the Sr.no column
+            depending on actionsPosition.
+          */}
+          {/*
+            eslint-disable-next-line react/no-unstable-nested-components
+          */}
+          {/*
+            Note: This function is defined inside the component to capture props like onDeleteRow.
+          */}
+          {/* eslint comments are safe here if a linter rule is present; otherwise they are ignored. */}
         <tbody className={isDarkMode ? 'divide-y divide-gray-600 bg-gray-800' : 'divide-y divide-gray-200 bg-white'}>
           {data.map((row, index) => (
             <tr key={getRowId ? getRowId(row, index) : index}>
-              <td className={`${tdClass} border-r text-center font-medium shrink-0 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>
+              {showActionsColumn && isActionsLeft && (
+                <td className={`${tdClass} text-center shrink-0 w-20`}>
+                  <div className="flex items-center justify-center gap-1 flex-wrap">
+                    {renderActions && renderActions(row, index)}
+                    {onClearRow && (
+                      <button
+                        type="button"
+                        onClick={() => onClearRow(index)}
+                        className={`p-1.5 rounded transition-colors ${
+                          isDarkMode
+                            ? 'text-orange-400 hover:bg-orange-500/20'
+                            : 'text-orange-600 hover:bg-orange-50'
+                        }`}
+                        title="Clear row values"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                    {onDeleteRow && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteRow(index)}
+                        className={`p-1.5 rounded transition-colors ${
+                          isDarkMode
+                            ? 'text-red-400 hover:bg-red-500/20'
+                            : 'text-red-600 hover:bg-red-50'
+                        }`}
+                        title="Delete row"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </td>
+              )}
+              <td
+                className={`${tdClass} border-r text-center font-medium shrink-0 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}
+              >
                 {index + 1}
               </td>
               {columns.map((col, colIndex) => (
@@ -177,7 +289,7 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                   </div>
                 </td>
               ))}
-              {showActionsColumn && (
+              {showActionsColumn && !isActionsLeft && (
                 <td className={`${tdClass} text-center shrink-0 w-20`}>
                   <div className="flex items-center justify-center gap-1 flex-wrap">
                     {renderActions && renderActions(row, index)}
@@ -192,8 +304,18 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                         }`}
                         title="Clear row values"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
                         </svg>
                       </button>
                     )}
@@ -208,8 +330,18 @@ export default function EditableWeightTable<T extends Record<string, unknown>>({
                         }`}
                         title="Delete row"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
                     )}
