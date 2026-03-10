@@ -228,15 +228,25 @@ export default function DataTable<T extends Record<string, any>>({
                     <th
                       key={column.key}
                       style={{ width: column.width }}
-                      className={`align-middle px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap min-w-[6rem] ${thBgClass} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'
-                        } ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : '!text-left'} ${column.sortable
-                          ? `cursor-pointer ${thHoverClass}`
-                          : ''
-                        }`}
+                      className={`align-middle px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors whitespace-normal break-words min-w-[6rem] ${thBgClass} ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-800'
+                      } ${
+                        column.align === 'center'
+                          ? 'text-center'
+                          : column.align === 'right'
+                            ? 'text-right'
+                            : '!text-left'
+                      } ${column.sortable ? `cursor-pointer ${thHoverClass}` : ''}`}
                       onClick={() => column.sortable && handleSort(column.key)}
                     >
                       <div
-                        className={`flex items-center gap-2.5 min-w-0 ${column.align === 'center' ? 'justify-center' : column.align === 'right' ? 'justify-end' : 'justify-start'}`}
+                        className={`flex items-center gap-2.5 min-w-0 ${
+                          column.align === 'center'
+                            ? 'justify-center'
+                            : column.align === 'right'
+                              ? 'justify-end'
+                              : 'justify-start'
+                        }`}
                       >
                         <span title={column.header}>{column.header}</span>
                         {column.sortable && getSortIcon(column.key)}
@@ -246,8 +256,11 @@ export default function DataTable<T extends Record<string, any>>({
                 })}
                 {actions.length > 0 && (
                   <th
-                    className={`align-middle px-4 py-3 text-xs font-bold uppercase tracking-wider !text-left whitespace-nowrap min-w-[6rem] ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#F2EFE9] text-gray-800'
-                      }`}
+                    className={`sticky right-0 z-10 align-middle px-4 py-3 text-xs font-bold uppercase tracking-wider !text-left whitespace-normal break-words min-w-[6rem] border-l ${
+                      isDarkMode
+                        ? 'bg-gray-700 text-gray-300 border-gray-600'
+                        : 'bg-[#F2EFE9] text-gray-800 border-gray-200'
+                    }`}
                   >
                     Actions
                   </th>
@@ -285,7 +298,7 @@ export default function DataTable<T extends Record<string, any>>({
                   <tr
                     key={index}
                     onClick={() => onRowClick && onRowClick(row)}
-                    className={`transition-colors ${onRowClick
+                    className={`group transition-colors ${onRowClick
                       ? isDarkMode
                         ? 'hover:bg-gray-700 cursor-pointer'
                         : 'hover:bg-gray-50 cursor-pointer'
@@ -295,19 +308,39 @@ export default function DataTable<T extends Record<string, any>>({
                     {columns.map((column) => (
                       <td
                         key={column.key}
-                        className={`align-middle px-4 py-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-900'
-                          } ${column.align === 'center'
+                        className={`align-middle px-4 py-3 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-900'
+                        } ${
+                          column.align === 'center'
                             ? 'text-center'
                             : column.align === 'right'
                               ? 'text-right'
                               : '!text-left'
-                          }`}
-                        style={{ textAlign: column.align === 'center' ? 'center' : column.align === 'right' ? 'right' : 'left' }}
+                        }`}
+                        style={{
+                          textAlign:
+                            column.align === 'center'
+                              ? 'center'
+                              : column.align === 'right'
+                                ? 'right'
+                                : 'left',
+                        }}
                       >
                         <div
-                          className={`w-full min-w-0 ${column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : '!text-left'}`}
+                          className={`w-full min-w-0 ${
+                            column.align === 'center'
+                              ? 'text-center'
+                              : column.align === 'right'
+                                ? 'text-right'
+                                : '!text-left'
+                          }`}
                           style={{
-                            textAlign: column.align === 'center' ? 'center' : column.align === 'right' ? 'right' : 'left',
+                            textAlign:
+                              column.align === 'center'
+                                ? 'center'
+                                : column.align === 'right'
+                                  ? 'right'
+                                  : 'left',
                             wordBreak: 'break-word',
                             overflowWrap: 'break-word',
                           }}
@@ -317,7 +350,13 @@ export default function DataTable<T extends Record<string, any>>({
                       </td>
                     ))}
                     {actions.length > 0 && (
-                      <td className="px-4 py-3 !text-left">
+                      <td
+                        className={`sticky right-0 z-10 px-4 py-3 !text-left border-l ${
+                          isDarkMode
+                            ? 'bg-gray-800 border-gray-600 group-hover:bg-gray-700'
+                            : 'bg-white border-gray-200 group-hover:bg-gray-50'
+                        }`}
+                      >
                         <div className="flex items-center justify-start gap-1">
                           {(() => {
                             const visibleActions = actions.filter(
