@@ -23,13 +23,12 @@ import BackButton from '../../../shared/components/BackButton';
 import JobCardForm, {
   type JobCardFormData,
 } from './jobCardForm';
-import EditableWeightTable from '../../../shared/components/EditableWeightTable';
-import type { ColumnDef } from '../../../shared/components/EditableWeightTable';
 import JobCardReadOnlyTable from '../../../shared/components/JobCardReadOnlyTable';
 import Modal from '../../../shared/components/Modal';
 import { FormSelect } from '../../../shared/components/FormSelect';
 import {
   createIssueTransaction,
+  createReceiptTransaction,
   deleteIssueTransaction,
   type IssueTransaction,
 } from './jobCardTransactions.api';
@@ -116,6 +115,8 @@ export default function JobCardEditPage() {
 
   const [receiptDetailName, setReceiptDetailName] = useState<string | null>(null);
   const [issueDetailName, setIssueDetailName] = useState<string | null>(null);
+  const [receiptEditDraft, setReceiptEditDraft] = useState<IssueRow | null>(null);
+  const [receiptModalSaving, setReceiptModalSaving] = useState(false);
   const [issueEditDraft, setIssueEditDraft] = useState<IssueRow | null>(null);
   const [issueModalSaving, setIssueModalSaving] = useState(false);
   const [issueDetailIndex, setIssueDetailIndex] = useState<number | null>(null);
@@ -157,8 +158,12 @@ export default function JobCardEditPage() {
         if (entityRes.data && typeof entityRes.data === 'object') {
           const entity = entityRes.data as Record<string, unknown>;
           const transactions = (entity.transactions as JobCardTransaction[]) ?? [];
-          const receipts = (entity.receipts as JobCardTransaction[] | undefined) ?? transactions.filter((tx) => String(tx.transaction_type).trim() === RECEIPT_TYPE);
-          const issues = (entity.issues as JobCardTransaction[] | undefined) ?? transactions.filter((tx) => String(tx.transaction_type).trim() === ISSUE_TYPE);
+          const receipts =
+            (entity.receipts as JobCardTransaction[] | undefined) ??
+            transactions.filter((tx) => String(tx.transaction_type).trim() === RECEIPT_TYPE);
+          const issues =
+            (entity.issues as JobCardTransaction[] | undefined) ??
+            transactions.filter((tx) => String(tx.transaction_type).trim() === ISSUE_TYPE);
           const productName = String(entity.product ?? '');
           setEntityName(String(entity.name ?? decodedId));
           setInitialData({
@@ -182,22 +187,8 @@ export default function JobCardEditPage() {
           });
           setReceiptTransactions(receipts);
           setIssueTransactions(issues);
-
-          // If no issues exist, create a default row from job card details
-          if (issues.length === 0) {
-            const defaultIssueRow: IssueRow = {
-              item: '', // Leave empty for user to select from item dropdown
-              weight: '',
-              fine_weight: '',
-              karigar: (entity as any)?.karigar ? String(entity.karigar) : '',
-              qty: (entity as any)?.qty != null ? String(entity.qty) : '',
-              design: (entity as any)?.design ? String(entity.design) : '',
-              purity: (entity as any)?.purity ? String(entity.purity) : '',
-            };
-            setIssueRows([defaultIssueRow]);
-          } else {
-            setIssueRows(issues.map(toIssueRow));
-          }
+          // If no issues exist, start with an empty table; otherwise map existing issues to rows
+          setIssueRows(issues.length === 0 ? [] : issues.map(toIssueRow));
           setBalanceWeight(entity.balance_weight as number | string | undefined);
           setBalanceFineWeight(entity.balance_fine_weight as number | string | undefined);
           setIssuedWeight(
@@ -294,20 +285,44 @@ export default function JobCardEditPage() {
     navigate(entityConfig.routes.list);
   }, [navigate, entityConfig.routes.list]);
 
+  const handleAddReceiptRow = useCallback(() => {
+    if (!entityName) return;
+    const draft: IssueRow = {
+      name: '',
+      item: '',
+      weight: '',
+      fine_weight: '',
+      karigar: (initialData as any)?.karigar ? String((initialData as any).karigar) : '',
+      qty:
+        (initialData as any)?.qty != null && String((initialData as any).qty) !== ''
+          ? String((initialData as any).qty)
+          : '',
+      design: (initialData as any)?.design ? String((initialData as any).design) : '',
+      purity: (initialData as any)?.purity ? String((initialData as any).purity) : '',
+    };
+    setReceiptDetailName(null);
+    setReceiptEditDraft(draft);
+  }, [entityName, initialData]);
+
   const handleAddIssueRow = useCallback(() => {
-    setIssueRows((prev) => [
-      ...prev,
-      {
-        item: '',
-        weight: '',
-        fine_weight: '',
-        karigar: '',
-        qty: '',
-        design: '',
-        purity: '',
-      },
-    ]);
-  }, []);
+    // Open the Issue modal with a fresh draft row for new entry
+    const draft: IssueRow = {
+      name: '', // No name for new entries
+      item: '',
+      weight: '',
+      fine_weight: '',
+      karigar: (initialData as any)?.karigar ? String((initialData as any).karigar) : '',
+      qty:
+        (initialData as any)?.qty != null && String((initialData as any).qty) !== ''
+          ? String((initialData as any).qty)
+          : '',
+      design: (initialData as any)?.design ? String((initialData as any).design) : '',
+      purity: (initialData as any)?.purity ? String((initialData as any).purity) : '',
+    };
+    setIssueDetailIndex(null); // No index for new entries
+    setIssueDetailName(null); // No name for new entries
+    setIssueEditDraft(draft);
+  }, [initialData]);
 
   const handleDeleteIssueRow = useCallback(
     (index: number) => {
@@ -351,6 +366,26 @@ export default function JobCardEditPage() {
       : null;
 
   useEffect(() => {
+    if (receiptDetailName != null) {
+      const tx = receiptTransactions.find((t) => t.name === receiptDetailName) ?? null;
+      if (tx) {
+        setReceiptEditDraft({
+          name: tx.name ?? '',
+          item: tx.item ?? '',
+          weight: tx.weight ?? '',
+          fine_weight: tx.fine_weight ?? '',
+          karigar: tx.karigar ?? '',
+          qty: tx.qty ?? '',
+          design: tx.design ?? '',
+          purity: tx.purity ?? '',
+        });
+      }
+    } else {
+      setReceiptEditDraft(null);
+    }
+  }, [receiptDetailName, receiptTransactions]);
+
+  useEffect(() => {
     if (issueDetailName != null) {
       const row =
         issueDetailIndex != null
@@ -358,10 +393,74 @@ export default function JobCardEditPage() {
           : issueRows.find((r) => r.name === issueDetailName);
       const full = issueTransactions.find((t) => t.name === issueDetailName);
       setIssueEditDraft(row ? { ...row } : full ? toIssueRow(full) : null);
-    } else {
-      setIssueEditDraft(null);
     }
   }, [issueDetailName, issueDetailIndex, issueRows, issueTransactions]);
+
+  const handleSaveReceiptModal = useCallback(async () => {
+    if (!receiptEditDraft || !entityName) return;
+
+    const weightNumber = parseFloat(receiptEditDraft.weight ?? '');
+    const purityName =
+      receiptEditDraft.purity ?? (initialData?.purity ? String(initialData.purity) : '');
+    const pct =
+      purityPercentageMap[purityName] ??
+      (initialData?.purity === purityName && initialData?.purity_percentage
+        ? parseFloat(String(initialData.purity_percentage))
+        : NaN);
+    const fine =
+      !Number.isNaN(weightNumber) && weightNumber > 0 && !Number.isNaN(pct) && pct >= 0 && pct <= 100
+        ? (weightNumber * pct) / 100
+        : NaN;
+    const fineWeightNumber = !Number.isNaN(fine) && fine >= 0 ? fine : NaN;
+    const item = receiptEditDraft.item ?? '';
+
+    if (!item || Number.isNaN(weightNumber) || weightNumber <= 0) {
+      showErrorToastUnlessAuth(
+        !item
+          ? 'Item is required'
+          : 'Weight must be a positive number'
+      );
+      return;
+    }
+
+    if (Number.isNaN(fineWeightNumber)) {
+      showErrorToastUnlessAuth('Fine weight could not be calculated. Please check weight and purity.');
+      return;
+    }
+
+    setReceiptModalSaving(true);
+    try {
+      const tx = await createReceiptTransaction({
+        job_card: entityName,
+        item,
+        weight: weightNumber,
+        fine_weight: fineWeightNumber,
+        design: receiptEditDraft.design || undefined,
+        karigar: receiptEditDraft.karigar || undefined,
+        purity: receiptEditDraft.purity || undefined,
+      });
+
+      setReceiptTransactions((prev) => {
+        const idx = prev.findIndex((t) => t.name === tx.name);
+        if (idx === -1) return [...prev, tx];
+        const next = [...prev];
+        next[idx] = tx;
+        return next;
+      });
+
+      toast.success('Receipt transaction saved successfully');
+      setReceiptDetailName(null);
+      setReceiptEditDraft(null);
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Failed to save receipt transaction';
+      showErrorToastUnlessAuth(msg);
+    } finally {
+      setReceiptModalSaving(false);
+    }
+  }, [entityName, receiptEditDraft]);
 
   const handleSaveIssueModal = useCallback(async () => {
     if (!issueEditDraft || !entityName) return;
@@ -435,9 +534,6 @@ export default function JobCardEditPage() {
       setIssueDetailName(null);
       setIssueDetailIndex(null);
       setIssueEditDraft(null);
-      if (id) {
-        navigate(getRedirectToViewAfterEditUrl(ENTITY_NAME, id));
-      }
     } catch (err) {
       const msg =
         err instanceof Error
@@ -449,86 +545,6 @@ export default function JobCardEditPage() {
     }
   }, [entityName, issueDetailName, issueDetailIndex, issueEditDraft, id, navigate, entityConfig.routes.detail]);
 
-  // Validation functions
-  const validateWeight = (value: string): string | null => {
-    if (value === '') return null;
-    // Allow numbers with up to 4 decimal places, max 18 digits total
-    const weightRegex = /^\d{0,14}(\.\d{0,4})?$/;
-    if (!weightRegex.test(value)) {
-      return 'Weight must be numeric with max 4 decimal places (18,4)';
-    }
-    const num = parseFloat(value);
-    if (num < 0) {
-      return 'Weight must be positive';
-    }
-    return null;
-  };
-
-  const validateQty = (value: string): string | null => {
-    if (value === '') return null;
-    // Allow max 4 digits, no decimals
-    const qtyRegex = /^\d{0,4}$/;
-    if (!qtyRegex.test(value)) {
-      return 'Quantity must be max 4 digits';
-    }
-    const num = parseInt(value, 10);
-    if (num < 0) {
-      return 'Quantity must be positive';
-    }
-    return null;
-  };
-
-  const handleIssueCellChange = useCallback(
-    (index: number, key: string, value: string) => {
-      // Validate input
-      if (key === 'weight') {
-        const validationError = validateWeight(value);
-        if (validationError) {
-          // Don't update the value if invalid
-          return;
-        }
-      }
-
-      if (key === 'qty') {
-        const validationError = validateQty(value);
-        if (validationError) {
-          // Don't update the value if invalid
-          return;
-        }
-      }
-
-      setIssueRows((prev) => {
-        if (index < 0 || index >= prev.length) return prev;
-        const next = [...prev];
-        const current = { ...next[index] };
-
-        (current as Record<string, string>)[key] = value;
-
-        if (key === 'weight' || key === 'purity') {
-          const weightStr =
-            key === 'weight' ? value : String(current.weight ?? '');
-          const purityName = key === 'purity' ? value : String(current.purity ?? '');
-          const w = parseFloat(weightStr);
-          // Fine weight = weight * purity_percentage / 100 — use percentage from map or job card
-          const pct =
-            purityPercentageMap[purityName] ??
-            (initialData?.purity === purityName && initialData?.purity_percentage
-              ? parseFloat(String(initialData.purity_percentage))
-              : NaN);
-          const fine =
-            !Number.isNaN(w) && w > 0 && !Number.isNaN(pct) && pct >= 0 && pct <= 100
-              ? (w * pct) / 100
-              : NaN;
-          const fineWeightStr = !Number.isNaN(fine) && fine >= 0 ? fine.toFixed(4) : '';
-          (current as Record<string, string>)['fine_weight'] = fineWeightStr;
-        }
-
-        next[index] = current;
-        return next;
-      });
-    },
-    [validateWeight, validateQty, purityPercentageMap, initialData]
-  );
 
   const modalLabelClass = `block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`;
   const modalInputClass = (readOnly?: boolean) =>
@@ -552,62 +568,6 @@ export default function JobCardEditPage() {
     } disabled:opacity-60`;
   const closeBtnClass = `px-4 py-2.5 rounded-lg font-semibold text-sm shadow-md ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
     }`;
-
-  const issueColumns: ColumnDef<IssueRow>[] = [
-    {
-      key: 'item',
-      header: 'Item',
-      isDropdown: true,
-      dropdownOptions: itemOptions,
-      width: 'w-[12rem] min-w-[12rem]',
-      widthStyle: '12rem',
-    },
-    {
-      key: 'weight',
-      header: 'Weight (G)',
-      isEditable: true,
-      width: 'w-32 min-w-[8rem]',
-      widthStyle: '8rem',
-    },
-    {
-      key: 'fine_weight',
-      header: 'Fine WT (G)',
-      isEditable: true,
-      width: 'w-32 min-w-[8rem]',
-      widthStyle: '8rem',
-    },
-    {
-      key: 'karigar',
-      header: 'Karigar',
-      isDropdown: true,
-      dropdownOptions: karigarOptions,
-      width: 'w-[11rem] min-w-[11rem]',
-      widthStyle: '11rem',
-    },
-    {
-      key: 'qty',
-      header: 'Qty',
-      isEditable: true,
-      width: 'w-28 min-w-[7rem]',
-      widthStyle: '7rem',
-    },
-    {
-      key: 'design',
-      header: 'Design',
-      isDropdown: true,
-      dropdownOptions: designOptions,
-      width: 'w-[11rem] min-w-[11rem]',
-      widthStyle: '11rem',
-    },
-    {
-      key: 'purity',
-      header: 'Purity',
-      isDropdown: true,
-      dropdownOptions: purityOptions,
-      width: 'w-36 min-w-[9rem]',
-      widthStyle: '9rem',
-    },
-  ];
 
   if (!id) {
     return (
@@ -737,10 +697,12 @@ export default function JobCardEditPage() {
                   <button
                     type="button"
                     onClick={() => setReceiptDetailName(String(row.name ?? ''))}
-                    className={`p-1.5 rounded transition-colors ${isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'
+                    className={`p-1.5 rounded transition-colors ${isDarkMode
+                      ? 'text-blue-400 hover:bg-blue-500/20'
+                      : 'text-blue-600 hover:bg-blue-50'
                       }`}
-                    title="View details"
-                    aria-label="View receipt details"
+                    title="View / edit receipt"
+                    aria-label="View / edit receipt"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -754,45 +716,277 @@ export default function JobCardEditPage() {
                 No receipt transactions.
               </p>
             )}
+            <div className="flex justify-end pt-4">
+              <button
+                type="button"
+                onClick={handleAddReceiptRow}
+                className={`px-4 py-2 text-sm rounded-lg font-medium transition-all transform hover:scale-105 shadow-sm ${isDarkMode
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-md'
+                  }`}
+              >
+                + Add Row
+              </button>
+            </div>
           </div>
 
-          {/* Issue Balance */}
+          {/* Issue */}
           <div className={cardWrapperClass}>
             <h2 className={headerClass + ' pb-2 border-b'}>
               Issue
             </h2>
-            <EditableWeightTable<IssueRow>
-              columns={issueColumns}
-              data={issueRows}
-              onDataChange={setIssueRows}
-              readOnly={false}
-              showAddButton={true}
-              showTotals={false}
-              showActions={true}
-              onAddRow={handleAddIssueRow}
-              onDeleteRow={handleDeleteIssueRow}
-              onCellChange={handleIssueCellChange}
-              getRowId={(_, index) => index}
-              renderActions={(row) => (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const idx = issueRows.indexOf(row);
-                    setIssueDetailIndex(idx >= 0 ? idx : null);
-                    setIssueDetailName(String(row.name ?? ''));
-                  }}
-                  className={`p-1.5 rounded transition-colors ${isDarkMode ? 'text-blue-400 hover:bg-blue-500/20' : 'text-blue-600 hover:bg-blue-50'
-                    }`}
-                  title="View details"
-                  aria-label="View issue details"
+            <div
+              className={`overflow-x-auto rounded-lg border w-full ${
+                isDarkMode ? 'border-gray-600' : 'border-gray-200'
+              }`}
+            >
+              <table className="w-full">
+                <thead>
+                  <tr className={isDarkMode ? 'border-b border-gray-600' : 'border-b border-gray-200'}>
+                    <th
+                      className={`px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap text-left ${
+                        isDarkMode
+                          ? 'bg-gray-700 text-gray-200 border-gray-600 border-r'
+                          : 'bg-[#F2EFE9] text-gray-800 border-gray-200 border-r'
+                      }`}
+                    >
+                      Sr.no
+                    </th>
+                    {['Item', 'Weight (G)', 'Fine WT (G)', 'Karigar', 'Qty', 'Design', 'Purity'].map(
+                      (header) => (
+                        <th
+                          key={header}
+                          className={`px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap text-left ${
+                            isDarkMode
+                              ? 'bg-gray-700 text-gray-200 border-gray-600 border-r'
+                              : 'bg-[#F2EFE9] text-gray-800 border-gray-200 border-r'
+                          }`}
+                        >
+                          <span className="block truncate" title={header}>
+                            {header}
+                          </span>
+                        </th>
+                      )
+                    )}
+                    <th
+                      className={`px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap text-left ${
+                        isDarkMode
+                          ? 'bg-gray-700 text-gray-200 border-gray-600'
+                          : 'bg-[#F2EFE9] text-gray-800 border-gray-200'
+                      }`}
+                    >
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody
+                  className={
+                    isDarkMode
+                      ? 'divide-y divide-gray-600 bg-gray-800'
+                      : 'divide-y divide-gray-200 bg-white'
+                  }
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-              )}
-            />
+                  {issueRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={9}
+                        className={`px-4 py-8 text-sm text-center ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}
+                      >
+                        No issues. Click "Add Row" to create a new issue.
+                      </td>
+                    </tr>
+                  ) : (
+                    issueRows.map((row, index) => (
+                      <tr key={row.name ?? index} className={isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50'}>
+                        {/* Sr.no */}
+                        <td
+                          className={`px-4 py-2 text-sm text-left align-middle font-medium ${
+                            isDarkMode ? 'text-gray-300 border-gray-600 border-r' : 'text-gray-600 border-gray-200 border-r'
+                          }`}
+                        >
+                          {index + 1}
+                        </td>
+                        {/* Item */}
+                        <td
+                          className={`px-4 py-2 text-sm text-left align-middle font-medium ${
+                            isDarkMode ? 'text-gray-200 border-gray-600 border-r' : 'text-gray-900 border-gray-200 border-r'
+                          }`}
+                        >
+                          {row.item ? (
+                            (() => {
+                              const itemRoute = getEntityDetailRoute('item', row.item);
+                              if (!itemRoute) return <span>{row.item}</span>;
+                              return (
+                                <Link
+                                  to={itemRoute}
+                                  className={
+                                    isDarkMode
+                                      ? 'text-amber-400 hover:text-amber-300'
+                                      : 'text-[#B87820] hover:text-[#B87820]/80'
+                                  }
+                                >
+                                  {row.item}
+                                </Link>
+                              );
+                            })()
+                          ) : (
+                            '–'
+                          )}
+                        </td>
+                        {/* Weight */}
+                        <td
+                          className={`px-4 py-2 text-sm text-left align-middle font-medium ${
+                            isDarkMode ? 'text-gray-200 border-gray-600 border-r' : 'text-gray-900 border-gray-200 border-r'
+                          }`}
+                        >
+                          {row.weight || '–'}
+                        </td>
+                        {/* Fine weight */}
+                        <td
+                          className={`px-4 py-2 text-sm text-left align-middle font-medium ${
+                            isDarkMode ? 'text-gray-200 border-gray-600 border-r' : 'text-gray-900 border-gray-200 border-r'
+                          }`}
+                        >
+                          {row.fine_weight || '–'}
+                        </td>
+                        {/* Karigar */}
+                        <td
+                          className={`px-4 py-2 text-sm text-left align-middle ${
+                            isDarkMode ? 'text-gray-300 border-gray-600 border-r' : 'text-gray-700 border-gray-200 border-r'
+                          }`}
+                        >
+                          {row.karigar ? (
+                            (() => {
+                              const karigarRoute = getEntityDetailRoute('karigar', row.karigar);
+                              if (!karigarRoute) return <span>{row.karigar}</span>;
+                              return (
+                                <Link
+                                  to={karigarRoute}
+                                  className={
+                                    isDarkMode
+                                      ? 'text-amber-400 hover:text-amber-300'
+                                      : 'text-[#B87820] hover:text-[#B87820]/80'
+                                  }
+                                >
+                                  {row.karigar}
+                                </Link>
+                              );
+                            })()
+                          ) : (
+                            '–'
+                          )}
+                        </td>
+                        {/* Qty */}
+                        <td
+                          className={`px-4 py-2 text-sm text-left align-middle font-medium ${
+                            isDarkMode ? 'text-gray-200 border-gray-600 border-r' : 'text-gray-900 border-gray-200 border-r'
+                          }`}
+                        >
+                          {row.qty || '–'}
+                        </td>
+                        {/* Design */}
+                        <td
+                          className={`px-4 py-2 text-sm text-left align-middle ${
+                            isDarkMode ? 'text-gray-300 border-gray-600 border-r' : 'text-gray-700 border-gray-200 border-r'
+                          }`}
+                        >
+                          {row.design || '–'}
+                        </td>
+                        {/* Purity */}
+                        <td
+                          className={`px-4 py-2 text-sm text-left align-middle ${
+                            isDarkMode ? 'text-gray-300 border-gray-600 border-r' : 'text-gray-700 border-gray-200 border-r'
+                          }`}
+                        >
+                          {row.purity || '–'}
+                        </td>
+                        {/* Actions: eye + delete */}
+                        <td
+                          className={`px-4 py-2 text-sm text-left align-middle ${
+                            isDarkMode ? 'border-gray-600' : 'border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-start gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const idx = index;
+                                setIssueDetailIndex(idx);
+                                setIssueDetailName(String(row.name ?? ''));
+                              }}
+                              className={`p-1.5 rounded transition-colors ${isDarkMode
+                                  ? 'text-blue-400 hover:bg-blue-500/20'
+                                  : 'text-blue-600 hover:bg-blue-50'
+                                }`}
+                              title="View / edit issue"
+                              aria-label="View / edit issue"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteIssueRow(index)}
+                              className={`p-1.5 rounded transition-colors ${isDarkMode
+                                  ? 'text-red-400 hover:bg-red-500/20'
+                                  : 'text-red-600 hover:bg-red-50'
+                                }`}
+                              title="Delete issue"
+                              aria-label="Delete issue"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end pt-4">
+              <button
+                type="button"
+                onClick={handleAddIssueRow}
+                className={`px-4 py-2 text-sm rounded-lg font-medium transition-all transform hover:scale-105 shadow-sm ${isDarkMode
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-md'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-md'
+                  }`}
+              >
+                + Add Row
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1046,82 +1240,134 @@ export default function JobCardEditPage() {
         </div>
       </div>
 
-      {/* Receipt detail modal – eye opens, all data as input fields (read-only), like Configurations */}
+      {/* Receipt detail / edit modal – behaves like Issue modal */}
       <Modal
-        isOpen={receiptDetailName != null}
-        onClose={() => setReceiptDetailName(null)}
-        title={receiptDetail ? `Receipt: ${receiptDetail.name}` : 'Receipt details'}
+        isOpen={receiptDetailName != null || receiptEditDraft != null}
+        onClose={() => { setReceiptDetailName(null); setReceiptEditDraft(null); }}
+        title={receiptDetail ? `Receipt: ${receiptDetail.name}` : receiptEditDraft?.name ? `Receipt: ${receiptEditDraft.name}` : 'Receipt details'}
         size="lg"
         className="w-full max-w-4xl"
       >
-        {receiptDetail ? (
+        {receiptEditDraft ? (
           <>
             <h2 className={sectionHeadingClass}>Receipt</h2>
             <div className={modalFieldGridClass}>
               <div>
-                <label className={modalLabelClass}>Name</label>
-                <input type="text" readOnly value={receiptDetail.name ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Transaction Type</label>
-                <input type="text" readOnly value={receiptDetail.transaction_type ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Job Card</label>
-                <input type="text" readOnly value={receiptDetail.job_card ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
                 <label className={modalLabelClass}>Item</label>
-                <input type="text" readOnly value={receiptDetail.item ?? ''} className={modalInputClass(true)} />
+                <FormSelect
+                  value={receiptEditDraft.item ?? ''}
+                  onChange={(v) => setReceiptEditDraft((p) => (p ? { ...p, item: v } : null))}
+                  options={itemOptions}
+                  placeholder="Select Item"
+                  isDarkMode={isDarkMode}
+                />
               </div>
               <div>
                 <label className={modalLabelClass}>Weight</label>
-                <input type="text" readOnly value={receiptDetail.weight ?? ''} className={modalInputClass(true)} />
+                <input
+                  type="text"
+                  value={receiptEditDraft.weight ?? ''}
+                  onChange={(e) => {
+                    const newWeight = e.target.value;
+                    setReceiptEditDraft((p) => {
+                      if (!p) return null;
+                      const w = parseFloat(newWeight);
+                      const purityName = p.purity ?? (receiptDetail?.purity != null ? String(receiptDetail.purity) : '');
+                      const pct =
+                        purityPercentageMap[purityName] ??
+                        (initialData?.purity === purityName && initialData?.purity_percentage
+                          ? parseFloat(String(initialData.purity_percentage))
+                          : NaN);
+                      const fine =
+                        !Number.isNaN(w) && w > 0 && !Number.isNaN(pct) && pct >= 0 && pct <= 100
+                          ? (w * pct) / 100
+                          : NaN;
+                      const nextFine = !Number.isNaN(fine) && fine >= 0 ? fine.toFixed(4) : '';
+                      return { ...p, weight: newWeight, fine_weight: nextFine };
+                    });
+                  }}
+                  className={modalInputClass()}
+                />
               </div>
               <div>
                 <label className={modalLabelClass}>Fine Weight</label>
-                <input type="text" readOnly value={receiptDetail.fine_weight ?? ''} className={modalInputClass(true)} />
+                <input
+                  type="text"
+                  value={receiptEditDraft.fine_weight ?? ''}
+                  readOnly
+                  className={modalInputClass(true)}
+                />
               </div>
               <div>
                 <label className={modalLabelClass}>Karigar</label>
-                <input type="text" readOnly value={receiptDetail.karigar ?? ''} className={modalInputClass(true)} />
+                <FormSelect
+                  value={receiptEditDraft.karigar ?? ''}
+                  onChange={(v) => setReceiptEditDraft((p) => (p ? { ...p, karigar: v } : null))}
+                  options={karigarOptions}
+                  placeholder="Select Karigar"
+                  isDarkMode={isDarkMode}
+                />
               </div>
               <div>
                 <label className={modalLabelClass}>Purity</label>
-                <input type="text" readOnly value={receiptDetail.purity ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Qty</label>
-                <input type="text" readOnly value={receiptDetail.qty ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Created At</label>
-                <input type="text" readOnly value={receiptDetail.created_at ? formatDateTime(receiptDetail.created_at) : ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Modified At</label>
-                <input type="text" readOnly value={receiptDetail.modified_at ? formatDateTime(receiptDetail.modified_at) : ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Created By</label>
-                <input type="text" readOnly value={receiptDetail.created_by ?? ''} className={modalInputClass(true)} />
-              </div>
-              <div>
-                <label className={modalLabelClass}>Modified By</label>
-                <input type="text" readOnly value={receiptDetail.modified_by ?? ''} className={modalInputClass(true)} />
+                <FormSelect
+                  value={receiptEditDraft.purity ?? ''}
+                  onChange={(v) => setReceiptEditDraft((p) => {
+                    if (!p) return null;
+                    const w = parseFloat(p.weight ?? '');
+                    const pct =
+                      purityPercentageMap[v] ??
+                      (initialData?.purity === v && initialData?.purity_percentage
+                        ? parseFloat(String(initialData.purity_percentage))
+                        : NaN);
+                    const fine =
+                      !Number.isNaN(w) && w > 0 && !Number.isNaN(pct) && pct >= 0 && pct <= 100
+                        ? (w * pct) / 100
+                        : NaN;
+                    const nextFine = !Number.isNaN(fine) && fine >= 0 ? fine.toFixed(4) : '';
+                    return { ...p, purity: v, fine_weight: nextFine };
+                  })}
+                  options={purityOptions}
+                  placeholder="Select Purity"
+                  isDarkMode={isDarkMode}
+                />
               </div>
             </div>
             <div className={modalFooterClass}>
-              <button type="button" onClick={() => setReceiptDetailName(null)} className={closeBtnClass}>
-                Close
-              </button>
+              {receiptDetailName != null ? (
+                <button
+                  type="button"
+                  onClick={() => { setReceiptDetailName(null); setReceiptEditDraft(null); }}
+                  className={closeBtnClass}
+                >
+                  Close
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { setReceiptDetailName(null); setReceiptEditDraft(null); }}
+                    className={cancelBtnClass}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveReceiptModal}
+                    className={saveBtnClass}
+                    disabled={receiptModalSaving}
+                  >
+                    Save
+                  </button>
+                </>
+              )}
             </div>
           </>
         ) : (
           <>
             <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Receipt not found.</p>
             <div className={modalFooterClass}>
-              <button type="button" onClick={() => setReceiptDetailName(null)} className={closeBtnClass}>
+              <button type="button" onClick={() => { setReceiptDetailName(null); setReceiptEditDraft(null); }} className={closeBtnClass}>
                 Close
               </button>
             </div>
@@ -1131,7 +1377,7 @@ export default function JobCardEditPage() {
 
       {/* Issue detail modal – eye opens, all data as input fields, editable; Save updates row locally */}
       <Modal
-        isOpen={issueDetailName != null}
+        isOpen={issueDetailName != null || issueEditDraft != null}
         onClose={() => { setIssueDetailName(null); setIssueDetailIndex(null); setIssueEditDraft(null); }}
         title={issueDetail ? `Issue: ${issueDetail.name}` : issueEditDraft?.name ? `Issue: ${issueEditDraft.name}` : 'Issue details'}
         size="lg"
@@ -1242,12 +1488,33 @@ export default function JobCardEditPage() {
               </div>
             </div>
             <div className={modalFooterClass}>
-              <button type="button" onClick={() => { setIssueDetailName(null); setIssueDetailIndex(null); setIssueEditDraft(null); }} className={cancelBtnClass}>
-                Cancel
-              </button>
-              <button type="button" onClick={handleSaveIssueModal} className={saveBtnClass} disabled={issueModalSaving}>
-                Save
-              </button>
+              {issueDetailName != null ? (
+                <button
+                  type="button"
+                  onClick={() => { setIssueDetailName(null); setIssueDetailIndex(null); setIssueEditDraft(null); }}
+                  className={closeBtnClass}
+                >
+                  Close
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { setIssueDetailName(null); setIssueDetailIndex(null); setIssueEditDraft(null); }}
+                    className={cancelBtnClass}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveIssueModal}
+                    className={saveBtnClass}
+                    disabled={issueModalSaving}
+                  >
+                    Save
+                  </button>
+                </>
+              )}
             </div>
           </>
         ) : (
