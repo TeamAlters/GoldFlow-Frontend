@@ -322,25 +322,6 @@ export default function JobCardEditPage() {
     setIssueDetailIndex(null); // No index for new entries
     setIssueDetailName(null); // No name for new entries
     setIssueEditDraft(draft);
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/9e661e4b-dcf6-42e4-a9d4-87b9c1be1cf9', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '949619',
-      },
-      body: JSON.stringify({
-        sessionId: '949619',
-        location: 'jobCardEdit.tsx:handleAddIssueRow',
-        message: 'Add Issue row clicked - opening modal for new entry',
-        data: {
-          hasInitialData: initialData != null,
-        },
-        timestamp: Date.now(),
-        hypothesisId: 'ADD',
-      }),
-    }).catch(() => { });
-    // #endregion
   }, [initialData]);
 
   const handleDeleteIssueRow = useCallback(
